@@ -7,9 +7,11 @@ import {
 import { subDays, subHours, subMinutes } from "date-fns";
 
 import { INITIAL_BOTS, INITIAL_USERS, PRODUCT_CATALOG } from "../lib/catalog";
+import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient();
 const shouldReset = process.env.SEED_MODE === "reset";
+const SEEDED_ACCOUNT_PASSWORD = "Bazaarly123!";
 
 function average(values: number[]) {
   if (values.length === 0) return 0;
@@ -106,11 +108,13 @@ async function main() {
         email: entry.email,
         displayName: entry.displayName,
         hasCompletedOnboarding: true,
+        passwordHash: hashPassword(SEEDED_ACCOUNT_PASSWORD),
       },
       create: {
         username: entry.username,
         email: entry.email,
         displayName: entry.displayName,
+        passwordHash: hashPassword(SEEDED_ACCOUNT_PASSWORD),
         balance: entry.balance,
         hasCompletedOnboarding: true,
       },
@@ -154,11 +158,13 @@ async function main() {
       email: "bot-market@bazaarly.local",
       displayName: "Bazaarly Bot Market",
       hasCompletedOnboarding: true,
+      passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
     },
     create: {
       username: "bot_market",
       email: "bot-market@bazaarly.local",
       displayName: "Bazaarly Bot Market",
+      passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
       balance: 500000,
       hasCompletedOnboarding: true,
     },

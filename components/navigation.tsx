@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { logoutAction } from "@/app/actions";
 import { formatCurrency } from "@/lib/money";
 
 type NavigationProps = {
@@ -55,7 +54,7 @@ export function Navigation({
         <Link href="/dashboard/supplier">Supplier</Link>
         <Link href="/orders">Orders</Link>
         <Link href="/cart">Cart</Link>
-        <form action={logoutAction}>
+        <form action="/auth/logout" method="post">
           <button type="submit" className="ghost-button small">
             Logout
           </button>
