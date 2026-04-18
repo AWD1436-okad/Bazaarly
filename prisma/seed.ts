@@ -9,6 +9,7 @@ import { subDays, subHours, subMinutes } from "date-fns";
 import { INITIAL_BOTS, INITIAL_USERS, PRODUCT_CATALOG } from "../lib/catalog";
 
 const prisma = new PrismaClient();
+const shouldReset = process.env.SEED_MODE === "reset";
 
 function average(values: number[]) {
   if (values.length === 0) return 0;
@@ -16,20 +17,31 @@ function average(values: number[]) {
 }
 
 async function main() {
-  await prisma.orderLineItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.cart.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.listing.deleteMany();
-  await prisma.inventory.deleteMany();
-  await prisma.botCustomer.deleteMany();
-  await prisma.marketEvent.deleteMany();
-  await prisma.marketProductState.deleteMany();
-  await prisma.shop.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.worldState.deleteMany();
+  const existingUsers = await prisma.user.count();
+  const existingProducts = await prisma.product.count();
+
+  if (!shouldReset && (existingUsers > 0 || existingProducts > 0)) {
+    console.log("Seed skipped because the database already contains live world data.");
+    console.log("Run with SEED_MODE=reset if you intentionally want a full reset.");
+    return;
+  }
+
+  if (shouldReset) {
+    await prisma.orderLineItem.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.cartItem.deleteMany();
+    await prisma.cart.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.listing.deleteMany();
+    await prisma.inventory.deleteMany();
+    await prisma.botCustomer.deleteMany();
+    await prisma.marketEvent.deleteMany();
+    await prisma.marketProductState.deleteMany();
+    await prisma.shop.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.worldState.deleteMany();
+  }
 
   const products = new Map<string, { id: string; basePrice: number }>();
 
