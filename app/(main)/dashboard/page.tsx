@@ -88,17 +88,20 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const hasListings = listings.some((listing) => listing.active && listing.quantity > 0);
   const hasInventory = inventory.some((item) => item.quantity > 0);
   const bestSellers = Object.values(
-    allSales.reduce<Record<string, { name: string; units: number; revenue: number }>>((acc, item) => {
-      const current = acc[item.productId] ?? {
-        name: item.product.name,
-        units: 0,
-        revenue: 0,
-      };
-      current.units += item.quantity;
-      current.revenue += item.lineTotal;
-      acc[item.productId] = current;
-      return acc;
-    }, {}),
+    allSales.reduce<Record<string, { name: string; units: number; revenue: number }>>(
+      (acc, item) => {
+        const current = acc[item.productId] ?? {
+          name: item.product.name,
+          units: 0,
+          revenue: 0,
+        };
+        current.units += item.quantity;
+        current.revenue += item.lineTotal;
+        acc[item.productId] = current;
+        return acc;
+      },
+      {},
+    ),
   )
     .sort((a, b) => b.units - a.units)
     .slice(0, 4);
@@ -177,7 +180,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="section-row">
               <div>
                 <h2>Create or update a listing</h2>
-                <p>Pick an inventory item you own and publish a live price and quantity.</p>
+                <p>
+                  Pick an inventory item you own and publish a live price and quantity.
+                  Listing stock is reserved for sale, not removed from your inventory.
+                </p>
               </div>
               <Link href="/dashboard/supplier" className="ghost-button">
                 Buy from supplier
@@ -195,7 +201,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       .filter((item) => item.availableToList > 0)
                       .map((item) => (
                         <option key={item.id} value={item.productId}>
-                          {item.product.name} · {item.availableToList} available to list
+                          {item.product.name} - {item.availableToList} available to list
                         </option>
                       ))}
                   </select>
@@ -227,13 +233,20 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
           <section className="card">
             <h2>Inventory</h2>
+            <p className="muted">
+              Inventory includes everything you own. Live listings only reserve units from this stock.
+            </p>
             <div className="table-list">
               {inventoryWithAvailable.map((item) => (
                 <div key={item.id} className="table-row">
                   <div className="table-row__meta">
                     <strong>{item.product.name}</strong>
                     <span className="muted">
-                      Owned: {item.quantity} · Reserved: {item.allocatedQuantity} · Free: {item.availableToList}
+                      Owned: {item.quantity} - Reserved: {item.allocatedQuantity} - Free:{" "}
+                      {item.availableToList}
+                      {item.availableToList === 0 && item.allocatedQuantity > 0
+                        ? " - Fully reserved in active listings"
+                        : ""}
                     </span>
                   </div>
                   <strong>{formatCurrency(item.averageUnitCost)}</strong>
@@ -255,7 +268,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     <div className="table-row__meta">
                       <strong>{listing.product.name}</strong>
                       <span className="muted">
-                        {formatCurrency(listing.price)} · {listing.quantity} units · {listing.active ? "Live" : "Paused"}
+                        {formatCurrency(listing.price)} - {listing.quantity} units -{" "}
+                        {listing.active ? "Live" : "Paused"}
                       </span>
                     </div>
                     <div className="table-row__actions">
