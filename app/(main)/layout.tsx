@@ -2,6 +2,9 @@ import { Navigation } from "@/components/navigation";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
+export const preferredRegion = "syd1";
+
 type MainLayoutProps = {
   children: React.ReactNode;
 };

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const preferredRegion = "syd1";
+
 const SESSION_COOKIE_NAME =
   process.env.SESSION_COOKIE_NAME ?? "bazaarly_session";
 

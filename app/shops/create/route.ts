@@ -6,6 +6,9 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
+export const runtime = "nodejs";
+export const preferredRegion = "syd1";
+
 const DEFAULT_STARTING_BALANCE = 22000;
 const STARTER_STOCK = [
   { sku: "food-apples", quantity: 8, cost: 110 },

@@ -6,6 +6,9 @@ import { getSessionUser } from "@/lib/auth";
 import { parseCurrencyInput } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
+export const preferredRegion = "syd1";
+
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
