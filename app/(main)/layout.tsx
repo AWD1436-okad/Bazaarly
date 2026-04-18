@@ -1,4 +1,3 @@
-import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { Navigation } from "@/components/navigation";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +18,6 @@ export default async function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <main className="app-shell">
-      <SimulationHeartbeat />
       <Navigation balance={user.balance} unreadNotifications={unreadNotifications} />
       {children}
     </main>

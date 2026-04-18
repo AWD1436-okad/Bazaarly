@@ -1,4 +1,4 @@
-import { ProductCategory, type Listing, type MarketEvent, type Shop } from "@prisma/client";
+import { Prisma, ProductCategory, ShopStatus, type Listing, type MarketEvent, type Shop } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -78,13 +78,61 @@ function scoreListing(listing: ListingWithRelations, query: string) {
 }
 
 export async function getMarketplaceData(params: MarketplaceParams) {
-  const listings = await prisma.listing.findMany({
-    where: {
-      active: true,
-      shop: {
-        status: "ACTIVE",
-      },
+  const query = params.q?.trim() ?? "";
+  const minPrice = params.minPrice ? Number(params.minPrice) * 100 : null;
+  const maxPrice = params.maxPrice ? Number(params.maxPrice) * 100 : null;
+  const minRating = params.minRating ? Number(params.minRating) : null;
+  const inStockOnly = params.stock === "in";
+  const normalizedQuery = query.toLowerCase();
+  const categoryFilter =
+    params.category && params.category !== "ALL" ? (params.category as ProductCategory) : null;
+
+  const where: Prisma.ListingWhereInput = {
+    active: true,
+    shop: {
+      status: ShopStatus.ACTIVE,
+      ...(minRating ? { rating: { gte: minRating } } : {}),
     },
+    ...(inStockOnly ? { quantity: { gt: 0 } } : {}),
+    ...(minPrice !== null || maxPrice !== null
+      ? {
+          price: {
+            ...(minPrice !== null ? { gte: minPrice } : {}),
+            ...(maxPrice !== null ? { lte: maxPrice } : {}),
+          },
+        }
+      : {}),
+    ...(categoryFilter ? { product: { category: categoryFilter } } : {}),
+  };
+
+  if (query) {
+    const categoryMatches = Object.values(ProductCategory)
+      .filter((value) => value.toLowerCase().includes(normalizedQuery))
+      .map((value) => ({ product: { category: value } as Prisma.ProductWhereInput }));
+
+    where.OR = [
+      { product: { name: { contains: query, mode: "insensitive" } } },
+      { product: { description: { contains: query, mode: "insensitive" } } },
+      { shop: { name: { contains: query, mode: "insensitive" } } },
+      ...categoryMatches,
+    ];
+  }
+
+  const sort = params.sort ?? "relevance";
+
+  const baseOrderBy: Prisma.ListingOrderByWithRelationInput[] =
+    sort === "price-asc"
+      ? [{ price: "asc" as const }]
+      : sort === "price-desc"
+        ? [{ price: "desc" as const }]
+        : sort === "rating"
+          ? [{ shop: { rating: "desc" as const } }, { quantity: "desc" as const }]
+          : sort === "stock"
+            ? [{ quantity: "desc" as const }, { shop: { rating: "desc" as const } }]
+            : [{ updatedAt: "desc" as const }];
+
+  const listings: ListingWithRelations[] = await prisma.listing.findMany({
+    where,
     include: {
       product: true,
       shop: {
@@ -97,13 +145,9 @@ export async function getMarketplaceData(params: MarketplaceParams) {
         },
       },
     },
+    orderBy: baseOrderBy,
+    take: query ? 120 : 60,
   });
-
-  const query = params.q?.trim() ?? "";
-  const minPrice = params.minPrice ? Number(params.minPrice) * 100 : null;
-  const maxPrice = params.maxPrice ? Number(params.maxPrice) * 100 : null;
-  const minRating = params.minRating ? Number(params.minRating) : null;
-  const inStockOnly = params.stock === "in";
 
   const filtered = listings
     .map((listing) => ({
@@ -111,38 +155,12 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       relevanceScore: scoreListing(listing, query),
     }))
     .filter((listing) => {
-      if (
-        params.category &&
-        params.category !== "ALL" &&
-        listing.product.category !== params.category
-      ) {
-        return false;
-      }
-
-      if (inStockOnly && listing.quantity <= 0) {
-        return false;
-      }
-
-      if (minRating && listing.shop.rating < minRating) {
-        return false;
-      }
-
-      if (minPrice !== null && listing.price < minPrice) {
-        return false;
-      }
-
-      if (maxPrice !== null && listing.price > maxPrice) {
-        return false;
-      }
-
       if (!query) {
         return true;
       }
 
       return listing.relevanceScore > 0;
     });
-
-  const sort = params.sort ?? "relevance";
 
   filtered.sort((a, b) => {
     switch (sort) {
@@ -159,33 +177,33 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     }
   });
 
-  const activeEvent = await prisma.marketEvent.findFirst({
-    where: {
-      active: true,
-      startsAt: { lte: new Date() },
-      endsAt: { gte: new Date() },
-    },
-    orderBy: {
-      startsAt: "desc",
-    },
-  });
-
-  const productStates = await prisma.marketProductState.findMany({
-    include: {
-      product: true,
-    },
-    orderBy: [{ demandScore: "desc" }, { popularityScore: "desc" }],
-    take: 5,
-  });
-
-  const topShops = await prisma.shop.findMany({
-    where: { status: "ACTIVE" },
-    orderBy: [{ totalRevenue: "desc" }, { rating: "desc" }],
-    take: 5,
-  });
+  const [activeEvent, productStates, topShops] = await Promise.all([
+    prisma.marketEvent.findFirst({
+      where: {
+        active: true,
+        startsAt: { lte: new Date() },
+        endsAt: { gte: new Date() },
+      },
+      orderBy: {
+        startsAt: "desc",
+      },
+    }),
+    prisma.marketProductState.findMany({
+      include: {
+        product: true,
+      },
+      orderBy: [{ demandScore: "desc" }, { popularityScore: "desc" }],
+      take: 5,
+    }),
+    prisma.shop.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: [{ totalRevenue: "desc" }, { rating: "desc" }],
+      take: 5,
+    }),
+  ]);
 
   return {
-    listings: filtered,
+    listings: filtered.slice(0, 48),
     activeEvent,
     topShops,
     trendingProducts: productStates,

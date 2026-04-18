@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ListingCard } from "@/components/listing-card";
+import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getMarketplaceData } from "@/lib/marketplace";
 
@@ -22,6 +23,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
   return (
     <div className="page-grid">
+      <SimulationHeartbeat intervalMs={180000} initialDelayMs={15000} />
       <section className="hero-card">
         <div className="stack">
           <span className="tag">Marketplace</span>
