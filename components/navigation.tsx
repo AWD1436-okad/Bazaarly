@@ -50,10 +50,18 @@ export function Navigation({
           Notifications
           {unreadNotifications > 0 ? <strong>{unreadNotifications}</strong> : null}
         </Link>
-        <Link href="/dashboard">Dashboard</Link>
-        <Link href="/dashboard/supplier">Supplier</Link>
-        <Link href="/orders">Orders</Link>
-        <Link href="/cart">Cart</Link>
+        <Link href="/dashboard" className="topbar-link">
+          Dashboard
+        </Link>
+        <Link href="/dashboard/supplier" className="topbar-link">
+          Supplier
+        </Link>
+        <Link href="/orders" className="topbar-link">
+          Orders
+        </Link>
+        <Link href="/cart" className="topbar-link">
+          Cart
+        </Link>
         <form action="/auth/logout" method="post">
           <button type="submit" className="ghost-button small">
             Logout
