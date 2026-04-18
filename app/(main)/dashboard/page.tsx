@@ -26,7 +26,13 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     await Promise.all([
       prisma.inventory.findMany({
         where: { userId: user.id },
-        include: { product: true },
+        include: {
+          product: {
+            include: {
+              marketState: true,
+            },
+          },
+        },
         orderBy: { product: { name: "asc" } },
       }),
       prisma.listing.findMany({
@@ -74,9 +80,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const inventoryWithAvailable = inventory.map((item) => ({
     ...item,
     availableToList: item.quantity - item.allocatedQuantity,
+    marketAveragePrice: item.product.marketState?.marketAveragePrice || item.product.basePrice,
   }));
   const freeInventory = inventoryWithAvailable.filter((item) => item.availableToList > 0);
   const visibleListings = listings.filter((listing) => listing.active || listing.quantity <= 0);
+  const defaultListingPrice =
+    freeInventory.length > 0 ? (freeInventory[0].marketAveragePrice / 100).toFixed(2) : "2.50";
 
   const todayRevenue = recentSales
     .filter((order) => order.createdAt.toDateString() === new Date().toDateString())
@@ -208,7 +217,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     type="number"
                     min={0.01}
                     step="0.01"
-                    defaultValue="2.50"
+                    defaultValue={defaultListingPrice}
                   />
                 </label>
                 <button type="submit">Publish listing</button>
@@ -235,9 +244,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   <div key={item.id} className="table-row">
                     <div className="table-row__meta">
                       <strong>{item.product.name}</strong>
-                      <span className="muted">Available in inventory: {item.availableToList}</span>
+                      <span className="muted">
+                        Available in inventory: {item.availableToList} - Market average:{" "}
+                        {formatCurrency(item.marketAveragePrice)}
+                      </span>
                     </div>
-                    <strong>{formatCurrency(item.averageUnitCost)}</strong>
+                    <strong>{formatCurrency(item.marketAveragePrice)}</strong>
                   </div>
                 ))
               )}
