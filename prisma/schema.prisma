@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductCategory {
+  FOOD
+  DRINKS
+  KITCHEN
+  CLOTHES
+  ESSENTIALS
+}
+
+enum ShopStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CartStatus {
+  ACTIVE
+  CHECKED_OUT
+  ABANDONED
+}
+
+enum OrderStatus {
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  SALE
+  LOW_STOCK
+  MARKET
+  SYSTEM
+}
+
+enum BotPersonality {
+  BUDGET
+  QUALITY
+  LOYAL
+  RANDOM
+  BULK
+}
+
+enum MarketTimePhase {
+  MORNING
+  AFTERNOON
+  EVENING
+  NIGHT
+}
+
+model User {
+  id                     String         @id @default(cuid())
+  email                  String         @unique
+  username               String         @unique
+  displayName            String
+  balance                Int            @default(0)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  hasCompletedOnboarding Boolean        @default(false)
+  shop                   Shop?
+  inventories            Inventory[]
+  carts                  Cart[]
+  notifications          Notification[]
+  buyerOrders            Order[]        @relation("BuyerOrders")
+  sellerOrders           Order[]        @relation("SellerOrders")
+}
+
+model Shop {
+  id            String          @id @default(cuid())
+  name          String          @unique
+  slug          String          @unique
+  ownerId       String          @unique
+  description   String
+  categoryFocus ProductCategory?
+  accentColor   String          @default("#2D6A4F")
+  rating        Float           @default(3.5)
+  totalSales    Int             @default(0)
+  totalRevenue  Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  status        ShopStatus      @default(ACTIVE)
+  logoText      String?
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  listings      Listing[]
+  carts         Cart[]
+  loyalBots     BotCustomer[]   @relation("LoyaltyShop")
+  orders        Order[]
+}
+
+model Product {
+  id           String             @id @default(cuid())
+  sku          String             @unique
+  name         String             @unique
+  category     ProductCategory
+  description  String
+  basePrice    Int
+  spoilable    Boolean            @default(false)
+  shelfLife    Int?
+  imageUrl     String?
+  keywords     Json
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  inventories  Inventory[]
+  listings     Listing[]
+  cartItems    CartItem[]
+  lineItems    OrderLineItem[]
+  marketState  MarketProductState?
+  marketEvents MarketEvent[]
+}
+
+model MarketProductState {
+  id                   String    @id @default(cuid())
+  productId            String    @unique
+  currentSupplierPrice Int
+  demandScore          Float     @default(1)
+  popularityScore      Float     @default(1)
+  trendLabel           String    @default("Stable")
+  supplierStock        Int       @default(500)
+  marketAveragePrice   Int       @default(0)
+  updatedAt            DateTime  @updatedAt
+  product              Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Inventory {
+  id                String    @id @default(cuid())
+  userId            String
+  productId         String
+  quantity          Int       @default(0)
+  allocatedQuantity Int       @default(0)
+  averageUnitCost   Int       @default(0)
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Listing {
+  id         String    @id @default(cuid())
+  shopId     String
+  productId  String
+  price      Int
+  quantity   Int
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  shop       Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  lineItems  OrderLineItem[]
+
+  @@unique([shopId, productId])
+}
+
+model Cart {
+  id         String      @id @default(cuid())
+  userId     String
+  shopId     String?
+  status     CartStatus  @default(ACTIVE)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop       Shop?       @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  items      CartItem[]
+
+  @@index([userId, status])
+}
+
+model CartItem {
+  id                String    @id @default(cuid())
+  cartId            String
+  listingId         String
+  productId         String
+  quantity          Int
+  unitPriceSnapshot Int
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  cart              Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  listing           Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, listingId])
+}
+
+model Order {
+  id          String         @id @default(cuid())
+  buyerId     String
+  sellerId    String
+  shopId      String
+  totalPrice  Int
+  feeAmount   Int            @default(0)
+  status      OrderStatus    @default(COMPLETED)
+  createdAt   DateTime       @default(now())
+  buyer       User           @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller      User           @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+  shop        Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  lineItems   OrderLineItem[]
+
+  @@index([buyerId, createdAt])
+  @@index([sellerId, createdAt])
+  @@index([shopId, createdAt])
+}
+
+model OrderLineItem {
+  id         String    @id @default(cuid())
+  orderId    String
+  productId  String
+  listingId  String?
+  quantity   Int
+  unitPrice  Int
+  lineTotal  Int
+  createdAt  DateTime  @default(now())
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  listing    Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  data      Json?
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
+
+model BotCustomer {
+  id                 String          @id @default(cuid())
+  displayName        String          @unique
+  type               BotPersonality
+  budget             Int
+  preferenceCategory ProductCategory
+  loyaltyShopId      String?
+  activityLevel      Int             @default(50)
+  active             Boolean         @default(true)
+  lastPurchasedAt    DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  loyaltyShop        Shop?           @relation("LoyaltyShop", fields: [loyaltyShopId], references: [id], onDelete: SetNull)
+}
+
+model MarketEvent {
+  id          String            @id @default(cuid())
+  name        String
+  slug        String            @unique
+  description String
+  effectType  String
+  effectValue Float
+  active      Boolean           @default(true)
+  startsAt    DateTime
+  endsAt      DateTime
+  category    ProductCategory?
+  productId   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  product     Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([active, startsAt, endsAt])
+}
+
+model WorldState {
+  id              String           @id @default("global")
+  currentDay      Int              @default(1)
+  currentPhase    MarketTimePhase  @default(MORNING)
+  lastSimulatedAt DateTime?
+  updatedAt       DateTime         @updatedAt
+}
