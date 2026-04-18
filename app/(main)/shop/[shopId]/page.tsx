@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import { addToCartAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { getShopPageData } from "@/lib/marketplace";
@@ -61,7 +60,7 @@ export default async function ShopPage({ params }: ShopPageProps) {
                 <span>{shop.name}</span>
               </div>
             </div>
-            <form action={addToCartAction} className="inline-cart-form">
+            <form action="/cart/add" method="post" className="inline-cart-form">
               <input type="hidden" name="listingId" value={listing.id} />
               <input
                 type="number"

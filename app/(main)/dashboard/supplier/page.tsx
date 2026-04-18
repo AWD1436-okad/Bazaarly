@@ -1,4 +1,3 @@
-import { buyFromSupplierAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -69,7 +68,7 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
               </div>
             </div>
 
-            <form action={buyFromSupplierAction} className="inline-form" style={{ marginTop: "1rem" }}>
+            <form action="/supplier/buy" method="post" className="inline-form" style={{ marginTop: "1rem" }}>
               <input type="hidden" name="productId" value={item.productId} />
               <input type="number" name="quantity" min={1} defaultValue={1} max={item.supplierStock} />
               <button type="submit">Buy for {formatCurrency(item.currentSupplierPrice)}</button>

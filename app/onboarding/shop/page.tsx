@@ -1,7 +1,6 @@
 import { ProductCategory } from "@prisma/client";
 import { redirect } from "next/navigation";
 
-import { createShopAction } from "@/app/actions";
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
 import { SHOP_THEMES } from "@/lib/catalog";
@@ -61,7 +60,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
       ) : null}
 
       <section className="card">
-        <form action={createShopAction} className="stack">
+        <form action="/shops/create" method="post" className="stack">
           <div className="filters-grid">
             <label>
               Shop name

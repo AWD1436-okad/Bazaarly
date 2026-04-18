@@ -1,4 +1,3 @@
-import { checkoutAction, updateCartItemAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -82,7 +81,7 @@ export default async function CartPage({ searchParams }: CartProps) {
                     </span>
                   </div>
                   <div className="table-row__actions">
-                    <form action={updateCartItemAction} className="inline-form">
+                    <form action="/cart/item" method="post" className="inline-form">
                       <input type="hidden" name="cartItemId" value={item.id} />
                       <input type="number" name="quantity" min={0} max={item.listing.quantity} defaultValue={item.quantity} />
                       <button type="submit">Update</button>
@@ -102,7 +101,7 @@ export default async function CartPage({ searchParams }: CartProps) {
                   We re-check balance and stock inside a database transaction before the order is completed.
                 </p>
               </div>
-              <form action={checkoutAction}>
+              <form action="/checkout" method="post">
                 <button type="submit">Checkout {formatCurrency(total)}</button>
               </form>
             </div>

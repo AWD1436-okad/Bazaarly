@@ -1,6 +1,4 @@
 import Link from "next/link";
-
-import { addToCartAction } from "@/app/actions";
 import { formatCurrency } from "@/lib/money";
 
 type ListingCardProps = {
@@ -49,7 +47,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         <Link href={`/shop/${listing.shopId}`} className="ghost-button">
           View Shop
         </Link>
-        <form action={addToCartAction} className="inline-cart-form">
+        <form action="/cart/add" method="post" className="inline-cart-form">
           <input type="hidden" name="listingId" value={listing.id} />
           <input type="number" name="quantity" min={1} max={listing.quantity} defaultValue={1} />
           <button type="submit">Add to cart</button>

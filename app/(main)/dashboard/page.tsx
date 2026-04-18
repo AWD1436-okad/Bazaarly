@@ -1,10 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
-import {
-  createOrUpdateListingAction,
-  toggleListingAction,
-} from "@/app/actions";
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
@@ -190,7 +185,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               </Link>
             </div>
             {inventoryWithAvailable.some((item) => item.availableToList > 0) ? (
-              <form action={createOrUpdateListingAction} className="stack-sm">
+              <form action="/listings/save" method="post" className="stack-sm">
                 <label>
                   Product
                   <select name="productId" defaultValue="">
@@ -273,7 +268,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       </span>
                     </div>
                     <div className="table-row__actions">
-                      <form action={createOrUpdateListingAction} className="inline-form">
+                      <form action="/listings/save" method="post" className="inline-form">
                         <input type="hidden" name="productId" value={listing.productId} />
                         <input name="quantity" type="number" min={1} defaultValue={listing.quantity} />
                         <input
@@ -285,7 +280,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         />
                         <button type="submit">Save</button>
                       </form>
-                      <form action={toggleListingAction}>
+                      <form action="/listings/pause" method="post">
                         <input type="hidden" name="listingId" value={listing.id} />
                         <button type="submit" className="ghost-button">
                           Pause

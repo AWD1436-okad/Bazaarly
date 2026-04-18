@@ -1,4 +1,3 @@
-import { markNotificationsReadAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -23,7 +22,7 @@ export default async function NotificationsPage() {
             <h2>Notification center</h2>
             <p>Unread items stay highlighted until you mark them read.</p>
           </div>
-          <form action={markNotificationsReadAction}>
+          <form action="/notifications/read-all" method="post">
             <button type="submit">Mark all as read</button>
           </form>
         </div>
