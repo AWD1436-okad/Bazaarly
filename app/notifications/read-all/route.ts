@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
   await prisma.notification.updateMany({
@@ -21,5 +21,5 @@ export async function POST(request: Request) {
   });
 
   revalidatePath("/notifications");
-  return NextResponse.redirect(new URL("/notifications", request.url));
+  return NextResponse.redirect(new URL("/notifications", request.url), 303);
 }

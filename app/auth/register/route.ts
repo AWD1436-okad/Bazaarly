@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   if (!displayName || !username || !email || password.length < 8) {
     return NextResponse.redirect(
       new URL("/login?error=Enter%20all%20fields%20and%20use%20an%208+%20character%20password", request.url),
+      303,
     );
   }
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   if (existing) {
     return NextResponse.redirect(
       new URL("/login?error=That%20username%20or%20email%20is%20already%20in%20use", request.url),
+      303,
     );
   }
 
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const response = NextResponse.redirect(new URL("/onboarding/shop", request.url));
+  const response = NextResponse.redirect(new URL("/onboarding/shop", request.url), 303);
   response.cookies.set(SESSION_COOKIE_NAME, user.id, {
     httpOnly: true,
     sameSite: "lax",

@@ -8,7 +8,7 @@ import { clamp } from "@/lib/utils";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
   const formData = await request.formData();
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   });
 
   if (!cartItem || cartItem.cart.userId !== user.id) {
-    return NextResponse.redirect(new URL("/cart", request.url));
+    return NextResponse.redirect(new URL("/cart", request.url), 303);
   }
 
   if (quantity <= 0) {
@@ -43,5 +43,5 @@ export async function POST(request: Request) {
   }
 
   revalidatePath("/cart");
-  return NextResponse.redirect(new URL("/cart", request.url));
+  return NextResponse.redirect(new URL("/cart", request.url), 303);
 }

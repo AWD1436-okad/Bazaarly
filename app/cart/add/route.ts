@@ -8,7 +8,7 @@ import { clamp } from "@/lib/utils";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
   const formData = await request.formData();
@@ -26,12 +26,14 @@ export async function POST(request: Request) {
   if (!listing || !listing.active || listing.quantity < quantity) {
     return NextResponse.redirect(
       new URL("/marketplace?error=Listing%20is%20not%20available", request.url),
+      303,
     );
   }
 
   if (listing.shop.ownerId === user.id) {
     return NextResponse.redirect(
       new URL("/marketplace?error=You%20cannot%20buy%20from%20your%20own%20shop", request.url),
+      303,
     );
   }
 
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
   if (existingCart && existingCart.shopId && existingCart.shopId !== listing.shopId) {
     return NextResponse.redirect(
       new URL("/cart?error=Checkout%20is%20single-seller%20for%20this%20version", request.url),
+      303,
     );
   }
 
@@ -71,6 +74,7 @@ export async function POST(request: Request) {
   if (nextQuantity > listing.quantity) {
     return NextResponse.redirect(
       new URL("/cart?error=Not%20enough%20stock%20for%20that%20quantity", request.url),
+      303,
     );
   }
 
@@ -95,5 +99,5 @@ export async function POST(request: Request) {
   }
 
   revalidatePath("/cart");
-  return NextResponse.redirect(new URL("/cart?added=1", request.url));
+  return NextResponse.redirect(new URL("/cart?added=1", request.url), 303);
 }

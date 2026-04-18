@@ -8,10 +8,10 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
   if (!user.shop) {
-    return NextResponse.redirect(new URL("/onboarding/shop", request.url));
+    return NextResponse.redirect(new URL("/onboarding/shop", request.url), 303);
   }
 
   const formData = await request.formData();
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   if (!Number.isInteger(quantity) || quantity <= 0) {
     return NextResponse.redirect(
       new URL("/dashboard/supplier?error=Enter%20a%20valid%20quantity", request.url),
+      303,
     );
   }
 
@@ -111,10 +112,11 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Supplier purchase failed";
     return NextResponse.redirect(
       new URL(`/dashboard/supplier?error=${encodeURIComponent(message)}`, request.url),
+      303,
     );
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/supplier");
-  return NextResponse.redirect(new URL("/dashboard?supplierSuccess=1", request.url));
+  return NextResponse.redirect(new URL("/dashboard?supplierSuccess=1", request.url), 303);
 }

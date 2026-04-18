@@ -216,13 +216,10 @@ export async function getShopPageData(shopId: string) {
     include: {
       owner: true,
       listings: {
-        where: { active: true },
         include: {
           product: true,
         },
-        orderBy: {
-          updatedAt: "desc",
-        },
+        orderBy: [{ active: "desc" }, { quantity: "desc" }, { updatedAt: "desc" }],
       },
     },
   });

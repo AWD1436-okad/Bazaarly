@@ -9,7 +9,7 @@ import { clamp } from "@/lib/utils";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
   const cart = await prisma.cart.findFirst({
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   });
 
   if (!cart || cart.items.length === 0 || !cart.shop) {
-    return NextResponse.redirect(new URL("/cart?error=Your%20cart%20is%20empty", request.url));
+    return NextResponse.redirect(new URL("/cart?error=Your%20cart%20is%20empty", request.url), 303);
   }
 
   try {
@@ -203,6 +203,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Checkout failed";
     return NextResponse.redirect(
       new URL(`/cart?error=${encodeURIComponent(message)}`, request.url),
+      303,
     );
   }
 
@@ -210,5 +211,5 @@ export async function POST(request: Request) {
   revalidatePath("/cart");
   revalidatePath("/orders");
   revalidatePath("/dashboard");
-  return NextResponse.redirect(new URL("/orders?checkout=1", request.url));
+  return NextResponse.redirect(new URL("/orders?checkout=1", request.url), 303);
 }

@@ -7,25 +7,56 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
   const formData = await request.formData();
   const listingId = String(formData.get("listingId") ?? "");
 
-  await prisma.listing.updateMany({
-    where: {
-      id: listingId,
-      shop: {
-        ownerId: user.id,
+  await prisma.$transaction(async (tx) => {
+    const listing = await tx.listing.findFirst({
+      where: {
+        id: listingId,
+        shop: {
+          ownerId: user.id,
+        },
       },
-    },
-    data: {
-      active: false,
-    },
+    });
+
+    if (!listing) {
+      return;
+    }
+
+    await tx.listing.update({
+      where: { id: listing.id },
+      data: {
+        active: false,
+        quantity: 0,
+      },
+    });
+
+    const inventory = await tx.inventory.findUnique({
+      where: {
+        userId_productId: {
+          userId: user.id,
+          productId: listing.productId,
+        },
+      },
+    });
+
+    if (inventory) {
+      await tx.inventory.update({
+        where: { id: inventory.id },
+        data: {
+          allocatedQuantity: {
+            decrement: listing.quantity,
+          },
+        },
+      });
+    }
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
-  return NextResponse.redirect(new URL("/dashboard", request.url));
+  return NextResponse.redirect(new URL("/dashboard", request.url), 303);
 }

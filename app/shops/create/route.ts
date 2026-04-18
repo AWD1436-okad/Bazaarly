@@ -16,10 +16,10 @@ const STARTER_STOCK = [
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
   if (user.shop) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url), 303);
   }
 
   const formData = await request.formData();
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
   if (!name || !description) {
     return NextResponse.redirect(
       new URL("/onboarding/shop?error=Complete%20all%20required%20fields", request.url),
+      303,
     );
   }
 
@@ -102,5 +103,5 @@ export async function POST(request: Request) {
 
   revalidatePath("/dashboard");
   revalidatePath("/onboarding/shop");
-  return NextResponse.redirect(new URL("/dashboard?welcome=1", request.url));
+  return NextResponse.redirect(new URL("/dashboard?welcome=1", request.url), 303);
 }

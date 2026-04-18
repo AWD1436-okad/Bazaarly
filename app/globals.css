@@ -181,6 +181,18 @@ textarea {
   font-size: 0.8rem;
 }
 
+.stock-chip--soldout {
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--danger);
+}
+
+.sold-out-button {
+  width: 100%;
+  background: rgba(92, 102, 112, 0.16);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 .topbar-link,
 .notification-pill {
   min-height: 48px;

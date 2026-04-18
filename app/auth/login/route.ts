@@ -14,6 +14,7 @@ export async function POST(request: Request) {
   if (!usernameOrEmail || !password) {
     return NextResponse.redirect(
       new URL("/login?error=Enter%20your%20username%20and%20password", request.url),
+      303,
     );
   }
 
@@ -27,11 +28,13 @@ export async function POST(request: Request) {
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.redirect(
       new URL("/login?error=Incorrect%20username%20or%20password", request.url),
+      303,
     );
   }
 
   const response = NextResponse.redirect(
     new URL(user.shop ? "/dashboard" : "/onboarding/shop", request.url),
+    303,
   );
 
   response.cookies.set(SESSION_COOKIE_NAME, user.id, {

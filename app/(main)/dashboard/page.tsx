@@ -75,12 +75,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     ...item,
     availableToList: item.quantity - item.allocatedQuantity,
   }));
+  const freeInventory = inventoryWithAvailable.filter((item) => item.availableToList > 0);
+  const visibleListings = listings.filter((listing) => listing.active || listing.quantity <= 0);
 
   const todayRevenue = recentSales
     .filter((order) => order.createdAt.toDateString() === new Date().toDateString())
     .reduce((sum, order) => sum + order.totalPrice, 0);
 
-  const hasListings = listings.some((listing) => listing.active && listing.quantity > 0);
+  const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = inventory.some((item) => item.quantity > 0);
   const bestSellers = Object.values(
     allSales.reduce<Record<string, { name: string; units: number; revenue: number }>>(
@@ -176,15 +178,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div>
                 <h2>Create or update a listing</h2>
                 <p>
-                  Pick an inventory item you own and publish a live price and quantity.
-                  Listing stock is reserved for sale, not removed from your inventory.
+                  Pick an inventory item you own and publish it live. Bazaarly will move
+                  all free units for that product into your active listing automatically.
                 </p>
               </div>
               <Link href="/dashboard/supplier" className="ghost-button">
                 Buy from supplier
               </Link>
             </div>
-            {inventoryWithAvailable.some((item) => item.availableToList > 0) ? (
+            {freeInventory.length > 0 ? (
               <form action="/listings/save" method="post" className="stack-sm">
                 <label>
                   Product
@@ -192,36 +194,28 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     <option value="" disabled>
                       Choose inventory
                     </option>
-                    {inventoryWithAvailable
-                      .filter((item) => item.availableToList > 0)
-                      .map((item) => (
+                    {freeInventory.map((item) => (
                         <option key={item.id} value={item.productId}>
                           {item.product.name} - {item.availableToList} available to list
                         </option>
                       ))}
                   </select>
                 </label>
-                <div className="filters-grid">
-                  <label>
-                    Quantity
-                    <input name="quantity" type="number" min={1} defaultValue={1} />
-                  </label>
-                  <label>
-                    Sale price
-                    <input
-                      name="price"
-                      type="number"
-                      min={0.01}
-                      step="0.01"
-                      defaultValue="2.50"
-                    />
-                  </label>
-                </div>
+                <label>
+                  Sale price
+                  <input
+                    name="price"
+                    type="number"
+                    min={0.01}
+                    step="0.01"
+                    defaultValue="2.50"
+                  />
+                </label>
                 <button type="submit">Publish listing</button>
               </form>
             ) : (
               <div className="empty-state">
-                All of your inventory is already allocated to listings or you need more stock first.
+                All of your current stock is already live in listings, or you need more stock first.
               </div>
             )}
           </section>
@@ -229,63 +223,68 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           <section className="card">
             <h2>Inventory</h2>
             <p className="muted">
-              Inventory includes everything you own. Live listings only reserve units from this stock.
+              This section only shows stock that is not currently live in your shop.
             </p>
             <div className="table-list">
-              {inventoryWithAvailable.map((item) => (
-                <div key={item.id} className="table-row">
-                  <div className="table-row__meta">
-                    <strong>{item.product.name}</strong>
-                    <span className="muted">
-                      Owned: {item.quantity} - Reserved: {item.allocatedQuantity} - Free:{" "}
-                      {item.availableToList}
-                      {item.availableToList === 0 && item.allocatedQuantity > 0
-                        ? " - Fully reserved in active listings"
-                        : ""}
-                    </span>
-                  </div>
-                  <strong>{formatCurrency(item.averageUnitCost)}</strong>
+              {freeInventory.length === 0 ? (
+                <div className="empty-state">
+                  All of your stock is currently moved into active listings.
                 </div>
-              ))}
+              ) : (
+                freeInventory.map((item) => (
+                  <div key={item.id} className="table-row">
+                    <div className="table-row__meta">
+                      <strong>{item.product.name}</strong>
+                      <span className="muted">Available in inventory: {item.availableToList}</span>
+                    </div>
+                    <strong>{formatCurrency(item.averageUnitCost)}</strong>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
           <section className="card">
-            <h2>Active listings</h2>
-            {listings.length === 0 ? (
+            <h2>Shop listings</h2>
+            {visibleListings.length === 0 ? (
               <div className="empty-state">
                 You have not published any listings yet.
               </div>
             ) : (
               <div className="table-list">
-                {listings.map((listing) => (
+                {visibleListings.map((listing) => (
                   <div key={listing.id} className="table-row">
                     <div className="table-row__meta">
                       <strong>{listing.product.name}</strong>
                       <span className="muted">
-                        {formatCurrency(listing.price)} - {listing.quantity} units -{" "}
-                        {listing.active ? "Live" : "Paused"}
+                        {formatCurrency(listing.price)} -{" "}
+                        {listing.quantity > 0 ? `${listing.quantity} units live` : "Sold out"}
                       </span>
                     </div>
                     <div className="table-row__actions">
-                      <form action="/listings/save" method="post" className="inline-form">
-                        <input type="hidden" name="productId" value={listing.productId} />
-                        <input name="quantity" type="number" min={1} defaultValue={listing.quantity} />
-                        <input
-                          name="price"
-                          type="number"
-                          min={0.01}
-                          step="0.01"
-                          defaultValue={(listing.price / 100).toFixed(2)}
-                        />
-                        <button type="submit">Save</button>
-                      </form>
-                      <form action="/listings/pause" method="post">
-                        <input type="hidden" name="listingId" value={listing.id} />
-                        <button type="submit" className="ghost-button">
-                          Pause
-                        </button>
-                      </form>
+                      {listing.quantity > 0 ? (
+                        <>
+                          <form action="/listings/save" method="post" className="inline-form">
+                            <input type="hidden" name="productId" value={listing.productId} />
+                            <input
+                              name="price"
+                              type="number"
+                              min={0.01}
+                              step="0.01"
+                              defaultValue={(listing.price / 100).toFixed(2)}
+                            />
+                            <button type="submit">Save</button>
+                          </form>
+                          <form action="/listings/pause" method="post">
+                            <input type="hidden" name="listingId" value={listing.id} />
+                            <button type="submit" className="ghost-button">
+                              Remove
+                            </button>
+                          </form>
+                        </>
+                      ) : (
+                        <span className="stock-chip stock-chip--soldout">Sold out</span>
+                      )}
                     </div>
                   </div>
                 ))}

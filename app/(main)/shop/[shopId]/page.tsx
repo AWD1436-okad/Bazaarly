@@ -48,7 +48,9 @@ export default async function ShopPage({ params }: ShopPageProps) {
           <article key={listing.id} className="listing-card">
             <div className="listing-card__header">
               <span className="category-chip">{listing.product.category}</span>
-              <span className="stock-chip">{listing.quantity} available</span>
+              <span className={`stock-chip ${listing.quantity <= 0 ? "stock-chip--soldout" : ""}`}>
+                {listing.quantity <= 0 ? "Sold out" : `${listing.quantity} available`}
+              </span>
             </div>
             <div className="listing-card__body">
               <h3>{listing.product.name}</h3>
@@ -60,17 +62,25 @@ export default async function ShopPage({ params }: ShopPageProps) {
                 <span>{shop.name}</span>
               </div>
             </div>
-            <form action="/cart/add" method="post" className="inline-cart-form">
-              <input type="hidden" name="listingId" value={listing.id} />
-              <input
-                type="number"
-                name="quantity"
-                min={1}
-                max={listing.quantity}
-                defaultValue={1}
-              />
-              <button type="submit">Add to cart</button>
-            </form>
+            {listing.quantity > 0 ? (
+              <form action="/cart/add" method="post" className="inline-cart-form">
+                <input type="hidden" name="listingId" value={listing.id} />
+                <input
+                  type="number"
+                  name="quantity"
+                  min={1}
+                  max={listing.quantity}
+                  defaultValue={1}
+                />
+                <button type="submit">Add to cart</button>
+              </form>
+            ) : (
+              <div className="inline-cart-form">
+                <button type="button" disabled className="sold-out-button">
+                  Sold out
+                </button>
+              </div>
+            )}
           </article>
         ))}
       </section>

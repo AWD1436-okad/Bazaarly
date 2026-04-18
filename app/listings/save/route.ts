@@ -9,21 +9,21 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url), 303);
   }
   if (!user.shop) {
-    return NextResponse.redirect(new URL("/onboarding/shop", request.url));
+    return NextResponse.redirect(new URL("/onboarding/shop", request.url), 303);
   }
   const shop = user.shop;
 
   const formData = await request.formData();
   const productId = String(formData.get("productId") ?? "");
-  const quantity = Number(formData.get("quantity") ?? 0);
   const priceCents = parseCurrencyInput(String(formData.get("price") ?? ""));
 
-  if (!Number.isInteger(quantity) || quantity <= 0 || !priceCents || priceCents <= 0) {
+  if (!priceCents || priceCents <= 0) {
     return NextResponse.redirect(
       new URL("/dashboard?error=Enter%20a%20valid%20price%20and%20quantity", request.url),
+      303,
     );
   }
 
@@ -55,10 +55,10 @@ export async function POST(request: Request) {
       });
 
       const currentlyAllocated = inventory.allocatedQuantity - (listing?.quantity ?? 0);
-      const maxListable = inventory.quantity - currentlyAllocated;
+      const quantity = inventory.quantity - currentlyAllocated;
 
-      if (quantity > maxListable) {
-        throw new Error("Listing quantity exceeds available inventory");
+      if (quantity <= 0) {
+        throw new Error("No free inventory is available to list");
       }
 
       if (listing) {
@@ -101,10 +101,11 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Listing update failed";
     return NextResponse.redirect(
       new URL(`/dashboard?error=${encodeURIComponent(message)}`, request.url),
+      303,
     );
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
-  return NextResponse.redirect(new URL("/dashboard?listingSuccess=1", request.url));
+  return NextResponse.redirect(new URL("/dashboard?listingSuccess=1", request.url), 303);
 }
