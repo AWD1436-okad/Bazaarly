@@ -247,6 +247,20 @@ model Session {
   @@index([userId, expiresAt])
 }
 
+model AuthThrottle {
+  id              String    @id @default(cuid())
+  action          String
+  keyHash         String
+  attemptCount    Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([action, keyHash])
+  @@index([action, blockedUntil])
+}
+
 model BotCustomer {
   id                 String          @id @default(cuid())
   displayName        String          @unique

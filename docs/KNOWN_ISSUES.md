@@ -20,6 +20,7 @@
 - Add more explicit server-side validation and rate limiting
 - Add lightweight session and request hardening without introducing paid services or new infrastructure
 - Apply the new session-table migration in the target database before relying on the hardening change in a deployed environment
+- Apply the new auth-throttle migration in the target database before relying on the new login/register cooldown guards in a deployed environment
 - Decide whether the next hardening step should be lightweight abuse resistance on sensitive POST routes or validation coverage for any smaller remaining action routes
 - Add observability around slow routes and checkout timing later if still needed
 - Review whether the dashboard create-listing picker eventually needs a dedicated searchable selector if very large inventories become common

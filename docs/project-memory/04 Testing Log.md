@@ -79,6 +79,28 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 2 - Auth Cooldown Pass - 2026-04-19
+
+Changes added in this pass:
+
+- added a tiny Prisma-backed `AuthThrottle` model and migration
+- added lightweight cooldown guards on login and register
+- kept the current redirect-based auth UX while slowing repeated failed login attempts and burst sign-up attempts
+
+Checks run:
+
+- `npx prisma generate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `prisma generate`: passed after rerunning with network access for Prisma binaries
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Milestone 1 - Performance Pass - 2026-04-19
 
 Checks run after the first implementation pass:

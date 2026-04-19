@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
 import {
+  clearAuthThrottle,
+  createLoginThrottleKey,
+  getAuthThrottleBlock,
+  recordAuthThrottleAttempt,
+} from "@/lib/auth-throttle";
+import {
   createSessionToken,
   getSessionCookieName,
   getSessionCookieOptions,
@@ -23,6 +29,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const throttleKey = createLoginThrottleKey(request, usernameOrEmail);
+  const blockedUntil = await getAuthThrottleBlock("LOGIN", throttleKey);
+
+  if (blockedUntil) {
+    return NextResponse.redirect(
+      new URL("/login?error=Too%20many%20login%20attempts.%20Please%20wait%20a%20few%20minutes", request.url),
+      303,
+    );
+  }
+
   const user = await prisma.user.findFirst({
     where: {
       OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
@@ -31,11 +47,19 @@ export async function POST(request: Request) {
   });
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
+    const nextBlockedUntil = await recordAuthThrottleAttempt("LOGIN", throttleKey);
     return NextResponse.redirect(
-      new URL("/login?error=Incorrect%20username%20or%20password", request.url),
+      new URL(
+        nextBlockedUntil
+          ? "/login?error=Too%20many%20login%20attempts.%20Please%20wait%20a%20few%20minutes"
+          : "/login?error=Incorrect%20username%20or%20password",
+        request.url,
+      ),
       303,
     );
   }
+
+  await clearAuthThrottle("LOGIN", throttleKey);
 
   const response = NextResponse.redirect(
     new URL(user.shop ? "/dashboard" : "/onboarding/shop", request.url),

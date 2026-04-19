@@ -66,7 +66,11 @@ Completed Milestone 2 change so far:
 - sensitive POST routes now share stricter server-side validation for ids, quantities, and listing-price inputs
 - malformed, empty, negative, zero, NaN, and out-of-range numeric inputs are rejected before database work on listing save, supplier buy, cart add/update, and listing pause routes
 - checkout now rejects invalid or inconsistent cart state earlier before entering the expensive transaction path
+- login now uses a small Prisma-backed cooldown guard keyed to request fingerprint plus username/email input after repeated failed attempts
+- register now uses a small Prisma-backed cooldown guard keyed to the request fingerprint to slow burst sign-up attempts
+- no external rate-limiting service or paid infrastructure was introduced
 
 Immediate Milestone 2 follow-up:
 - apply the new session migration where the app database is managed
-- continue with the next smallest request-hardening step, likely around lightweight abuse resistance or remaining sensitive POST actions
+- apply the new auth-throttle migration where the app database is managed
+- continue with the next smallest hardening step, likely a tiny cooldown on one or two highest-risk transaction routes if still needed

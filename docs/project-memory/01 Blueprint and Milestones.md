@@ -54,6 +54,7 @@ Status:
 - Started
 - First step implemented: raw user-id cookie trust replaced by a Prisma-backed session-token model
 - Second step implemented: stricter shared validation added around the most sensitive POST routes
+- Third step implemented: lightweight auth-route abuse resistance added for login and register
 - Remaining Milestone 2 work should stay narrow and free-tier-safe
 
 Scope:
@@ -66,6 +67,7 @@ Planned implementation shape:
 - smallest sensible session hardening first
 - input validation tightening on cart, listings, supplier buy, checkout, and nearby account flows
 - low-cost request hardening that does not require external services
+- tiny Prisma-backed cooldown guards on the highest-risk auth paths before considering any wider throttling
 
 ### Milestone 3
 

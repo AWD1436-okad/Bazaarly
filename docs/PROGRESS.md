@@ -51,6 +51,12 @@ Second hardening step completed:
 - hardened listing save, listing pause, supplier buy, cart add, cart quantity update, and checkout preflight validation
 - malformed or out-of-range ids and numeric inputs are now rejected earlier before database work starts
 
+Third hardening step completed:
+- added a tiny Prisma-backed auth cooldown model for login and register
+- repeated failed login attempts now trigger a short cooldown per request fingerprint plus username/email input
+- repeated sign-up attempts now trigger a short cooldown per request fingerprint
+- no external rate-limiting service or paid security product was added
+
 ## Milestone 1 Closeout
 
 Milestone 1 is effectively complete.

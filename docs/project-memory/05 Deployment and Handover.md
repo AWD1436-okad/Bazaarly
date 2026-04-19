@@ -17,6 +17,7 @@
 - Keep repo docs and project-memory files updated when milestones are completed
 - Keep the current setup free-tier compatible and avoid changes that require paid hosting or add-on services
 - Apply the session-table migration before relying on the new session-token auth flow in any environment
+- Apply the auth-throttle migration before relying on the new login/register cooldown guards in any environment
 
 ## Handover Notes
 
@@ -59,4 +60,5 @@ Current Milestone 2 note:
 
 - the first hardening step is now implemented in code using a Prisma-backed session-token model
 - the second hardening step is now implemented in code using stricter shared validation on sensitive POST routes
-- the next small step should stay narrow, likely lightweight abuse resistance or remaining request hardening that fits the free-tier stack
+- the third hardening step is now implemented in code using tiny Prisma-backed cooldown guards on login and register
+- the next small step should stay narrow, likely only one or two high-risk transaction-route cooldowns if they are still worth the added complexity

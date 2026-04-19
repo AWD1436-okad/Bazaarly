@@ -12,6 +12,7 @@
 - Keep Milestone 2 limited to the smallest sensible session and request hardening work
 - Use a Prisma-backed session table rather than introducing a paid or third-party auth product
 - Use lightweight shared route-validation helpers for sensitive POST routes instead of a broad handler rewrite
+- Use a tiny Prisma-backed auth-throttle record for login/register instead of any external rate-limiting service
 
 ## Current Assumptions
 

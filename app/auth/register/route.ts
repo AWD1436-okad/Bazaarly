@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import {
+  createRegisterThrottleKey,
+  getAuthThrottleBlock,
+  recordAuthThrottleAttempt,
+} from "@/lib/auth-throttle";
+import {
   createSessionToken,
   getSessionCookieName,
   getSessionCookieOptions,
@@ -17,6 +22,7 @@ export async function POST(request: Request) {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const throttleKey = createRegisterThrottleKey(request);
 
   if (!displayName || !username || !email || password.length < 8) {
     return NextResponse.redirect(
@@ -24,6 +30,17 @@ export async function POST(request: Request) {
       303,
     );
   }
+
+  const blockedUntil = await getAuthThrottleBlock("REGISTER", throttleKey);
+
+  if (blockedUntil) {
+    return NextResponse.redirect(
+      new URL("/login?error=Too%20many%20sign-up%20attempts.%20Please%20wait%20a%20few%20minutes", request.url),
+      303,
+    );
+  }
+
+  await recordAuthThrottleAttempt("REGISTER", throttleKey);
 
   const existing = await prisma.user.findFirst({
     where: {
