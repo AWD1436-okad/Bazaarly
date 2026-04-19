@@ -2,7 +2,7 @@
 
 ## Overview
 
-Bazaarly is a server-rendered Next.js application backed by PostgreSQL through Prisma. The app uses one shared database and one shared market state so every player exists in the same world.
+Bazaarly is a server-rendered Next.js application backed by PostgreSQL through Prisma. In production, the app is hosted on Vercel and the shared database is hosted on Neon. The app uses one shared database and one shared market state so every player exists in the same world.
 
 ## Main Layers
 
@@ -19,7 +19,7 @@ Bazaarly is a server-rendered Next.js application backed by PostgreSQL through P
 
 1. The user loads a Next.js page or submits a form
 2. A route handler validates and processes the request
-3. Prisma writes or reads shared data from PostgreSQL
+3. Prisma writes or reads shared data from Neon Postgres
 4. The page re-renders with updated marketplace state
 
 ## Core Domain Models
@@ -56,5 +56,7 @@ Bazaarly is a server-rendered Next.js application backed by PostgreSQL through P
 ## Deployment Notes
 
 - Production hosting is on Vercel
-- Production database is PostgreSQL
+- Production database provider is Neon
+- Prisma uses the `postgresql` datasource provider
 - `vercel.json` pins the app to `syd1` to stay close to the Australia-hosted database
+- Production URL is [https://bazaarly.vercel.app](https://bazaarly.vercel.app)

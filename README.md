@@ -4,11 +4,13 @@ Bazaarly is a full-stack online marketplace simulation built with Next.js and Pr
 
 ## Stack
 
-- Next.js App Router
-- TypeScript
-- Prisma ORM
-- PostgreSQL
-- Vercel hosting
+- Frontend and backend: Next.js App Router
+- Language: TypeScript
+- ORM: Prisma
+- Database engine: PostgreSQL
+- Hosted database provider: Neon
+- Hosting platform: Vercel
+- Production function region: `syd1`
 
 ## Current Scope
 
@@ -45,6 +47,13 @@ Bazaarly is a full-stack online marketplace simulation built with Next.js and Pr
 2. Run `npm run db:deploy`
 3. Run `npm run db:seed` if the target database is new
 4. Build with `npm run vercel-build`
+
+## Hosted Environment
+
+- GitHub repo: `AWD1436-okad/Bazaarly`
+- Production app URL: [https://bazaarly.vercel.app](https://bazaarly.vercel.app)
+- Production database: Neon Postgres
+- Prisma datasource provider: `postgresql`
 
 ## Verification
 

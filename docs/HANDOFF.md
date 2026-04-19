@@ -21,7 +21,11 @@ Bazaarly is live as a persistent multiplayer marketplace app with working buy/se
 ## Production Shape
 
 - App host: Vercel
-- Database: PostgreSQL
+- Database provider: Neon
+- Database engine: PostgreSQL
+- ORM: Prisma
+- GitHub repo: `AWD1436-okad/Bazaarly`
+- Production URL: [https://bazaarly.vercel.app](https://bazaarly.vercel.app)
 - Region preference: Sydney via `vercel.json`
 
 ## Operational Notes
@@ -30,6 +34,7 @@ Bazaarly is live as a persistent multiplayer marketplace app with working buy/se
 - If production data is new or reset, run migrations before seeding
 - Seeded accounts and sample world state are intended for initial world setup only
 - Older pre-password accounts should not be reused; recreate them with normal password auth if needed
+- Prisma is configured with `DATABASE_URL` and `DATABASE_URL_UNPOOLED`
 
 ## Files To Check First
 

@@ -9,7 +9,7 @@
 - Password-based auth for real accounts
 - Expanded catalog across groceries, drinks, household, clothes, and essentials
 - Bot simulation, demand changes, supplier repricing, and trend/event support
-- Production deployment on Vercel with shared PostgreSQL
+- Production deployment on Vercel with shared Neon Postgres
 - Region pinning to Sydney to reduce app-to-database latency
 
 ## Recent Changes
