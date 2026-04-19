@@ -24,7 +24,8 @@
 - Existing docs already explain the system shape and live state
 - This project-memory folder adds milestone continuity and audit history
 - Milestone 1 is effectively complete from a performance and cost-control perspective
-- The next phase should be Milestone 2: small, free-tier-safe session and request hardening
+- Milestone 2 is effectively complete for the smallest sensible hardening goal
+- Bazaarly should now be treated as v1-ready pending migration and verification
 - Before any future launch or major handoff, this file should be updated with:
   - latest production state
   - latest verification results
@@ -47,18 +48,20 @@ If local verification is needed later, try these steps in this order:
 
 This is currently documented as an environment issue, not as a confirmed Bazaarly application defect.
 
-## Next Planned Phase
+## Launch Checklist Summary
 
-Milestone 2 should stay small and free-tier-safe:
+Before calling v1 launched:
 
-- harden the current session approach without a full auth rewrite
-- tighten validation on sensitive POST routes
-- add the smallest sensible request-abuse protections that fit the existing stack
-- avoid paid auth products, new infrastructure, and major architecture changes
+1. apply all Prisma migrations in the real database
+2. confirm the deployment is running against the migrated schema
+3. run final manual QA for auth, onboarding, supplier, listings, cart, checkout, notifications, orders, dashboard, and marketplace flows
+4. confirm no launch-blocking issue appears during that QA pass
 
-Current Milestone 2 note:
+## Required Launch Migrations
 
-- the first hardening step is now implemented in code using a Prisma-backed session-token model
-- the second hardening step is now implemented in code using stricter shared validation on sensitive POST routes
-- the third hardening step is now implemented in code using tiny Prisma-backed cooldown guards on login and register
-- the next small step should stay narrow, likely only one or two high-risk transaction-route cooldowns if they are still worth the added complexity
+Apply these in order:
+
+1. `20260418015138_init`
+2. `20260418184000_add_password_hash`
+3. `20260419110000_add_sessions`
+4. `20260419123000_add_auth_throttle`

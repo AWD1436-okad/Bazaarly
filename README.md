@@ -55,6 +55,21 @@ Bazaarly is a full-stack online marketplace simulation built with Next.js and Pr
 - Production database: Neon Postgres
 - Prisma datasource provider: `postgresql`
 
+## V1 Launch Status
+
+Bazaarly is v1-ready pending:
+
+- applying the latest Prisma migrations to the real database
+- redeploying with the migrated schema in place
+- running final manual verification on the live app
+
+Required launch migrations:
+
+- `20260418015138_init`
+- `20260418184000_add_password_hash`
+- `20260419110000_add_sessions`
+- `20260419123000_add_auth_throttle`
+
 ## Verification
 
 - `npm run lint`

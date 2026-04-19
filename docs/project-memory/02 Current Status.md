@@ -4,6 +4,11 @@
 
 Bazaarly is live and functioning as a real shared marketplace app. The core buy/sell loop, onboarding, supplier flow, listing management, checkout, orders, notifications, and simulation systems are already in place.
 
+Release posture:
+
+- v1-ready pending migration and final verification
+- no further feature work is required for the v1 launch decision
+
 ## What Is Confirmed In Code
 
 - Prisma schema defines persistent users, shops, listings, carts, orders, notifications, bots, events, and world state
@@ -23,7 +28,11 @@ Bazaarly is live and functioning as a real shared marketplace app. The core buy/
 
 ## Immediate Follow-Up Candidate
 
-Milestone 2 implementation: continue small session and request hardening, kept incremental and free-tier-safe.
+Launch prep only:
+
+- apply the latest Prisma migrations
+- redeploy or confirm deployment against the migrated schema
+- run final manual QA on the live app
 
 ## Milestone 1 Progress
 
@@ -73,4 +82,4 @@ Completed Milestone 2 change so far:
 Immediate Milestone 2 follow-up:
 - apply the new session migration where the app database is managed
 - apply the new auth-throttle migration where the app database is managed
-- continue with the next smallest hardening step, likely a tiny cooldown on one or two highest-risk transaction routes if still needed
+- treat Milestone 2 as effectively complete for v1 once migration and verification are done

@@ -5,6 +5,7 @@
 - Some pages may still feel heavier than they should when large listing sets are loaded
 - Auth is functional but still lightweight compared with a full production identity stack
 - There is no dedicated admin panel yet for account management or moderation
+- Launch still requires the latest Prisma migrations to be applied in the real database before the newest auth hardening is relied on
 
 ## Local Repo Notes
 

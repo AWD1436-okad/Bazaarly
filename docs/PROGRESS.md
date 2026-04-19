@@ -35,8 +35,8 @@
 
 ## Current Focus
 
-- Milestone 1 closeout and documentation alignment
-- Preparing a small, free-tier-safe Milestone 2 plan
+- Finish-and-launch prep
+- Migration, deployment confirmation, and verification readiness
 - Keeping production data clean and secure
 
 ## Milestone 2 Start
@@ -56,6 +56,13 @@ Third hardening step completed:
 - repeated failed login attempts now trigger a short cooldown per request fingerprint plus username/email input
 - repeated sign-up attempts now trigger a short cooldown per request fingerprint
 - no external rate-limiting service or paid security product was added
+
+## Launch Readiness
+
+Bazaarly is now v1-ready pending:
+- applying the latest Prisma migrations in the real database
+- confirming deployment against the migrated schema
+- completing final manual verification of the core flows
 
 ## Milestone 1 Closeout
 

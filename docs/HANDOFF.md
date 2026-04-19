@@ -4,6 +4,12 @@
 
 Bazaarly is live as a persistent multiplayer marketplace app with working buy/sell flow, stored users, real inventory updates, persistent orders, and shared economy simulation.
 
+Current release posture:
+
+- v1-ready pending migration and verification
+- no new feature work is required for launch
+- remaining launch work is migration, deploy confirmation, and final manual QA
+
 ## What Works
 
 - Registration and password login
@@ -35,6 +41,16 @@ Bazaarly is live as a persistent multiplayer marketplace app with working buy/se
 - Seeded accounts and sample world state are intended for initial world setup only
 - Older pre-password accounts should not be reused; recreate them with normal password auth if needed
 - Prisma is configured with `DATABASE_URL` and `DATABASE_URL_UNPOOLED`
+- Before launch, make sure the latest auth/session migrations are applied
+
+## Required Launch Migrations
+
+Apply these in order:
+
+1. `20260418015138_init`
+2. `20260418184000_add_password_hash`
+3. `20260419110000_add_sessions`
+4. `20260419123000_add_auth_throttle`
 
 ## Files To Check First
 
@@ -46,9 +62,11 @@ Bazaarly is live as a persistent multiplayer marketplace app with working buy/se
 - [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\marketplace.ts)
 - [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\simulation.ts)
 
-## Recommended Next Improvements
+## Launch Blocking Caveat
 
-- Reduce remaining heavy queries on dashboard and marketplace pages
-- Add pagination or incremental loading for large result sets
-- Replace cookie-only auth with a stronger session model when ready
-- Add admin tooling for user moderation and support actions
+The only documented non-product blocker is the local Windows verification issue:
+
+- `.next` file locking can block local `next build`
+- `spawn EPERM` can block local `next dev`
+
+This does not prove a production defect, but it does block clean local verification on this machine until resolved.
