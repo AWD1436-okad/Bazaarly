@@ -6,29 +6,120 @@ type OrdersProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const ORDER_HISTORY_PAGE_SIZE = 10;
+
+function getSingleParam(
+  value: string | string[] | undefined,
+  fallback = "",
+) {
+  return typeof value === "string" ? value : fallback;
+}
+
+function parsePositivePage(value: string | string[] | undefined) {
+  const parsed = Number(getSingleParam(value, "1"));
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+}
+
+function buildOrdersHref({
+  checkout,
+  buyerPage,
+  sellerPage,
+}: {
+  checkout: boolean;
+  buyerPage: number;
+  sellerPage: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (checkout) {
+    params.set("checkout", "1");
+  }
+
+  if (buyerPage > 1) {
+    params.set("buyerPage", String(buyerPage));
+  }
+
+  if (sellerPage > 1) {
+    params.set("sellerPage", String(sellerPage));
+  }
+
+  const query = params.toString();
+  return query ? `/orders?${query}` : "/orders";
+}
+
 export default async function OrdersPage({ searchParams }: OrdersProps) {
   const user = await requireUser();
   const params = (await searchParams) ?? {};
-  const checkout = params.checkout === "1";
+  const checkout = getSingleParam(params.checkout) === "1";
+  const buyerPage = parsePositivePage(params.buyerPage);
+  const sellerPage = parsePositivePage(params.sellerPage);
 
   const [buyerOrders, sellerOrders] = await Promise.all([
     prisma.order.findMany({
       where: { buyerId: user.id },
-      include: {
-        shop: true,
-        lineItems: { include: { product: true } },
+      select: {
+        id: true,
+        totalPrice: true,
+        createdAt: true,
+        shop: {
+          select: {
+            name: true,
+          },
+        },
+        lineItems: {
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            id: "asc",
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
+      skip: (buyerPage - 1) * ORDER_HISTORY_PAGE_SIZE,
+      take: ORDER_HISTORY_PAGE_SIZE + 1,
     }),
     prisma.order.findMany({
       where: { sellerId: user.id },
-      include: {
-        buyer: true,
-        lineItems: { include: { product: true } },
+      select: {
+        id: true,
+        totalPrice: true,
+        createdAt: true,
+        buyer: {
+          select: {
+            displayName: true,
+          },
+        },
+        lineItems: {
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            id: "asc",
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
+      skip: (sellerPage - 1) * ORDER_HISTORY_PAGE_SIZE,
+      take: ORDER_HISTORY_PAGE_SIZE + 1,
     }),
   ]);
+  const visibleBuyerOrders = buyerOrders.slice(0, ORDER_HISTORY_PAGE_SIZE);
+  const visibleSellerOrders = sellerOrders.slice(0, ORDER_HISTORY_PAGE_SIZE);
+  const hasNextBuyerPage = buyerOrders.length > ORDER_HISTORY_PAGE_SIZE;
+  const hasNextSellerPage = sellerOrders.length > ORDER_HISTORY_PAGE_SIZE;
+  const hasPreviousBuyerPage = buyerPage > 1;
+  const hasPreviousSellerPage = sellerPage > 1;
 
   return (
     <div className="page-grid">
@@ -49,45 +140,121 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
       <section className="orders-grid">
         <article className="card">
           <h2>Buyer history</h2>
-          {buyerOrders.length === 0 ? (
+          {visibleBuyerOrders.length === 0 ? (
             <div className="empty-state">No purchases yet.</div>
           ) : (
-            <div className="table-list">
-              {buyerOrders.map((order) => (
-                <div key={order.id} className="order-row">
-                  <strong>{order.shop.name}</strong>
-                  <span className="muted">
-                    {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
-                  </span>
-                  <div className="section-row">
-                    <span>{order.createdAt.toLocaleString()}</span>
-                    <strong>{formatCurrency(order.totalPrice)}</strong>
+            <>
+              <div className="table-list">
+                {visibleBuyerOrders.map((order) => (
+                  <div key={order.id} className="order-row">
+                    <strong>{order.shop.name}</strong>
+                    <span className="muted">
+                      {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
+                    </span>
+                    <div className="section-row">
+                      <span>{order.createdAt.toLocaleString()}</span>
+                      <strong>{formatCurrency(order.totalPrice)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(hasPreviousBuyerPage || hasNextBuyerPage) && (
+                <div className="section-row">
+                  <p className="muted">
+                    Showing buyer page {buyerPage}
+                    {hasNextBuyerPage ? " with older purchases available." : "."}
+                  </p>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    {hasPreviousBuyerPage ? (
+                      <a
+                        href={buildOrdersHref({
+                          checkout,
+                          buyerPage: buyerPage - 1,
+                          sellerPage,
+                        })}
+                      >
+                        Previous
+                      </a>
+                    ) : (
+                      <span />
+                    )}
+                    {hasNextBuyerPage ? (
+                      <a
+                        href={buildOrdersHref({
+                          checkout,
+                          buyerPage: buyerPage + 1,
+                          sellerPage,
+                        })}
+                      >
+                        Next
+                      </a>
+                    ) : (
+                      <span />
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </article>
 
         <article className="card">
           <h2>Seller history</h2>
-          {sellerOrders.length === 0 ? (
+          {visibleSellerOrders.length === 0 ? (
             <div className="empty-state">No sales yet.</div>
           ) : (
-            <div className="table-list">
-              {sellerOrders.map((order) => (
-                <div key={order.id} className="order-row">
-                  <strong>{order.buyer.displayName}</strong>
-                  <span className="muted">
-                    {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
-                  </span>
-                  <div className="section-row">
-                    <span>{order.createdAt.toLocaleString()}</span>
-                    <strong>{formatCurrency(order.totalPrice)}</strong>
+            <>
+              <div className="table-list">
+                {visibleSellerOrders.map((order) => (
+                  <div key={order.id} className="order-row">
+                    <strong>{order.buyer.displayName}</strong>
+                    <span className="muted">
+                      {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
+                    </span>
+                    <div className="section-row">
+                      <span>{order.createdAt.toLocaleString()}</span>
+                      <strong>{formatCurrency(order.totalPrice)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(hasPreviousSellerPage || hasNextSellerPage) && (
+                <div className="section-row">
+                  <p className="muted">
+                    Showing seller page {sellerPage}
+                    {hasNextSellerPage ? " with older sales available." : "."}
+                  </p>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    {hasPreviousSellerPage ? (
+                      <a
+                        href={buildOrdersHref({
+                          checkout,
+                          buyerPage,
+                          sellerPage: sellerPage - 1,
+                        })}
+                      >
+                        Previous
+                      </a>
+                    ) : (
+                      <span />
+                    )}
+                    {hasNextSellerPage ? (
+                      <a
+                        href={buildOrdersHref({
+                          checkout,
+                          buyerPage,
+                          sellerPage: sellerPage + 1,
+                        })}
+                      >
+                        Next
+                      </a>
+                    ) : (
+                      <span />
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </article>
       </section>

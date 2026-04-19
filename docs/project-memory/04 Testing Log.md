@@ -142,6 +142,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Orders History Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- paged both buyer and seller history sections on the orders page
+- tightened orders queries so each section only fetches the fields used in the UI
+- stopped the orders page from loading full buyer and seller histories by default
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

@@ -40,3 +40,4 @@ Changes now in progress:
 - repeated authenticated user lookups are now request-local cached so layout and child pages can reuse the same session-user query
 - shared notification badge work is now capped and lighter, avoiding exact unread-count scans on every authenticated page
 - notifications history now loads in bounded pages instead of pulling the full notification backlog by default
+- buyer and seller order history now load in bounded sections instead of fetching full history for both sides of the economy by default
