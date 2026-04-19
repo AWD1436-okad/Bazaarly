@@ -84,6 +84,44 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Shared Auth Query Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- request-local caching for session-user lookup in the shared authenticated path
+- reduced duplicate user reads when both layout and page request the same signed-in user
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
+## Milestone 1 - Shared Notification Badge Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- replaced exact unread notification count in the shared layout with a small capped badge query
+- limited shared authenticated notification badge work to a bounded number of rows
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

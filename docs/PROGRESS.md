@@ -24,6 +24,8 @@
 - Started a no-cost performance pass focused on lighter marketplace loads, cheaper dashboard queries, and lower simulation noise
 - Added supplier-page pagination to reduce catalog load on the shared free-tier stack
 - Reduced dashboard growth cost with paged inventory/listings and a cheaper today-revenue summary query
+- Reduced repeated authenticated-page user lookups with request-local session-user caching
+- Reduced shared notification badge cost with a capped unread-badge query in the authenticated layout
 
 ## Current Focus
 

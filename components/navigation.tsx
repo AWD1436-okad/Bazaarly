@@ -5,6 +5,7 @@ import { formatCurrency } from "@/lib/money";
 type NavigationProps = {
   balance: number;
   unreadNotifications: number;
+  unreadNotificationLabel?: string | null;
   currentSearch?: string;
   currentSort?: string;
 };
@@ -12,6 +13,7 @@ type NavigationProps = {
 export function Navigation({
   balance,
   unreadNotifications,
+  unreadNotificationLabel,
   currentSearch,
   currentSort,
 }: NavigationProps) {
@@ -48,7 +50,9 @@ export function Navigation({
         <span className="balance-pill">{formatCurrency(balance)}</span>
         <Link href="/notifications" className="notification-pill">
           Notifications
-          {unreadNotifications > 0 ? <strong>{unreadNotifications}</strong> : null}
+          {unreadNotifications > 0 ? (
+            <strong>{unreadNotificationLabel ?? unreadNotifications}</strong>
+          ) : null}
         </Link>
         <Link href="/dashboard" className="topbar-link">
           Dashboard

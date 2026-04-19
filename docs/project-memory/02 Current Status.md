@@ -37,3 +37,5 @@ Changes now in progress:
 - supplier catalog pagination to reduce supplier-page load and database reads
 - dashboard inventory and listings now use smaller visible slices instead of loading full growth paths into memory
 - today revenue now uses an aggregate query instead of deriving from a tiny recent-sales slice
+- repeated authenticated user lookups are now request-local cached so layout and child pages can reuse the same session-user query
+- shared notification badge work is now capped and lighter, avoiding exact unread-count scans on every authenticated page
