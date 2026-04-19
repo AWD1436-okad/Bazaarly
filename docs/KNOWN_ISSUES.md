@@ -22,4 +22,4 @@
 - Review whether the dashboard create-listing picker eventually needs a dedicated searchable selector if very large inventories become common
 - Review whether shared navigation data can be trimmed further without losing useful badge/count behavior
 - Review remaining supporting pages for smaller repeat-load queries, especially places that still read broad stats or lists on every authenticated visit
-- Review whether the query-based marketplace relevance path needs its own tighter cap or staged loading when search result pools grow very large
+- Review whether the default relevance-ranked marketplace search path needs a deeper candidate-pool strategy if search result pools grow much larger in production

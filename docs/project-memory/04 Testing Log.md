@@ -202,6 +202,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Marketplace Search Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- split explicit-sort marketplace searches away from the heavier relevance-ranked search path
+- reduced selected listing/shop fields on marketplace cards to only what browse and search views actually use
+- reduced repeated search work by prebuilding search context once and reusing shared marketplace support queries
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

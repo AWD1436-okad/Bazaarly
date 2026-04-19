@@ -30,6 +30,7 @@
 - Reduced orders-page cost with bounded buyer and seller history sections instead of loading full order history at once
 - Reduced shop-page cost with bounded listing grids instead of loading every listing for a shop at once
 - Reduced no-search marketplace browse cost with database-level paging instead of broader listing fetches before slicing
+- Reduced query-based marketplace search cost by using lighter explicit-sort search paths and less repeated relevance work
 
 ## Current Focus
 
