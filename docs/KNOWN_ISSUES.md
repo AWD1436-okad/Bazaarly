@@ -21,4 +21,4 @@
 - Add observability around slow routes and checkout timing
 - Review whether the dashboard create-listing picker eventually needs a dedicated searchable selector if very large inventories become common
 - Review whether shared navigation data can be trimmed further without losing useful badge/count behavior
-- Consider whether the notifications page itself should eventually be bounded or paged if very large histories accumulate
+- Review other history-heavy pages, especially orders, for the same kind of bounded loading now used by notifications

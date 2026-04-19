@@ -39,3 +39,4 @@ Changes now in progress:
 - today revenue now uses an aggregate query instead of deriving from a tiny recent-sales slice
 - repeated authenticated user lookups are now request-local cached so layout and child pages can reuse the same session-user query
 - shared notification badge work is now capped and lighter, avoiding exact unread-count scans on every authenticated page
+- notifications history now loads in bounded pages instead of pulling the full notification backlog by default

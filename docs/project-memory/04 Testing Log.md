@@ -122,6 +122,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Notifications History Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- paged the notifications page so it no longer loads full notification history by default
+- tightened the notifications query to only fetch the fields needed for the inbox list
+- kept mark-all-as-read unchanged while reducing default history load for larger accounts
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:
