@@ -68,3 +68,4 @@ Bazaarly is a full-stack online marketplace simulation built with Next.js and Pr
 - [Handoff](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\HANDOFF.md)
 - [Progress](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\PROGRESS.md)
 - [Known Issues](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\KNOWN_ISSUES.md)
+- [Project Memory](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\project-memory\00%20Project%20Brief.md)

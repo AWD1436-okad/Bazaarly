@@ -14,15 +14,26 @@ export function SimulationHeartbeat({
   useEffect(() => {
     let active = true;
     let timeout: number | undefined;
+    const cooldownKey = "bazaarly:last-simulation-heartbeat";
 
     const tick = async () => {
       if (!active) return;
+      if (document.visibilityState !== "visible") return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+      const now = Date.now();
+      const lastRun = Number(window.localStorage.getItem(cooldownKey) ?? "0");
+
+      if (now - lastRun < intervalMs - 5000) {
+        return;
+      }
 
       try {
         await fetch("/api/simulation", {
           method: "POST",
           cache: "no-store",
         });
+        window.localStorage.setItem(cooldownKey, String(now));
       } catch {
         // Ignore transient dev-server failures.
       }

@@ -5,6 +5,27 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getMarketplaceData } from "@/lib/marketplace";
 
+function buildMarketplaceHref(
+  params: Record<string, string | string[] | undefined>,
+  nextPage: number,
+) {
+  const nextParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "page") continue;
+    if (typeof value === "string" && value.length > 0) {
+      nextParams.set(key, value);
+    }
+  }
+
+  if (nextPage > 1) {
+    nextParams.set("page", String(nextPage));
+  }
+
+  const queryString = nextParams.toString();
+  return queryString ? `/marketplace?${queryString}` : "/marketplace";
+}
+
 type MarketplacePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -19,6 +40,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     minRating: typeof params.minRating === "string" ? params.minRating : undefined,
     minPrice: typeof params.minPrice === "string" ? params.minPrice : undefined,
     maxPrice: typeof params.maxPrice === "string" ? params.maxPrice : undefined,
+    page: typeof params.page === "string" ? params.page : undefined,
   });
 
   return (
@@ -110,7 +132,9 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       </section>
 
       <section className="page-header">
-        <h1>{marketplace.listings.length} live listings</h1>
+        <h1>
+          {marketplace.listings.length} listings on page {marketplace.currentPage}
+        </h1>
         <p>
           Search matches product names, shop names, categories, and keywords.
           Results are then sorted by the control in the top bar.
@@ -122,11 +146,43 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
           No listings match those search terms or filters right now.
         </div>
       ) : (
-        <section className="listing-grid">
-          {marketplace.listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))}
-        </section>
+        <>
+          <section className="listing-grid">
+            {marketplace.listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </section>
+
+          <section className="card">
+            <div className="section-row">
+              <div>
+                <strong>Page {marketplace.currentPage}</strong>
+                <p className="muted">
+                  Bazaarly now loads marketplace results in smaller pages to keep the
+                  app faster and lighter on the shared server.
+                </p>
+              </div>
+              <div className="table-row__actions">
+                {marketplace.hasPreviousPage ? (
+                  <a
+                    href={buildMarketplaceHref(params, marketplace.currentPage - 1)}
+                    className="ghost-button"
+                  >
+                    Previous
+                  </a>
+                ) : null}
+                {marketplace.hasNextPage ? (
+                  <a
+                    href={buildMarketplaceHref(params, marketplace.currentPage + 1)}
+                    className="ghost-button"
+                  >
+                    Next
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        </>
       )}
     </div>
   );

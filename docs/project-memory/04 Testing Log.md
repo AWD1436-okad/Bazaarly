@@ -1,0 +1,100 @@
+# Bazaarly Testing Log
+
+## Audit Pass - 2026-04-19
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: did not complete because Next.js could not remove a locked file inside `.next`
+
+Build note:
+
+- The failure looked environmental rather than a code error:
+  `EPERM: operation not permitted, unlink '.next\\app-path-routes-manifest.json'`
+- Most likely cause is a file lock from an existing local dev/build process
+
+## Interpretation
+
+- The codebase passes static quality checks
+- A clean build should be rerun before the next implementation milestone begins
+- For the continuation audit, the build issue is recorded as an environment follow-up rather than proof of a broken code change
+
+## Milestone 1 - Performance Pass - 2026-04-19
+
+Checks run after the first implementation pass:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file lock
+
+Extra verification notes:
+
+- A local dev-server browser pass was attempted, but local Next dev startup hit an environment `spawn EPERM` error
+- Browser-level verification remains desirable once the local environment is able to start cleanly
+
+## Milestone 1 - Additional No-Cost Load Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- supplier catalog pagination
+- further free-tier load reduction by avoiding full supplier catalog fetches on every visit
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+
+## Focused Local Verification Blocker Pass - 2026-04-19
+
+Plain-English theory:
+
+- The local `.next` folder is being held or protected by the Windows environment, most likely due to file locking or sync behavior in the OneDrive-backed workspace
+- That lock prevents Next.js from deleting and rebuilding files cleanly
+- The same environment issue also appears to interfere with `next dev` child-process startup
+
+Cleanup attempts made:
+
+- checked for local Bazaarly listeners on ports `3000` and `3001`
+- identified stale `node` processes that were not serving the app
+- stopped local `node` processes
+- attempted to remove `.next`
+- reran `npm run build`
+- reran one clean `npm run dev` start attempt
+
+Outcome:
+
+- `.next` removal still failed with access denied errors
+- `npm run build` still failed with `EPERM` on `.next\\app-path-routes-manifest.json`
+- `npm run dev` still failed with `spawn EPERM`
+
+Exact cleanup commands tried:
+
+```powershell
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+Remove-Item -LiteralPath .next -Recurse -Force
+cmd /c npm.cmd run build
+cmd /c "set PORT=3001 && npm.cmd run dev"
+```
+
+Conclusion:
+
+- Treat this as a local environment blocker, not a Milestone 1 code blocker
+- Continue Milestone 1 work without waiting on local runtime cleanup

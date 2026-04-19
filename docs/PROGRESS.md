@@ -21,6 +21,8 @@
 - Replaced fragile form flows with POST route handlers
 - Updated dashboard pricing to show market averages
 - Fixed deployment region mismatch with `vercel.json`
+- Started a no-cost performance pass focused on lighter marketplace loads, cheaper dashboard queries, and lower simulation noise
+- Added supplier-page pagination to reduce catalog load on the shared free-tier stack
 
 ## Current Focus
 

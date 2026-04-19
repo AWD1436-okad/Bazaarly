@@ -2,6 +2,29 @@ import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
+const SUPPLIER_PAGE_SIZE = 18;
+
+function buildSupplierHref(
+  params: Record<string, string | string[] | undefined>,
+  nextPage: number,
+) {
+  const nextParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "page") continue;
+    if (typeof value === "string" && value.length > 0) {
+      nextParams.set(key, value);
+    }
+  }
+
+  if (nextPage > 1) {
+    nextParams.set("page", String(nextPage));
+  }
+
+  const queryString = nextParams.toString();
+  return queryString ? `/dashboard/supplier?${queryString}` : "/dashboard/supplier";
+}
+
 type SupplierProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -10,13 +33,34 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
   await requireUser();
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
+  const currentPage = Math.max(Number(params.page ?? "1") || 1, 1);
+  const skip = (currentPage - 1) * SUPPLIER_PAGE_SIZE;
 
   const products = await prisma.marketProductState.findMany({
-    include: {
-      product: true,
+    select: {
+      id: true,
+      productId: true,
+      currentSupplierPrice: true,
+      trendLabel: true,
+      supplierStock: true,
+      marketAveragePrice: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          description: true,
+          basePrice: true,
+        },
+      },
     },
     orderBy: [{ product: { category: "asc" } }, { product: { name: "asc" } }],
+    skip,
+    take: SUPPLIER_PAGE_SIZE + 1,
   });
+
+  const hasNextPage = products.length > SUPPLIER_PAGE_SIZE;
+  const visibleProducts = hasNextPage ? products.slice(0, SUPPLIER_PAGE_SIZE) : products;
 
   return (
     <div className="page-grid">
@@ -37,7 +81,7 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
       ) : null}
 
       <section className="supplier-grid">
-        {products.map((item) => (
+        {visibleProducts.map((item) => (
           <article key={item.id} className="card">
             <div className="section-row">
               <div>
@@ -75,6 +119,36 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
             </form>
           </article>
         ))}
+      </section>
+
+      <section className="card">
+        <div className="section-row">
+          <div>
+            <strong>Page {currentPage}</strong>
+            <p className="muted">
+              Supplier inventory is loaded in smaller pages to keep Bazaarly lighter on
+              the shared free-tier stack.
+            </p>
+          </div>
+          <div className="table-row__actions">
+            {currentPage > 1 ? (
+              <a
+                href={buildSupplierHref(params, currentPage - 1)}
+                className="ghost-button"
+              >
+                Previous
+              </a>
+            ) : null}
+            {hasNextPage ? (
+              <a
+                href={buildSupplierHref(params, currentPage + 1)}
+                className="ghost-button"
+              >
+                Next
+              </a>
+            ) : null}
+          </div>
+        </div>
       </section>
     </div>
   );

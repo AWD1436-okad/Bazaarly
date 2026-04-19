@@ -2,6 +2,8 @@ import { Prisma, ProductCategory, ShopStatus, type Listing, type MarketEvent, ty
 
 import { prisma } from "@/lib/prisma";
 
+const PAGE_SIZE = 24;
+
 export type MarketplaceParams = {
   q?: string;
   sort?: string;
@@ -10,6 +12,7 @@ export type MarketplaceParams = {
   minRating?: string;
   minPrice?: string;
   maxPrice?: string;
+  page?: string;
 };
 
 type ListingWithRelations = Listing & {
@@ -79,6 +82,9 @@ function scoreListing(listing: ListingWithRelations, query: string) {
 
 export async function getMarketplaceData(params: MarketplaceParams) {
   const query = params.q?.trim() ?? "";
+  const currentPage = Math.max(Number(params.page ?? "1") || 1, 1);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageEnd = currentPage * PAGE_SIZE;
   const minPrice = params.minPrice ? Number(params.minPrice) * 100 : null;
   const maxPrice = params.maxPrice ? Number(params.maxPrice) * 100 : null;
   const minRating = params.minRating ? Number(params.minRating) : null;
@@ -133,10 +139,40 @@ export async function getMarketplaceData(params: MarketplaceParams) {
 
   const listings: ListingWithRelations[] = await prisma.listing.findMany({
     where,
-    include: {
-      product: true,
+    select: {
+      id: true,
+      shopId: true,
+      productId: true,
+      price: true,
+      quantity: true,
+      active: true,
+      createdAt: true,
+      updatedAt: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          description: true,
+          keywords: true,
+        },
+      },
       shop: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          description: true,
+          categoryFocus: true,
+          accentColor: true,
+          rating: true,
+          totalSales: true,
+          totalRevenue: true,
+          createdAt: true,
+          updatedAt: true,
+          status: true,
+          slug: true,
+          logoText: true,
           owner: {
             select: {
               displayName: true,
@@ -146,7 +182,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       },
     },
     orderBy: baseOrderBy,
-    take: query ? 120 : 60,
+    take: pageEnd + 1,
   });
 
   const filtered = listings
@@ -184,26 +220,57 @@ export async function getMarketplaceData(params: MarketplaceParams) {
         startsAt: { lte: new Date() },
         endsAt: { gte: new Date() },
       },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+      },
       orderBy: {
         startsAt: "desc",
       },
     }),
     prisma.marketProductState.findMany({
-      include: {
-        product: true,
+      select: {
+        id: true,
+        trendLabel: true,
+        demandScore: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      where: {
+        product: {
+          listings: {
+            some: {
+              active: true,
+            },
+          },
+        },
       },
       orderBy: [{ demandScore: "desc" }, { popularityScore: "desc" }],
       take: 5,
     }),
     prisma.shop.findMany({
       where: { status: "ACTIVE" },
+      select: {
+        id: true,
+        name: true,
+        rating: true,
+      },
       orderBy: [{ totalRevenue: "desc" }, { rating: "desc" }],
       take: 5,
     }),
   ]);
 
   return {
-    listings: filtered.slice(0, 48),
+    listings: filtered.slice(pageStart, pageEnd),
+    currentPage,
+    hasNextPage: filtered.length > pageEnd,
+    hasPreviousPage: currentPage > 1,
+    pageSize: PAGE_SIZE,
     activeEvent,
     topShops,
     trendingProducts: productStates,

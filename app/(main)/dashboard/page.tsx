@@ -22,13 +22,23 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const listingSuccess = params.listingSuccess === "1";
   const error = typeof params.error === "string" ? params.error : null;
 
-  const [inventory, listings, recentSales, lowStockListings, unreadAlerts, allSales] =
+  const [inventory, listings, recentSales, lowStockListings, unreadAlerts, bestSellerGroups] =
     await Promise.all([
       prisma.inventory.findMany({
         where: { userId: user.id },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          productId: true,
+          quantity: true,
+          allocatedQuantity: true,
+          averageUnitCost: true,
+          updatedAt: true,
           product: {
-            include: {
+            select: {
+              id: true,
+              name: true,
+              basePrice: true,
               marketState: true,
             },
           },
@@ -37,14 +47,43 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       }),
       prisma.listing.findMany({
         where: { shopId: user.shop.id },
-        include: { product: true },
+        select: {
+          id: true,
+          shopId: true,
+          productId: true,
+          price: true,
+          quantity: true,
+          active: true,
+          createdAt: true,
+          updatedAt: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
         orderBy: { updatedAt: "desc" },
       }),
       prisma.order.findMany({
         where: { sellerId: user.id },
-        include: {
+        select: {
+          id: true,
+          totalPrice: true,
+          createdAt: true,
           buyer: true,
-          lineItems: { include: { product: true } },
+          lineItems: {
+            select: {
+              id: true,
+              quantity: true,
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -60,20 +99,29 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       prisma.notification.findMany({
         where: {
           userId: user.id,
+          read: false,
           type: { in: ["LOW_STOCK", "SALE"] },
         },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
-      prisma.orderLineItem.findMany({
+      prisma.orderLineItem.groupBy({
         where: {
           order: {
             sellerId: user.id,
           },
         },
-        include: {
-          product: true,
+        by: ["productId"],
+        _sum: {
+          quantity: true,
+          lineTotal: true,
         },
+        orderBy: {
+          _sum: {
+            quantity: "desc",
+          },
+        },
+        take: 4,
       }),
     ]);
 
@@ -93,24 +141,27 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = inventory.some((item) => item.quantity > 0);
-  const bestSellers = Object.values(
-    allSales.reduce<Record<string, { name: string; units: number; revenue: number }>>(
-      (acc, item) => {
-        const current = acc[item.productId] ?? {
-          name: item.product.name,
-          units: 0,
-          revenue: 0,
-        };
-        current.units += item.quantity;
-        current.revenue += item.lineTotal;
-        acc[item.productId] = current;
-        return acc;
-      },
-      {},
-    ),
-  )
-    .sort((a, b) => b.units - a.units)
-    .slice(0, 4);
+  const bestSellerProducts =
+    bestSellerGroups.length > 0
+      ? await prisma.product.findMany({
+          where: {
+            id: {
+              in: bestSellerGroups.map((item) => item.productId),
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        })
+      : [];
+
+  const productNameMap = new Map(bestSellerProducts.map((product) => [product.id, product.name]));
+  const bestSellers = bestSellerGroups.map((item) => ({
+    name: productNameMap.get(item.productId) ?? "Unknown product",
+    units: item._sum.quantity ?? 0,
+    revenue: item._sum.lineTotal ?? 0,
+  }));
 
   return (
     <div className="page-grid">

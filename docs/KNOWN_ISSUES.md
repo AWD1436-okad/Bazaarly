@@ -10,9 +10,12 @@
 
 - `.env`, `.env.vercel`, and `.env.production.vercel` are local-only files and should not be committed
 - There is a stray temp file in the repo root that can be cleaned up locally when not locked by the OS
+- Local `next build` is currently affected by a `.next` file lock in this environment
+- Local browser verification is currently limited by a `next dev` startup `spawn EPERM` environment issue
 
 ## Follow-Up Areas
 
 - Add pagination to marketplace and possibly dashboard listings
+- Consider pagination or tighter limits for larger dashboard sections if seller data grows further
 - Add more explicit server-side validation and rate limiting
 - Add observability around slow routes and checkout timing

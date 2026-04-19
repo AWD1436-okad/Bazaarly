@@ -1,0 +1,24 @@
+# Bazaarly Decisions and Assumptions
+
+## Current Decisions
+
+- Treat the project as a continuation, not a rebuild
+- Preserve the existing Next.js, Prisma, Neon, and Vercel stack
+- Use the current repo and current docs as the main source of truth
+- Use the attached SOP as workflow guidance only, not as the product specification
+- Keep project continuity inside the repo, not only in chat
+- Treat zero-cost or free-tier-only operation as a hard current constraint
+
+## Current Assumptions
+
+- The production URL remains [https://bazaarly.vercel.app](https://bazaarly.vercel.app)
+- Neon remains the production database provider unless deliberately changed later
+- Single-seller checkout remains acceptable for the current product stage
+- The strongest short-term value comes from speed and responsiveness improvements rather than a deeper architecture change
+- Improvements should favor lower database load, lighter Vercel usage, and fewer avoidable simulation calls
+
+## Open Decisions To Revisit Later
+
+- When to replace the lightweight session approach with a stronger session store or auth framework
+- Whether admin/support tools should be built before or after hardening and observability work
+- How much simulation activity should happen automatically versus on-demand to balance cost and responsiveness
