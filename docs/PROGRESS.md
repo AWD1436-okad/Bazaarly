@@ -35,6 +35,22 @@
 
 ## Current Focus
 
-- Performance and responsiveness
+- Milestone 1 closeout and documentation alignment
+- Preparing a small, free-tier-safe Milestone 2 plan
 - Keeping production data clean and secure
-- Maintaining documentation and project continuity
+
+## Milestone 1 Closeout
+
+Milestone 1 is effectively complete.
+
+Biggest zero-cost wins delivered:
+- paged heavy marketplace, supplier, dashboard, orders, notifications, and shop-listing views
+- reduced repeated authenticated-page reads with request-local session-user caching
+- reduced shared navigation badge cost with a capped unread-notification query
+- reduced marketplace browse and search work by separating lighter browse/search paths from heavier relevance work
+- reduced dashboard side-query cost by removing follow-up lookups and replacing expensive presence checks with cheaper existence checks
+- reduced unnecessary simulation calls from hidden, offline, or duplicate tabs
+
+Small leftover items only:
+- rerun local runtime/build verification after the already-documented Windows `.next` / `spawn EPERM` environment issue is cleared
+- clean up local temp files when they are no longer locked by the OS

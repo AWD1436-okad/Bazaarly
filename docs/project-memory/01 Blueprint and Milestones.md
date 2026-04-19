@@ -29,20 +29,37 @@ Scope:
 - reduce avoidable server work on page load
 - verify critical browse and seller flows still work
 
-Current implementation direction:
+Status:
+- Effectively complete
+- Remaining blocker is local environment verification only, not a confirmed app defect
+
+What Milestone 1 accomplished:
 - smaller marketplace result pages instead of oversized result loads
-- cheaper dashboard sales insights query shape
+- cheaper dashboard sales insights and supporting query shapes
 - lighter simulation triggering to avoid unnecessary background function calls
+- bounded notifications, orders, shop listings, and supplier/dashboard growth paths
+- lighter authenticated-page support reads and notification badge work
 - no paid services, no new infrastructure, no rewrite
+
+Small leftover items only:
+- resolve the already-documented local `.next` file-lock and `spawn EPERM` verification issue
+- do a final runtime verification pass once the local environment can start and build cleanly
+- optional local repo hygiene cleanup for temp files when the OS is no longer holding them
 
 ### Milestone 2
 
 Session and request hardening without a full auth rewrite.
 
 Scope:
-- replace direct user-id cookie trust with a stronger session model
+- move from direct user-id cookie trust toward a safer server-managed session shape using the current stack
 - add tighter validation around sensitive POST routes
 - review checkout and seller actions for abuse resistance
+- keep everything free-tier-safe and avoid any paid auth products or new infrastructure
+
+Planned implementation shape:
+- smallest sensible session hardening first
+- input validation tightening on cart, listings, supplier buy, checkout, and account flows
+- low-cost request hardening that does not require external services
 
 ### Milestone 3
 
@@ -64,4 +81,4 @@ Scope:
 
 ## Safest Next Milestone
 
-Milestone 1 is the best next step unless the product owner chooses otherwise. It targets the most visible user pain without rewriting the app or changing identity systems first.
+Milestone 2 is the safest next milestone now that Milestone 1 is effectively complete. It should stay incremental, free-tier-safe, and focused on session and request hardening without a full auth rewrite.

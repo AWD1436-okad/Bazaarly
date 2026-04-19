@@ -21,6 +21,8 @@
 
 - Existing docs already explain the system shape and live state
 - This project-memory folder adds milestone continuity and audit history
+- Milestone 1 is effectively complete from a performance and cost-control perspective
+- The next phase should be Milestone 2: small, free-tier-safe session and request hardening
 - Before any future launch or major handoff, this file should be updated with:
   - latest production state
   - latest verification results
@@ -42,3 +44,12 @@ If local verification is needed later, try these steps in this order:
 5. rerun `npm run dev`
 
 This is currently documented as an environment issue, not as a confirmed Bazaarly application defect.
+
+## Next Planned Phase
+
+Milestone 2 should stay small and free-tier-safe:
+
+- harden the current session approach without a full auth rewrite
+- tighten validation on sensitive POST routes
+- add the smallest sensible request-abuse protections that fit the existing stack
+- avoid paid auth products, new infrastructure, and major architecture changes

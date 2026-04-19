@@ -23,13 +23,15 @@ Bazaarly is live and functioning as a real shared marketplace app. The core buy/
 
 ## Immediate Follow-Up Candidate
 
-Performance and responsiveness improvements on heavy pages and slow interactions.
+Milestone 2 planning: session and request hardening, kept incremental and free-tier-safe.
 
 ## Milestone 1 Progress
 
 Started with a zero-cost lens.
 
-Changes now in progress:
+Milestone 1 is now effectively complete.
+
+Completed Milestone 1 changes:
 - marketplace pagination to reduce result payload size
 - reduced data selection in marketplace queries
 - cheaper dashboard best-seller aggregation
@@ -45,3 +47,8 @@ Changes now in progress:
 - no-search marketplace browsing now pages directly at the database level instead of fetching broader listing ranges before slicing
 - query-based marketplace searches now use a lighter path for explicit sort modes and reduced repeated work in the relevance path
 - remaining dashboard supporting reads are now lighter, including a single-query best-seller summary and a cheaper inventory-presence check
+
+Remaining Milestone 1 leftovers:
+- the already-documented local `.next` file-lock / `spawn EPERM` environment blocker still prevents clean local runtime verification
+- final runtime verification should be rerun once that local environment issue is cleared
+- local temp-file cleanup can happen later when the OS is no longer holding those files

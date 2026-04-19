@@ -26,6 +26,17 @@ Build note:
 - A clean build should be rerun before the next implementation milestone begins
 - For the continuation audit, the build issue is recorded as an environment follow-up rather than proof of a broken code change
 
+## Milestone 1 Closeout Note - 2026-04-19
+
+Milestone 1 is now considered effectively complete.
+
+Closeout status:
+
+- static checks passed throughout the milestone work
+- the main remaining issue is still the local Windows environment blocker around `.next` file locking and `spawn EPERM`
+- no new application defect was discovered from that blocker
+- the next verification step is to rerun local build and runtime checks once the environment issue is cleared
+
 ## Milestone 1 - Performance Pass - 2026-04-19
 
 Checks run after the first implementation pass:

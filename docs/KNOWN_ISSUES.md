@@ -15,12 +15,11 @@
 
 ## Follow-Up Areas
 
-- Add pagination to marketplace and possibly dashboard listings
-- Consider pagination or tighter limits for larger dashboard sections if seller data grows further
+- Clear the local Windows `.next` file-lock / `spawn EPERM` environment blocker so runtime verification can be rerun cleanly
+- Clean up local temp files when the OS is no longer holding them open
 - Add more explicit server-side validation and rate limiting
-- Add observability around slow routes and checkout timing
+- Add lightweight session and request hardening without introducing paid services or new infrastructure
+- Add observability around slow routes and checkout timing later if still needed
 - Review whether the dashboard create-listing picker eventually needs a dedicated searchable selector if very large inventories become common
 - Review whether shared navigation data can be trimmed further without losing useful badge/count behavior
-- Review remaining supporting pages for smaller repeat-load queries, especially places that still read broad stats or lists on every authenticated visit
 - Review whether the default relevance-ranked marketplace search path needs a deeper candidate-pool strategy if search result pools grow much larger in production
-- Review whether Milestone 1 now needs only a final verification/cleanup pass rather than another meaningful performance change
