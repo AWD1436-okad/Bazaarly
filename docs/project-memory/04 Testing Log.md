@@ -182,6 +182,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Marketplace Browse Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- split the no-search marketplace browse path away from the heavier relevance-ranked search path
+- moved queryless browse paging to database-level `skip`/`take` instead of fetching broader ranges before slicing
+- kept query-based search relevance behavior intact while reducing default feed cost
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

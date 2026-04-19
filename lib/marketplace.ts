@@ -17,6 +17,49 @@ export type MarketplaceParams = {
 
 const SHOP_LISTINGS_PAGE_SIZE = 12;
 
+const listingCardSelect = {
+  id: true,
+  shopId: true,
+  productId: true,
+  price: true,
+  quantity: true,
+  active: true,
+  createdAt: true,
+  updatedAt: true,
+  product: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      description: true,
+      keywords: true,
+    },
+  },
+  shop: {
+    select: {
+      id: true,
+      name: true,
+      ownerId: true,
+      description: true,
+      categoryFocus: true,
+      accentColor: true,
+      rating: true,
+      totalSales: true,
+      totalRevenue: true,
+      createdAt: true,
+      updatedAt: true,
+      status: true,
+      slug: true,
+      logoText: true,
+      owner: {
+        select: {
+          displayName: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.ListingSelect;
+
 type ListingWithRelations = Listing & {
   product: {
     id: string;
@@ -86,7 +129,6 @@ export async function getMarketplaceData(params: MarketplaceParams) {
   const query = params.q?.trim() ?? "";
   const currentPage = Math.max(Number(params.page ?? "1") || 1, 1);
   const pageStart = (currentPage - 1) * PAGE_SIZE;
-  const pageEnd = currentPage * PAGE_SIZE;
   const minPrice = params.minPrice ? Number(params.minPrice) * 100 : null;
   const maxPrice = params.maxPrice ? Number(params.maxPrice) * 100 : null;
   const minRating = params.minRating ? Number(params.minRating) : null;
@@ -128,7 +170,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
 
   const sort = params.sort ?? "relevance";
 
-  const baseOrderBy: Prisma.ListingOrderByWithRelationInput[] =
+  const browseOrderBy: Prisma.ListingOrderByWithRelationInput[] =
     sort === "price-asc"
       ? [{ price: "asc" as const }]
       : sort === "price-desc"
@@ -137,57 +179,94 @@ export async function getMarketplaceData(params: MarketplaceParams) {
           ? [{ shop: { rating: "desc" as const } }, { quantity: "desc" as const }]
           : sort === "stock"
             ? [{ quantity: "desc" as const }, { shop: { rating: "desc" as const } }]
-            : [{ updatedAt: "desc" as const }];
+            : [
+                { shop: { rating: "desc" as const } },
+                { quantity: "desc" as const },
+                { price: "asc" as const },
+                { updatedAt: "desc" as const },
+              ];
 
-  const listings: ListingWithRelations[] = await prisma.listing.findMany({
-    where,
-    select: {
-      id: true,
-      shopId: true,
-      productId: true,
-      price: true,
-      quantity: true,
-      active: true,
-      createdAt: true,
-      updatedAt: true,
-      product: {
-        select: {
-          id: true,
-          name: true,
-          category: true,
-          description: true,
-          keywords: true,
+  if (!query) {
+    const browseListings: ListingWithRelations[] = await prisma.listing.findMany({
+      where,
+      select: listingCardSelect,
+      orderBy: browseOrderBy,
+      skip: pageStart,
+      take: PAGE_SIZE + 1,
+    });
+
+    const [activeEvent, productStates, topShops] = await Promise.all([
+      prisma.marketEvent.findFirst({
+        where: {
+          active: true,
+          startsAt: { lte: new Date() },
+          endsAt: { gte: new Date() },
         },
-      },
-      shop: {
         select: {
           id: true,
           name: true,
-          ownerId: true,
           description: true,
-          categoryFocus: true,
-          accentColor: true,
-          rating: true,
-          totalSales: true,
-          totalRevenue: true,
-          createdAt: true,
-          updatedAt: true,
-          status: true,
-          slug: true,
-          logoText: true,
-          owner: {
+        },
+        orderBy: {
+          startsAt: "desc",
+        },
+      }),
+      prisma.marketProductState.findMany({
+        select: {
+          id: true,
+          trendLabel: true,
+          demandScore: true,
+          product: {
             select: {
-              displayName: true,
+              id: true,
+              name: true,
             },
           },
         },
-      },
-    },
-    orderBy: baseOrderBy,
-    take: pageEnd + 1,
+        where: {
+          product: {
+            listings: {
+              some: {
+                active: true,
+              },
+            },
+          },
+        },
+        orderBy: [{ demandScore: "desc" }, { popularityScore: "desc" }],
+        take: 5,
+      }),
+      prisma.shop.findMany({
+        where: { status: "ACTIVE" },
+        select: {
+          id: true,
+          name: true,
+          rating: true,
+        },
+        orderBy: [{ totalRevenue: "desc" }, { rating: "desc" }],
+        take: 5,
+      }),
+    ]);
+
+    return {
+      listings: browseListings.slice(0, PAGE_SIZE),
+      currentPage,
+      hasNextPage: browseListings.length > PAGE_SIZE,
+      hasPreviousPage: currentPage > 1,
+      pageSize: PAGE_SIZE,
+      activeEvent,
+      topShops,
+      trendingProducts: productStates,
+    };
+  }
+
+  const searchListings: ListingWithRelations[] = await prisma.listing.findMany({
+    where,
+    select: listingCardSelect,
+    orderBy: browseOrderBy,
+    take: pageStart + PAGE_SIZE + 1,
   });
 
-  const filtered = listings
+  const filtered = searchListings
     .map((listing) => ({
       ...listing,
       relevanceScore: scoreListing(listing, query),
@@ -214,6 +293,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
         return b.relevanceScore - a.relevanceScore;
     }
   });
+  const pageEnd = currentPage * PAGE_SIZE;
 
   const [activeEvent, productStates, topShops] = await Promise.all([
     prisma.marketEvent.findFirst({
