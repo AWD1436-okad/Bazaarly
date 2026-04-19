@@ -50,6 +50,11 @@ Small leftover items only:
 
 Session and request hardening without a full auth rewrite.
 
+Status:
+- Started
+- First step implemented: raw user-id cookie trust replaced by a Prisma-backed session-token model
+- Remaining Milestone 2 work should stay narrow and free-tier-safe
+
 Scope:
 - move from direct user-id cookie trust toward a safer server-managed session shape using the current stack
 - add tighter validation around sensitive POST routes

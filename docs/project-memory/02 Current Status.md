@@ -7,7 +7,7 @@ Bazaarly is live and functioning as a real shared marketplace app. The core buy/
 ## What Is Confirmed In Code
 
 - Prisma schema defines persistent users, shops, listings, carts, orders, notifications, bots, events, and world state
-- Authentication is database-backed and uses a cookie session helper in [lib/auth.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\auth.ts)
+- Authentication is database-backed and now uses a Prisma-backed session token model in [lib/auth.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\auth.ts)
 - Checkout uses a Prisma transaction in [app/checkout/route.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\app\checkout\route.ts)
 - Marketplace search and ranking live in [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\marketplace.ts)
 - Economy simulation lives in [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\simulation.ts)
@@ -23,7 +23,7 @@ Bazaarly is live and functioning as a real shared marketplace app. The core buy/
 
 ## Immediate Follow-Up Candidate
 
-Milestone 2 planning: session and request hardening, kept incremental and free-tier-safe.
+Milestone 2 implementation: continue small session and request hardening, kept incremental and free-tier-safe.
 
 ## Milestone 1 Progress
 
@@ -52,3 +52,18 @@ Remaining Milestone 1 leftovers:
 - the already-documented local `.next` file-lock / `spawn EPERM` environment blocker still prevents clean local runtime verification
 - final runtime verification should be rerun once that local environment issue is cleared
 - local temp-file cleanup can happen later when the OS is no longer holding those files
+
+## Milestone 2 Progress
+
+Started with the smallest sensible session hardening step.
+
+Completed Milestone 2 change so far:
+- raw user-id cookie trust has been replaced with a Prisma-backed session-token model
+- secure random session tokens are created at login/register
+- only the session token is stored in the cookie
+- a hashed token plus `userId` and `expiresAt` are stored in the database
+- logout now invalidates the stored session row
+
+Immediate Milestone 2 follow-up:
+- apply the new session migration where the app database is managed
+- continue with tighter validation on the most sensitive POST routes

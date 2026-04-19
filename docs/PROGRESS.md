@@ -39,6 +39,13 @@
 - Preparing a small, free-tier-safe Milestone 2 plan
 - Keeping production data clean and secure
 
+## Milestone 2 Start
+
+First hardening step completed:
+- replaced raw user-id cookies with a Prisma-backed session-token model
+- secure random session tokens are now stored as hashed database records with expiry
+- login, register, logout, and shared auth lookup now use session tokens instead of trusting a browser-supplied user id
+
 ## Milestone 1 Closeout
 
 Milestone 1 is effectively complete.

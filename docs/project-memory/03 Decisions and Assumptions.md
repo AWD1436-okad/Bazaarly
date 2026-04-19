@@ -10,6 +10,7 @@
 - Treat zero-cost or free-tier-only operation as a hard current constraint
 - Treat Milestone 1 as effectively complete except for the already-documented local environment verification blocker
 - Keep Milestone 2 limited to the smallest sensible session and request hardening work
+- Use a Prisma-backed session table rather than introducing a paid or third-party auth product
 
 ## Current Assumptions
 
@@ -19,6 +20,7 @@
 - The strongest short-term value comes from speed and responsiveness improvements rather than a deeper architecture change
 - Improvements should favor lower database load, lighter Vercel usage, and fewer avoidable simulation calls
 - The next phase should harden session and request behavior without introducing paid auth products or new infrastructure
+- A simple hashed session-token model is the safest incremental auth hardening path inside the current stack
 
 ## Open Decisions To Revisit Later
 

@@ -70,6 +70,7 @@ model User {
   notifications          Notification[]
   buyerOrders            Order[]        @relation("BuyerOrders")
   sellerOrders           Order[]        @relation("SellerOrders")
+  sessions               Session[]
 }
 
 model Shop {
@@ -233,6 +234,17 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model BotCustomer {

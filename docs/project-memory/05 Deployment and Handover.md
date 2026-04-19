@@ -16,6 +16,7 @@
 - Keep environment files out of Git
 - Keep repo docs and project-memory files updated when milestones are completed
 - Keep the current setup free-tier compatible and avoid changes that require paid hosting or add-on services
+- Apply the session-table migration before relying on the new session-token auth flow in any environment
 
 ## Handover Notes
 
@@ -53,3 +54,8 @@ Milestone 2 should stay small and free-tier-safe:
 - tighten validation on sensitive POST routes
 - add the smallest sensible request-abuse protections that fit the existing stack
 - avoid paid auth products, new infrastructure, and major architecture changes
+
+Current Milestone 2 note:
+
+- the first hardening step is now implemented in code using a Prisma-backed session-token model
+- the next small step should be validation tightening on sensitive POST routes

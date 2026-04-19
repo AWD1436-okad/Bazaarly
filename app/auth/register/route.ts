@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 
+import {
+  createSessionToken,
+  getSessionCookieName,
+  getSessionCookieOptions,
+} from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
-
-const SESSION_COOKIE_NAME =
-  process.env.SESSION_COOKIE_NAME ?? "bazaarly_session";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -47,13 +49,8 @@ export async function POST(request: Request) {
   });
 
   const response = NextResponse.redirect(new URL("/onboarding/shop", request.url), 303);
-  response.cookies.set(SESSION_COOKIE_NAME, user.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  const sessionToken = await createSessionToken(user.id);
+  response.cookies.set(getSessionCookieName(), sessionToken, getSessionCookieOptions());
 
   return response;
 }

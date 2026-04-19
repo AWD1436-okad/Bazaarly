@@ -37,6 +37,28 @@ Closeout status:
 - no new application defect was discovered from that blocker
 - the next verification step is to rerun local build and runtime checks once the environment issue is cleared
 
+## Milestone 2 - Session Token Hardening Pass - 2026-04-19
+
+Changes added in this pass:
+
+- added a Prisma-backed `Session` model and migration
+- replaced raw user-id cookie trust with secure random session tokens stored as hashed database records
+- updated login, register, logout, and shared auth helpers to use token-based session lookup, expiry, and invalidation
+
+Checks run:
+
+- `npx prisma generate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `prisma generate`: passed after rerunning with network access for Prisma binaries
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Milestone 1 - Performance Pass - 2026-04-19
 
 Checks run after the first implementation pass:
