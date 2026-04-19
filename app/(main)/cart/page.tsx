@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { formatCurrency } from "@/lib/money";
+import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 type CartProps = {
@@ -77,7 +77,8 @@ export default async function CartPage({ searchParams }: CartProps) {
                   <div className="table-row__meta">
                     <strong>{item.product.name}</strong>
                     <span className="muted">
-                      {formatCurrency(item.unitPriceSnapshot)} each · {item.listing.quantity} available
+                      {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel)} ·{" "}
+                      {item.listing.quantity} available
                     </span>
                   </div>
                   <div className="table-row__actions">

@@ -1,5 +1,6 @@
 import { Prisma, ProductCategory, ShopStatus, type MarketEvent } from "@prisma/client";
 
+import { getCategoryLabel } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 24;
@@ -26,6 +27,7 @@ const listingCardSelect = {
     select: {
       name: true,
       category: true,
+      unitLabel: true,
       description: true,
       keywords: true,
     },
@@ -46,6 +48,7 @@ type ListingWithRelations = {
   product: {
     name: string;
     category: ProductCategory;
+    unitLabel: string;
     description: string;
     keywords: unknown;
   };
@@ -93,7 +96,7 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
   const name = listing.product.name.toLowerCase();
   const shopName = listing.shop.name.toLowerCase();
   const description = listing.product.description.toLowerCase();
-  const category = listing.product.category.toLowerCase();
+  const category = getCategoryLabel(listing.product.category).toLowerCase();
   const keywords = Array.isArray(listing.product.keywords)
     ? listing.product.keywords.map((keyword: unknown) => String(keyword).toLowerCase())
     : [];
@@ -208,7 +211,11 @@ export async function getMarketplaceData(params: MarketplaceParams) {
 
   if (query) {
     const categoryMatches = Object.values(ProductCategory)
-      .filter((value) => value.toLowerCase().includes(normalizedQuery))
+      .filter((value) => {
+        const enumText = value.toLowerCase().replace(/_/g, " ");
+        const labelText = getCategoryLabel(value).toLowerCase();
+        return enumText.includes(normalizedQuery) || labelText.includes(normalizedQuery);
+      })
       .map((value) => ({ product: { category: value } as Prisma.ProductWhereInput }));
 
     where.OR = [
@@ -355,6 +362,7 @@ export async function getShopPageData(shopId: string, page = 1) {
         select: {
           name: true,
           category: true,
+          unitLabel: true,
           description: true,
         },
       },

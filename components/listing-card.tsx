@@ -1,5 +1,7 @@
+import type { ProductCategory } from "@prisma/client";
 import Link from "next/link";
-import { formatCurrency } from "@/lib/money";
+import { getCategoryLabel } from "@/lib/catalog";
+import { formatPriceWithUnit } from "@/lib/money";
 
 type ListingCardProps = {
   listing: {
@@ -9,7 +11,8 @@ type ListingCardProps = {
     shopId: string;
     product: {
       name: string;
-      category: string;
+      category: ProductCategory;
+      unitLabel: string;
       description: string;
     };
     shop: {
@@ -23,7 +26,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   return (
     <article className="listing-card">
       <div className="listing-card__header">
-        <span className="category-chip">{listing.product.category}</span>
+        <span className="category-chip">{getCategoryLabel(listing.product.category)}</span>
         <span className="stock-chip">{listing.quantity} in stock</span>
       </div>
 
@@ -34,7 +37,7 @@ export function ListingCard({ listing }: ListingCardProps) {
 
       <div className="listing-card__meta">
         <div>
-          <strong>{formatCurrency(listing.price)}</strong>
+          <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel)}</strong>
           <span>{listing.shop.name}</span>
         </div>
         <div>

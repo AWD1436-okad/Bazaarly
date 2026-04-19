@@ -9,11 +9,21 @@ datasource db {
 }
 
 enum ProductCategory {
-  FOOD
+  PRODUCE
+  MEAT_AND_SEAFOOD
+  DAIRY_AND_EGGS
+  BAKERY
+  PANTRY
+  SNACKS_AND_SWEETS
   DRINKS
-  KITCHEN
-  CLOTHES
-  ESSENTIALS
+  CLOTHING_AND_FOOTWEAR
+  SCHOOL_STATIONERY_AND_TOYS
+  PERSONAL_CARE_AND_HEALTH
+  CLEANING_AND_HOUSEHOLD
+  KITCHEN_AND_DINING
+  BABY
+  PET
+  TECH_ELECTRONICS_AND_APPLIANCES
 }
 
 enum ShopStatus {
@@ -100,6 +110,7 @@ model Product {
   sku          String             @unique
   name         String             @unique
   category     ProductCategory
+  unitLabel    String
   description  String
   basePrice    Int
   spoilable    Boolean            @default(false)

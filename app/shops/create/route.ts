@@ -11,9 +11,9 @@ export const preferredRegion = "syd1";
 
 const DEFAULT_STARTING_BALANCE = 22000;
 const STARTER_STOCK = [
-  { sku: "food-apples", quantity: 8, cost: 110 },
-  { sku: "food-bread", quantity: 4, cost: 220 },
-  { sku: "drink-water", quantity: 6, cost: 100 },
+  { sku: "produce-green-apples", quantity: 8, cost: 320 },
+  { sku: "bakery-white-bread-loaf", quantity: 4, cost: 280 },
+  { sku: "drinks-bottled-water-small", quantity: 6, cost: 90 },
 ] as const;
 
 export async function POST(request: Request) {

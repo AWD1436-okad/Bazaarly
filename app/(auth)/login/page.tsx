@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { getSessionUser } from "@/lib/auth";
 
 type LoginPageProps = {
@@ -21,7 +22,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className="auth-card">
         <div className="stack">
           <div>
-            <span className="tag">Bazaarly</span>
+            <div className="brand-lockup">
+              <BrandLogo size={64} />
+              <span className="tag">Bazaarly</span>
+            </div>
             <h1>Enter the global marketplace.</h1>
             <p className="muted">
               Sign in with your own account or create a new player and open a shop in the

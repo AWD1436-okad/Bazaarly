@@ -1,29 +1,160 @@
 import {
+  MarketTimePhase,
+  NotificationType,
   PrismaClient,
   ProductCategory,
-  NotificationType,
-  MarketTimePhase,
 } from "@prisma/client";
 import { subDays, subHours, subMinutes } from "date-fns";
 
-import { INITIAL_BOTS, INITIAL_USERS, PRODUCT_CATALOG } from "../lib/catalog";
+import {
+  CATEGORY_COUNT_EXPECTATIONS,
+  INITIAL_BOTS,
+  INITIAL_USERS,
+  PRODUCT_CATALOG,
+} from "../lib/catalog";
 import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient();
 const shouldReset = process.env.SEED_MODE === "reset";
 const SEEDED_ACCOUNT_PASSWORD = "Bazaarly123!";
 
+type CatalogProduct = (typeof PRODUCT_CATALOG)[number];
+
+type ProductRef = {
+  id: string;
+  name: string;
+  sku: string;
+  basePrice: number;
+  supplierPrice: number;
+};
+
+type DemoStockEntry = {
+  name: string;
+  quantity: number;
+  costMultiplier?: number;
+};
+
+type DemoListingEntry = {
+  name: string;
+  quantity: number;
+  priceMultiplier?: number;
+  active?: boolean;
+};
+
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
+function toTitleCase(value: string) {
+  return value.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function unitCost(product: ProductRef, multiplier = 0.74) {
+  return Math.max(60, Math.round(product.basePrice * multiplier));
+}
+
+function livePrice(product: ProductRef, multiplier = 1.14) {
+  return Math.max(product.basePrice, Math.round(product.basePrice * multiplier));
+}
+
+function requireProduct(productMap: Map<string, ProductRef>, name: string) {
+  const product = productMap.get(name);
+
+  if (!product) {
+    throw new Error(`Catalog product missing from seed map: ${name}`);
+  }
+
+  return product;
+}
+
+async function deleteStaleProducts(currentSkus: string[]) {
+  const staleProducts = await prisma.product.findMany({
+    where: {
+      sku: {
+        notIn: currentSkus,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+    },
+  });
+
+  if (staleProducts.length === 0) {
+    return [];
+  }
+
+  const staleIds = staleProducts.map((product) => product.id);
+
+  await prisma.orderLineItem.deleteMany({
+    where: {
+      productId: {
+        in: staleIds,
+      },
+    },
+  });
+
+  await prisma.cartItem.deleteMany({
+    where: {
+      productId: {
+        in: staleIds,
+      },
+    },
+  });
+
+  await prisma.listing.deleteMany({
+    where: {
+      productId: {
+        in: staleIds,
+      },
+    },
+  });
+
+  await prisma.inventory.deleteMany({
+    where: {
+      productId: {
+        in: staleIds,
+      },
+    },
+  });
+
+  await prisma.marketEvent.deleteMany({
+    where: {
+      productId: {
+        in: staleIds,
+      },
+    },
+  });
+
+  await prisma.marketProductState.deleteMany({
+    where: {
+      productId: {
+        in: staleIds,
+      },
+    },
+  });
+
+  await prisma.product.deleteMany({
+    where: {
+      id: {
+        in: staleIds,
+      },
+    },
+  });
+
+  return staleProducts;
+}
+
 async function main() {
   const existingUsers = await prisma.user.count();
   const existingProducts = await prisma.product.count();
+  const shouldSeedDemoWorld = shouldReset || existingUsers === 0;
+  const currentSkus = PRODUCT_CATALOG.map((product) => product.sku);
 
   if (!shouldReset && (existingUsers > 0 || existingProducts > 0)) {
-    console.log("Existing world detected. Running additive catalog sync.");
+    console.log("Existing world detected. Running catalog replacement sync.");
   }
 
   if (shouldReset) {
@@ -37,13 +168,22 @@ async function main() {
     await prisma.botCustomer.deleteMany();
     await prisma.marketEvent.deleteMany();
     await prisma.marketProductState.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.authThrottle.deleteMany();
     await prisma.shop.deleteMany();
     await prisma.user.deleteMany();
     await prisma.product.deleteMany();
     await prisma.worldState.deleteMany();
+  } else {
+    const staleProducts = await deleteStaleProducts(currentSkus);
+    if (staleProducts.length > 0) {
+      console.log(
+        `Removed ${staleProducts.length} stale catalog products before syncing the new master list.`,
+      );
+    }
   }
 
-  const products = new Map<string, { id: string; basePrice: number }>();
+  const products = new Map<string, ProductRef>();
 
   for (const product of PRODUCT_CATALOG) {
     const createdProduct = await prisma.product.upsert({
@@ -51,6 +191,7 @@ async function main() {
       update: {
         name: product.name,
         category: product.category,
+        unitLabel: product.unitLabel,
         description: product.description,
         basePrice: product.basePrice,
         spoilable: product.spoilable,
@@ -62,6 +203,7 @@ async function main() {
         sku: product.sku,
         name: product.name,
         category: product.category,
+        unitLabel: product.unitLabel,
         description: product.description,
         basePrice: product.basePrice,
         spoilable: product.spoilable,
@@ -71,7 +213,13 @@ async function main() {
       },
     });
 
-    products.set(product.name, { id: createdProduct.id, basePrice: product.basePrice });
+    products.set(product.name, {
+      id: createdProduct.id,
+      name: createdProduct.name,
+      sku: createdProduct.sku,
+      basePrice: product.basePrice,
+      supplierPrice: product.supplierPrice,
+    });
 
     await prisma.marketProductState.upsert({
       where: { productId: createdProduct.id },
@@ -80,9 +228,12 @@ async function main() {
         demandScore: product.demandScore,
         popularityScore: product.popularityScore,
         trendLabel: product.trendLabel,
-        supplierStock: {
-          increment: 60,
-        },
+        supplierStock: shouldSeedDemoWorld
+          ? 450
+          : {
+              increment: 40,
+            },
+        marketAveragePrice: product.basePrice,
       },
       create: {
         productId: createdProduct.id,
@@ -199,270 +350,267 @@ async function main() {
     balance: botWalletUser.balance,
   });
 
-  const inventorySeed: Record<string, Array<{ product: string; quantity: number; cost: number }>> = {
+  const demoInventorySeed: Record<string, DemoStockEntry[]> = {
     avery: [
-      { product: "Apples", quantity: 40, cost: 110 },
-      { product: "Bananas", quantity: 34, cost: 90 },
-      { product: "White Bread Loaf", quantity: 20, cost: 220 },
-      { product: "Tomatoes", quantity: 26, cost: 130 },
-      { product: "Eggs", quantity: 18, cost: 470 },
-      { product: "White Rice", quantity: 16, cost: 390 },
-      { product: "Oranges", quantity: 30, cost: 120 },
-      { product: "Strawberries", quantity: 18, cost: 280 },
-      { product: "Dry Pasta", quantity: 16, cost: 300 },
-      { product: "Cornflakes Cereal", quantity: 14, cost: 340 },
-      { product: "Plain Yogurt", quantity: 18, cost: 190 },
+      { name: "green apples", quantity: 42 },
+      { name: "bananas", quantity: 34 },
+      { name: "strawberries", quantity: 18 },
+      { name: "white bread loaf", quantity: 18 },
+      { name: "cage eggs dozen", quantity: 16 },
+      { name: "spinach", quantity: 16 },
+      { name: "roma tomatoes", quantity: 20 },
+      { name: "brown onions", quantity: 22 },
     ],
     jordan: [
-      { product: "Bottled Water", quantity: 52, cost: 100 },
-      { product: "Orange Juice Carton", quantity: 28, cost: 230 },
-      { product: "Full Cream Milk", quantity: 24, cost: 280 },
-      { product: "Potato Chips Packet", quantity: 32, cost: 170 },
-      { product: "White Bread Loaf", quantity: 15, cost: 220 },
-      { product: "Tea Bags Box", quantity: 18, cost: 300 },
-      { product: "Ground Coffee Bag", quantity: 15, cost: 500 },
-      { product: "Cola Soft Drink Bottle", quantity: 26, cost: 150 },
-      { product: "Cornflakes Cereal", quantity: 12, cost: 340 },
+      { name: "bottled water small", quantity: 50 },
+      { name: "orange juice with pulp", quantity: 24 },
+      { name: "cola 1.25L", quantity: 26 },
+      { name: "potato chips salted", quantity: 30 },
+      { name: "black tea bags", quantity: 16 },
+      { name: "ground coffee medium roast", quantity: 12 },
+      { name: "white rice long grain", quantity: 16 },
+      { name: "milk chocolate bar", quantity: 24 },
     ],
     mia: [
-      { product: "Kitchen Knife", quantity: 12, cost: 690 },
-      { product: "Cutting Board", quantity: 12, cost: 470 },
-      { product: "Frying Pan", quantity: 10, cost: 880 },
-      { product: "Cooking Pot", quantity: 8, cost: 990 },
-      { product: "Food Storage Containers", quantity: 16, cost: 540 },
-      { product: "Blender Appliance", quantity: 5, cost: 1890 },
-      { product: "Toaster Appliance", quantity: 7, cost: 1410 },
-      { product: "Batteries Pack", quantity: 18, cost: 390 },
-      { product: "Light Bulbs Pack", quantity: 14, cost: 490 },
+      { name: "chef knife", quantity: 12, costMultiplier: 0.7 },
+      { name: "cutting board large", quantity: 12, costMultiplier: 0.7 },
+      { name: "frying pan large", quantity: 8, costMultiplier: 0.72 },
+      { name: "cooking pot large", quantity: 6, costMultiplier: 0.72 },
+      { name: "food storage containers set", quantity: 12, costMultiplier: 0.7 },
+      { name: "kettle electric", quantity: 8, costMultiplier: 0.72 },
+      { name: "dish rack", quantity: 7, costMultiplier: 0.7 },
+      { name: "travel mug", quantity: 14, costMultiplier: 0.7 },
     ],
     noah: [
-      { product: "T-Shirt", quantity: 18, cost: 610 },
-      { product: "Socks Pair", quantity: 44, cost: 240 },
-      { product: "Underwear Pack", quantity: 30, cost: 280 },
-      { product: "Bar Soap", quantity: 26, cost: 150 },
-      { product: "Tissues Box", quantity: 25, cost: 180 },
-      { product: "Shampoo Bottle", quantity: 18, cost: 430 },
-      { product: "Toothbrush", quantity: 16, cost: 190 },
-      { product: "Toothpaste Tube", quantity: 20, cost: 220 },
-      { product: "Deodorant Stick", quantity: 15, cost: 330 },
-      { product: "Laundry Detergent Liquid", quantity: 12, cost: 650 },
+      { name: "plain t-shirt", quantity: 18 },
+      { name: "ankle socks", quantity: 22 },
+      { name: "toothpaste regular", quantity: 20 },
+      { name: "shampoo bottle", quantity: 16 },
+      { name: "laundry detergent large", quantity: 10 },
+      { name: "running shoes", quantity: 6 },
+      { name: "deodorant stick", quantity: 12 },
+      { name: "toothbrush soft", quantity: 16 },
     ],
   };
 
-  for (const [username, items] of Object.entries(inventorySeed)) {
-    const user = users.get(username);
-    if (!user) continue;
-
-    for (const item of items) {
-      const product = products.get(item.product);
-      if (!product) continue;
-
-      await prisma.inventory.upsert({
-        where: {
-          userId_productId: {
-            userId: user.id,
-            productId: product.id,
-          },
-        },
-        update: {
-          quantity: {
-            increment: item.quantity,
-          },
-          averageUnitCost: item.cost,
-        },
-        create: {
-          userId: user.id,
-          productId: product.id,
-          quantity: item.quantity,
-          averageUnitCost: item.cost,
-        },
-      });
-    }
-  }
-
-  const listingSeed: Record<
-    string,
-    Array<{ product: string; price: number; quantity: number; active?: boolean }>
-  > = {
+  const demoListingSeed: Record<string, DemoListingEntry[]> = {
     avery: [
-      { product: "Apples", price: 175, quantity: 18 },
-      { product: "Bananas", price: 145, quantity: 14 },
-      { product: "White Bread Loaf", price: 330, quantity: 8 },
-      { product: "Tomatoes", price: 210, quantity: 10 },
-      { product: "Eggs", price: 640, quantity: 6 },
-      { product: "Oranges", price: 225, quantity: 12 },
-      { product: "Strawberries", price: 495, quantity: 8 },
-      { product: "Plain Yogurt", price: 355, quantity: 10 },
+      { name: "green apples", quantity: 18 },
+      { name: "bananas", quantity: 14 },
+      { name: "white bread loaf", quantity: 8 },
+      { name: "strawberries", quantity: 8 },
+      { name: "cage eggs dozen", quantity: 6 },
+      { name: "spinach", quantity: 10 },
     ],
     jordan: [
-      { product: "Bottled Water", price: 185, quantity: 20 },
-      { product: "Orange Juice Carton", price: 355, quantity: 11 },
-      { product: "Full Cream Milk", price: 420, quantity: 10 },
-      { product: "Potato Chips Packet", price: 285, quantity: 14 },
-      { product: "Tea Bags Box", price: 540, quantity: 8 },
-      { product: "Ground Coffee Bag", price: 860, quantity: 7 },
-      { product: "Cola Soft Drink Bottle", price: 310, quantity: 12 },
+      { name: "bottled water small", quantity: 20 },
+      { name: "orange juice with pulp", quantity: 10 },
+      { name: "cola 1.25L", quantity: 12 },
+      { name: "potato chips salted", quantity: 14 },
+      { name: "ground coffee medium roast", quantity: 6, priceMultiplier: 1.12 },
+      { name: "milk chocolate bar", quantity: 12 },
     ],
     mia: [
-      { product: "Kitchen Knife", price: 1090, quantity: 5 },
-      { product: "Cutting Board", price: 790, quantity: 6 },
-      { product: "Frying Pan", price: 1490, quantity: 4 },
-      { product: "Cooking Pot", price: 1690, quantity: 4 },
-      { product: "Food Storage Containers", price: 940, quantity: 8 },
-      { product: "Batteries Pack", price: 690, quantity: 8 },
-      { product: "Light Bulbs Pack", price: 860, quantity: 7 },
+      { name: "chef knife", quantity: 5, priceMultiplier: 1.16 },
+      { name: "cutting board large", quantity: 6, priceMultiplier: 1.15 },
+      { name: "frying pan large", quantity: 4, priceMultiplier: 1.15 },
+      { name: "food storage containers set", quantity: 6, priceMultiplier: 1.14 },
+      { name: "kettle electric", quantity: 4, priceMultiplier: 1.12 },
     ],
     noah: [
-      { product: "T-Shirt", price: 920, quantity: 7 },
-      { product: "Socks Pair", price: 395, quantity: 20 },
-      { product: "Underwear Pack", price: 560, quantity: 12 },
-      { product: "Tissues Box", price: 320, quantity: 11 },
-      { product: "Bar Soap", price: 250, quantity: 10 },
-      { product: "Shampoo Bottle", price: 810, quantity: 8 },
-      { product: "Toothbrush", price: 390, quantity: 10 },
-      { product: "Deodorant Stick", price: 650, quantity: 7 },
+      { name: "plain t-shirt", quantity: 7, priceMultiplier: 1.18 },
+      { name: "ankle socks", quantity: 12, priceMultiplier: 1.18 },
+      { name: "toothpaste regular", quantity: 8, priceMultiplier: 1.12 },
+      { name: "shampoo bottle", quantity: 8, priceMultiplier: 1.12 },
+      { name: "running shoes", quantity: 3, priceMultiplier: 1.1 },
     ],
   };
 
   const listings = new Map<string, string>();
 
-  for (const [username, shopListings] of Object.entries(listingSeed)) {
-    const user = users.get(username);
-    if (!user) continue;
+  if (shouldSeedDemoWorld) {
+    for (const [username, items] of Object.entries(demoInventorySeed)) {
+      const user = users.get(username);
+      if (!user) continue;
 
-    for (const item of shopListings) {
-      const product = products.get(item.product);
-      if (!product) continue;
+      for (const item of items) {
+        const product = requireProduct(products, item.name);
 
-      const listing = await prisma.listing.upsert({
-        where: {
-          shopId_productId: {
-            shopId: user.shopId,
-            productId: product.id,
+        await prisma.inventory.upsert({
+          where: {
+            userId_productId: {
+              userId: user.id,
+              productId: product.id,
+            },
           },
-        },
-        update: {
-          price: item.price,
-          quantity: item.quantity,
-          active: item.active ?? true,
-        },
-        create: {
-          shopId: user.shopId,
-          productId: product.id,
-          price: item.price,
-          quantity: item.quantity,
-          active: item.active ?? true,
-        },
-      });
-
-      listings.set(`${username}:${item.product}`, listing.id);
-
-      await prisma.inventory.update({
-        where: {
-          userId_productId: {
+          update: {
+            quantity: item.quantity,
+            allocatedQuantity: 0,
+            averageUnitCost: unitCost(product, item.costMultiplier),
+          },
+          create: {
             userId: user.id,
             productId: product.id,
+            quantity: item.quantity,
+            averageUnitCost: unitCost(product, item.costMultiplier),
           },
-        },
-        data: {
-          allocatedQuantity: item.quantity,
-        },
-      });
+        });
+      }
     }
-  }
 
-  const sampleOrders = shouldReset || existingUsers === 0 ? [
-    {
-      buyer: "jordan",
-      seller: "avery",
-      sellerShop: "Fresh Basket Co",
-      hoursAgo: 10,
-      items: [
-        { product: "Apples", quantity: 4, unitPrice: 175, listingKey: "avery:Apples" },
-        { product: "White Bread Loaf", quantity: 1, unitPrice: 330, listingKey: "avery:White Bread Loaf" },
-      ],
-    },
-    {
-      buyer: "avery",
-      seller: "jordan",
-      sellerShop: "Sip Street",
-      hoursAgo: 6,
-      items: [
-        { product: "Bottled Water", quantity: 3, unitPrice: 185, listingKey: "jordan:Bottled Water" },
-        { product: "Orange Juice Carton", quantity: 2, unitPrice: 355, listingKey: "jordan:Orange Juice Carton" },
-      ],
-    },
-    {
-      buyer: "mia",
-      seller: "noah",
-      sellerShop: "Daily Thread",
-      hoursAgo: 3,
-      items: [
-        { product: "Socks Pair", quantity: 5, unitPrice: 395, listingKey: "noah:Socks Pair" },
-        { product: "Tissues Box", quantity: 2, unitPrice: 320, listingKey: "noah:Tissues Box" },
-      ],
-    },
-  ] : [];
+    for (const [username, shopListings] of Object.entries(demoListingSeed)) {
+      const user = users.get(username);
+      if (!user) continue;
 
-  for (const orderSeed of sampleOrders) {
-    const buyer = users.get(orderSeed.buyer);
-    const seller = users.get(orderSeed.seller);
-    if (!buyer || !seller) continue;
+      for (const item of shopListings) {
+        const product = requireProduct(products, item.name);
+        const price = livePrice(product, item.priceMultiplier);
 
-    const totalPrice = orderSeed.items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
+        const listing = await prisma.listing.upsert({
+          where: {
+            shopId_productId: {
+              shopId: user.shopId,
+              productId: product.id,
+            },
+          },
+          update: {
+            price,
+            quantity: item.quantity,
+            active: item.active ?? true,
+          },
+          create: {
+            shopId: user.shopId,
+            productId: product.id,
+            price,
+            quantity: item.quantity,
+            active: item.active ?? true,
+          },
+        });
 
-    const order = await prisma.order.create({
-      data: {
-        buyerId: buyer.id,
-        sellerId: seller.id,
-        shopId: seller.shopId,
-        totalPrice,
-        createdAt: subHours(new Date(), orderSeed.hoursAgo),
+        listings.set(`${username}:${item.name}`, listing.id);
+
+        await prisma.inventory.update({
+          where: {
+            userId_productId: {
+              userId: user.id,
+              productId: product.id,
+            },
+          },
+          data: {
+            allocatedQuantity: item.quantity,
+          },
+        });
+      }
+    }
+
+    const sampleOrders = [
+      {
+        buyer: "jordan",
+        seller: "avery",
+        hoursAgo: 10,
+        items: [
+          { name: "green apples", quantity: 3, listingKey: "avery:green apples" },
+          { name: "white bread loaf", quantity: 1, listingKey: "avery:white bread loaf" },
+        ],
       },
-    });
+      {
+        buyer: "avery",
+        seller: "jordan",
+        hoursAgo: 6,
+        items: [
+          { name: "bottled water small", quantity: 2, listingKey: "jordan:bottled water small" },
+          { name: "orange juice with pulp", quantity: 1, listingKey: "jordan:orange juice with pulp" },
+        ],
+      },
+      {
+        buyer: "mia",
+        seller: "noah",
+        hoursAgo: 3,
+        items: [
+          { name: "ankle socks", quantity: 2, listingKey: "noah:ankle socks" },
+          { name: "toothpaste regular", quantity: 1, listingKey: "noah:toothpaste regular" },
+        ],
+      },
+    ];
 
-    for (const item of orderSeed.items) {
-      const product = products.get(item.product);
-      const listingId = listings.get(item.listingKey);
-      if (!product) continue;
+    for (const orderSeed of sampleOrders) {
+      const buyer = users.get(orderSeed.buyer);
+      const seller = users.get(orderSeed.seller);
+      if (!buyer || !seller) continue;
 
-      await prisma.orderLineItem.create({
-        data: {
-          orderId: order.id,
-          productId: product.id,
+      const lineItems = orderSeed.items.map((item) => {
+        const product = requireProduct(products, item.name);
+        const listingId = listings.get(item.listingKey);
+        const listing = demoListingSeed[orderSeed.seller]
+          .map((entry) => ({
+            ...entry,
+            product,
+          }))
+          .find((entry) => entry.name === item.name);
+
+        if (!listing || !listingId) {
+          throw new Error(`Demo listing missing for ${item.name}`);
+        }
+
+        const unitPrice = livePrice(product, listing.priceMultiplier);
+
+        return {
+          product,
           listingId,
           quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: item.quantity * item.unitPrice,
+          unitPrice,
+        };
+      });
+
+      const totalPrice = lineItems.reduce(
+        (sum, item) => sum + item.quantity * item.unitPrice,
+        0,
+      );
+
+      const order = await prisma.order.create({
+        data: {
+          buyerId: buyer.id,
+          sellerId: seller.id,
+          shopId: seller.shopId,
+          totalPrice,
+          createdAt: subHours(new Date(), orderSeed.hoursAgo),
+        },
+      });
+
+      for (const item of lineItems) {
+        await prisma.orderLineItem.create({
+          data: {
+            orderId: order.id,
+            productId: item.product.id,
+            listingId: item.listingId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.unitPrice * item.quantity,
+            createdAt: subHours(new Date(), orderSeed.hoursAgo),
+          },
+        });
+      }
+
+      const summary = lineItems
+        .map((item) => `${item.quantity}x ${toTitleCase(item.product.name)}`)
+        .join(", ");
+
+      await prisma.notification.create({
+        data: {
+          userId: seller.id,
+          type: NotificationType.SALE,
+          message: `${buyer.displayName} bought ${summary} for $${(totalPrice / 100).toFixed(2)}.`,
           createdAt: subHours(new Date(), orderSeed.hoursAgo),
         },
       });
     }
 
-    const summary = orderSeed.items
-      .map((item) => `${item.quantity}x ${item.product}`)
-      .join(", ");
-
-    await prisma.notification.create({
-      data: {
-        userId: seller.id,
-        type: NotificationType.SALE,
-        message: `${buyer.displayName} bought ${summary} for $${(totalPrice / 100).toFixed(2)}.`,
-        createdAt: subHours(new Date(), orderSeed.hoursAgo),
-      },
-    });
-  }
-
-  if (shouldReset || existingUsers === 0) {
     await prisma.notification.createMany({
       data: [
         {
           userId: users.get("avery")!.id,
           type: NotificationType.LOW_STOCK,
-          message: "Your Eggs listing is running low. Only 6 left in your live stock.",
+          message: "Your cage eggs dozen listing is running low. Only 6 left in your live stock.",
           createdAt: subHours(new Date(), 2),
         },
         {
@@ -474,10 +622,12 @@ async function main() {
         {
           userId: users.get("mia")!.id,
           type: NotificationType.SYSTEM,
-          message: "Kitchen shoppers are browsing more this afternoon. Consider adjusting prices or restocking.",
+          message:
+            "Kitchen and dining shoppers are browsing more this afternoon. Consider adjusting prices or restocking.",
           createdAt: subMinutes(new Date(), 40),
         },
       ],
+      skipDuplicates: true,
     });
   }
 
@@ -505,20 +655,30 @@ async function main() {
     },
   });
 
-  await prisma.worldState.upsert({
-    where: { id: "global" },
-    update: {
-      currentDay: 14,
-      currentPhase: MarketTimePhase.AFTERNOON,
-      lastSimulatedAt: subHours(new Date(), 1),
-    },
-    create: {
-      id: "global",
-      currentDay: 14,
-      currentPhase: MarketTimePhase.AFTERNOON,
-      lastSimulatedAt: subHours(new Date(), 1),
-    },
-  });
+  if (shouldSeedDemoWorld) {
+    await prisma.worldState.upsert({
+      where: { id: "global" },
+      update: {
+        currentDay: 14,
+        currentPhase: MarketTimePhase.AFTERNOON,
+        lastSimulatedAt: subHours(new Date(), 1),
+      },
+      create: {
+        id: "global",
+        currentDay: 14,
+        currentPhase: MarketTimePhase.AFTERNOON,
+        lastSimulatedAt: subHours(new Date(), 1),
+      },
+    });
+  } else {
+    await prisma.worldState.upsert({
+      where: { id: "global" },
+      update: {},
+      create: {
+        id: "global",
+      },
+    });
+  }
 
   for (const bot of INITIAL_BOTS) {
     await prisma.botCustomer.upsert({
@@ -528,7 +688,11 @@ async function main() {
         budget: bot.budget,
         preferenceCategory: bot.preferenceCategory,
         loyaltyShopId:
-          bot.type === "LOYAL" ? users.get("jordan")?.shopId : bot.type === "QUALITY" ? users.get("avery")?.shopId : null,
+          bot.type === "LOYAL"
+            ? users.get("jordan")?.shopId
+            : bot.type === "QUALITY"
+              ? users.get("avery")?.shopId
+              : null,
         activityLevel: bot.activityLevel,
         active: true,
       },
@@ -538,7 +702,11 @@ async function main() {
         budget: bot.budget,
         preferenceCategory: bot.preferenceCategory,
         loyaltyShopId:
-          bot.type === "LOYAL" ? users.get("jordan")?.shopId : bot.type === "QUALITY" ? users.get("avery")?.shopId : null,
+          bot.type === "LOYAL"
+            ? users.get("jordan")?.shopId
+            : bot.type === "QUALITY"
+              ? users.get("avery")?.shopId
+              : null,
         activityLevel: bot.activityLevel,
         lastPurchasedAt: subHours(new Date(), Math.floor(Math.random() * 9) + 1),
       },
@@ -546,23 +714,71 @@ async function main() {
   }
 
   for (const product of PRODUCT_CATALOG) {
-    const state = await prisma.marketProductState.findUnique({
-      where: { productId: products.get(product.name)!.id },
-    });
-
-    if (!state) continue;
-
+    const productRef = requireProduct(products, product.name);
     const relatedListings = await prisma.listing.findMany({
-      where: { productId: state.productId },
+      where: { productId: productRef.id },
       select: { price: true },
     });
 
     await prisma.marketProductState.update({
-      where: { id: state.id },
+      where: { productId: productRef.id },
       data: {
-        marketAveragePrice: average(relatedListings.map((listing) => listing.price)),
+        marketAveragePrice:
+          relatedListings.length > 0
+            ? average(relatedListings.map((listing) => listing.price))
+            : product.basePrice,
       },
     });
+  }
+
+  const insertedProducts = await prisma.product.findMany({
+    select: {
+      name: true,
+      sku: true,
+      category: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  const catalogNameSet = new Set(PRODUCT_CATALOG.map((product) => product.name));
+  const catalogSkuSet = new Set(PRODUCT_CATALOG.map((product) => product.sku));
+  const insertedNameSet = new Set(insertedProducts.map((product) => product.name));
+  const actualCounts = insertedProducts.reduce<Record<string, number>>((counts, product) => {
+    counts[product.category] = (counts[product.category] ?? 0) + 1;
+    return counts;
+  }, {});
+  const missingItems = PRODUCT_CATALOG.filter((product) => !insertedNameSet.has(product.name)).map(
+    (product) => product.name,
+  );
+  const duplicateItems = insertedProducts.reduce<string[]>((duplicates, product, index, items) => {
+    if (items.findIndex((item) => item.name === product.name) !== index) {
+      duplicates.push(product.name);
+    }
+    return duplicates;
+  }, []);
+  const staleProductsAfterSync = insertedProducts.filter((product) => !catalogSkuSet.has(product.sku));
+
+  console.log("Catalog audit:");
+  for (const [category, expectedCount] of Object.entries(CATEGORY_COUNT_EXPECTATIONS)) {
+    console.log(
+      `- ${category}: expected ${expectedCount}, actual ${actualCounts[category] ?? 0}`,
+    );
+  }
+  console.log(`- total expected: ${PRODUCT_CATALOG.length}`);
+  console.log(`- total actual: ${insertedProducts.length}`);
+  console.log(`- missing items: ${missingItems.length ? missingItems.join(", ") : "none"}`);
+  console.log(`- duplicate items: ${duplicateItems.length ? duplicateItems.join(", ") : "none"}`);
+  console.log(
+    `- old products fully removed: ${staleProductsAfterSync.length === 0 ? "yes" : "no"}`,
+  );
+  if (staleProductsAfterSync.length > 0) {
+    console.log(
+      `- stale products still present: ${staleProductsAfterSync
+        .map((product) => `${product.name} (${product.sku})`)
+        .join(", ")}`,
+    );
   }
 }
 

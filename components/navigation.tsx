@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { formatCurrency } from "@/lib/money";
 
 type NavigationProps = {
@@ -21,7 +22,7 @@ export function Navigation({
     <header className="topbar">
       <div className="brand-area">
         <Link href="/marketplace" className="brand-link">
-          <span className="brand-mark">B</span>
+          <BrandLogo />
           <span>
             <strong>Bazaarly</strong>
             <small>Shared global marketplace</small>

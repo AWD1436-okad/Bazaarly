@@ -29,7 +29,7 @@ Bazaarly is a server-rendered Next.js application backed by PostgreSQL through P
 - `Shop`
   One shop per player
 - `Product`
-  Predefined catalog item
+  Predefined catalog item with category, AUD base price, and dedicated unit label
 - `Inventory`
   Owned stock and allocated stock
 - `Listing`
@@ -51,6 +51,7 @@ Bazaarly is a server-rendered Next.js application backed by PostgreSQL through P
 - Checkout is transaction-safe and updates money, stock, orders, and notifications together
 - Listings reserve inventory rather than duplicating stock
 - Product supply is controlled by a predefined safe catalog
+- Product categories now use a 15-category source-of-truth catalog and products store unit labels separately from names
 - Marketplace state is shared globally, not per user
 
 ## Deployment Notes

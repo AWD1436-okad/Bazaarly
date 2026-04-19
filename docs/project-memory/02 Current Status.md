@@ -12,11 +12,13 @@ Release posture:
 ## What Is Confirmed In Code
 
 - Prisma schema defines persistent users, shops, listings, carts, orders, notifications, bots, events, and world state
+- Prisma schema now includes the expanded 15-category product enum and a dedicated `Product.unitLabel` field for unit-aware pricing
 - Authentication is database-backed and now uses a Prisma-backed session token model in [lib/auth.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\auth.ts)
 - Checkout uses a Prisma transaction in [app/checkout/route.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\app\checkout\route.ts)
 - Marketplace search and ranking live in [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\marketplace.ts)
 - Economy simulation lives in [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\simulation.ts)
 - Deployment is pinned to Sydney through [vercel.json](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\vercel.json)
+- The old seeded catalog has been replaced in code with a new 859-item Australian-market catalog sourced from the user-provided master list
 
 ## Current Audit Takeaways
 
@@ -31,6 +33,8 @@ Release posture:
 Launch prep only:
 
 - apply the latest Prisma migrations
+- run the catalog replacement migration
+- reseed with reset if the goal is to fully remove all old catalog data from the world
 - redeploy or confirm deployment against the migrated schema
 - run final manual QA on the live app
 

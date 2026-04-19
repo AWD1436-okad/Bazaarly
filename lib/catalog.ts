@@ -1,9 +1,12 @@
 import { BotPersonality, ProductCategory } from "@prisma/client";
 
+import { CATALOG_SOURCE } from "@/lib/catalog-source";
+
 export type CatalogProduct = {
   sku: string;
   name: string;
   category: ProductCategory;
+  unitLabel: string;
   description: string;
   basePrice: number;
   supplierPrice: number;
@@ -16,33 +19,193 @@ export type CatalogProduct = {
   imageUrl?: string;
 };
 
-type ProductDraft = {
-  name: string;
-  basePrice: number;
-  supplierPrice: number;
-  category?: ProductCategory;
-  description?: string;
-  demandScore?: number;
-  popularityScore?: number;
-  trendLabel?: string;
-  spoilable?: boolean;
-  shelfLife?: number;
-  keywords?: string[];
-  sku?: string;
-  imageUrl?: string;
-};
-
-type SectionDefaults = {
-  category: ProductCategory;
+type CategoryDefinition = {
+  label: string;
   prefix: string;
   demandScore: number;
   popularityScore: number;
   trendLabel: string;
   spoilable: boolean;
   shelfLife?: number;
+  supplierRatio: number;
   keywords: string[];
-  descriptionSuffix: string;
 };
+
+export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> = {
+  [ProductCategory.PRODUCE]: {
+    label: "Produce",
+    prefix: "produce",
+    demandScore: 1.1,
+    popularityScore: 1.08,
+    trendLabel: "Fresh demand",
+    spoilable: true,
+    shelfLife: 96,
+    supplierRatio: 0.66,
+    keywords: ["produce", "fresh", "fruit", "vegetables"],
+  },
+  [ProductCategory.MEAT_AND_SEAFOOD]: {
+    label: "Meat & Seafood",
+    prefix: "meat",
+    demandScore: 1.08,
+    popularityScore: 1.05,
+    trendLabel: "Dinner staple",
+    spoilable: true,
+    shelfLife: 72,
+    supplierRatio: 0.72,
+    keywords: ["meat", "seafood", "protein"],
+  },
+  [ProductCategory.DAIRY_AND_EGGS]: {
+    label: "Dairy & Eggs",
+    prefix: "dairy",
+    demandScore: 1.07,
+    popularityScore: 1.04,
+    trendLabel: "Breakfast staple",
+    spoilable: true,
+    shelfLife: 120,
+    supplierRatio: 0.7,
+    keywords: ["dairy", "eggs", "chilled"],
+  },
+  [ProductCategory.BAKERY]: {
+    label: "Bakery",
+    prefix: "bakery",
+    demandScore: 1.05,
+    popularityScore: 1.04,
+    trendLabel: "Fresh bake",
+    spoilable: true,
+    shelfLife: 72,
+    supplierRatio: 0.67,
+    keywords: ["bakery", "bread", "baked"],
+  },
+  [ProductCategory.PANTRY]: {
+    label: "Pantry",
+    prefix: "pantry",
+    demandScore: 1.01,
+    popularityScore: 1.01,
+    trendLabel: "Pantry staple",
+    spoilable: false,
+    supplierRatio: 0.68,
+    keywords: ["pantry", "grocery", "staple"],
+  },
+  [ProductCategory.SNACKS_AND_SWEETS]: {
+    label: "Snacks & Sweets",
+    prefix: "snacks",
+    demandScore: 1.06,
+    popularityScore: 1.08,
+    trendLabel: "Popular",
+    spoilable: false,
+    supplierRatio: 0.69,
+    keywords: ["snack", "sweet", "treat"],
+  },
+  [ProductCategory.DRINKS]: {
+    label: "Drinks",
+    prefix: "drinks",
+    demandScore: 1.08,
+    popularityScore: 1.07,
+    trendLabel: "Trending",
+    spoilable: false,
+    supplierRatio: 0.68,
+    keywords: ["drink", "beverage", "refreshment"],
+  },
+  [ProductCategory.CLOTHING_AND_FOOTWEAR]: {
+    label: "Clothing & Footwear",
+    prefix: "clothing",
+    demandScore: 0.98,
+    popularityScore: 1.02,
+    trendLabel: "Steady",
+    spoilable: false,
+    supplierRatio: 0.6,
+    keywords: ["clothing", "fashion", "footwear"],
+  },
+  [ProductCategory.SCHOOL_STATIONERY_AND_TOYS]: {
+    label: "School, Stationery & Toys",
+    prefix: "school",
+    demandScore: 0.99,
+    popularityScore: 1.01,
+    trendLabel: "Useful pick",
+    spoilable: false,
+    supplierRatio: 0.59,
+    keywords: ["school", "stationery", "toys"],
+  },
+  [ProductCategory.PERSONAL_CARE_AND_HEALTH]: {
+    label: "Personal Care & Health",
+    prefix: "care",
+    demandScore: 1.02,
+    popularityScore: 1.01,
+    trendLabel: "Daily essential",
+    spoilable: false,
+    supplierRatio: 0.63,
+    keywords: ["personal care", "health", "hygiene"],
+  },
+  [ProductCategory.CLEANING_AND_HOUSEHOLD]: {
+    label: "Cleaning & Household",
+    prefix: "household",
+    demandScore: 1.01,
+    popularityScore: 1,
+    trendLabel: "Steady",
+    spoilable: false,
+    supplierRatio: 0.62,
+    keywords: ["cleaning", "household", "home"],
+  },
+  [ProductCategory.KITCHEN_AND_DINING]: {
+    label: "Kitchen & Dining",
+    prefix: "kitchen",
+    demandScore: 0.98,
+    popularityScore: 1.01,
+    trendLabel: "Useful pick",
+    spoilable: false,
+    supplierRatio: 0.61,
+    keywords: ["kitchen", "dining", "cookware"],
+  },
+  [ProductCategory.BABY]: {
+    label: "Baby",
+    prefix: "baby",
+    demandScore: 0.99,
+    popularityScore: 1,
+    trendLabel: "Family staple",
+    spoilable: false,
+    supplierRatio: 0.7,
+    keywords: ["baby", "infant", "parenting"],
+  },
+  [ProductCategory.PET]: {
+    label: "Pet",
+    prefix: "pet",
+    demandScore: 0.98,
+    popularityScore: 1.01,
+    trendLabel: "Steady",
+    spoilable: false,
+    supplierRatio: 0.65,
+    keywords: ["pet", "dog", "cat"],
+  },
+  [ProductCategory.TECH_ELECTRONICS_AND_APPLIANCES]: {
+    label: "Tech, Electronics & Appliances",
+    prefix: "tech",
+    demandScore: 0.96,
+    popularityScore: 1.03,
+    trendLabel: "Selective demand",
+    spoilable: false,
+    supplierRatio: 0.8,
+    keywords: ["tech", "electronics", "appliance"],
+  },
+};
+
+export const CATEGORY_OPTIONS = CATALOG_SOURCE.map((section) => {
+  const value = ProductCategory[section.enumValue as keyof typeof ProductCategory];
+
+  return {
+    value,
+    label: section.label,
+  };
+});
+
+export const CATEGORY_COUNT_EXPECTATIONS = Object.fromEntries(
+  CATALOG_SOURCE.map((section) => [section.enumValue, section.expectedCount]),
+) as Record<ProductCategory, number>;
+
+export const SUPPORTED_UNIT_LABELS = Array.from(
+  new Set(
+    CATALOG_SOURCE.flatMap((section) => section.items.map((item) => item.unitLabel)),
+  ),
+).sort((left, right) => left.localeCompare(right));
 
 function slugifyName(value: string) {
   return value
@@ -52,590 +215,798 @@ function slugifyName(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function createSection(defaults: SectionDefaults, items: ProductDraft[]): CatalogProduct[] {
-  return items.map((item) => {
-    const name = item.name;
-    const keywords = Array.from(
-      new Set(
-        [
-          ...defaults.keywords,
-          ...name
-            .toLowerCase()
-            .split(/[^a-z0-9]+/)
-            .filter(Boolean),
-          item.name.toLowerCase(),
-          ...(item.keywords ?? []),
-        ].map((keyword) => keyword.toLowerCase()),
-      ),
-    );
+export function getCategoryLabel(category: ProductCategory | null | undefined) {
+  if (!category) {
+    return "All categories";
+  }
 
-    return {
-      sku: item.sku ?? `${defaults.prefix}-${slugifyName(name)}`,
-      name,
-      category: item.category ?? defaults.category,
-      description:
-        item.description ??
-        `${name} ${defaults.descriptionSuffix}`,
-      basePrice: item.basePrice,
-      supplierPrice: item.supplierPrice,
-      demandScore: item.demandScore ?? defaults.demandScore,
-      popularityScore: item.popularityScore ?? defaults.popularityScore,
-      trendLabel: item.trendLabel ?? defaults.trendLabel,
-      spoilable: item.spoilable ?? defaults.spoilable,
-      shelfLife: item.shelfLife ?? defaults.shelfLife,
-      keywords,
-      imageUrl: item.imageUrl,
-    };
-  });
+  return CATEGORY_DEFINITIONS[category].label;
 }
 
-const fruits = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.12,
-    popularityScore: 1.12,
-    trendLabel: "Fresh demand",
-    spoilable: true,
-    shelfLife: 96,
-    keywords: ["fruit", "fresh", "produce"],
-    descriptionSuffix: "stocked as fresh fruit for everyday shoppers.",
-  },
-  [
-    { name: "Apples", basePrice: 180, supplierPrice: 110, shelfLife: 120, trendLabel: "High demand", keywords: ["cheap apples"] },
-    { name: "Bananas", basePrice: 150, supplierPrice: 90, shelfLife: 84 },
-    { name: "Oranges", basePrice: 195, supplierPrice: 120, shelfLife: 120 },
-    { name: "Mandarins", basePrice: 210, supplierPrice: 130, shelfLife: 120 },
-    { name: "Lemons", basePrice: 160, supplierPrice: 95, shelfLife: 144 },
-    { name: "Limes", basePrice: 170, supplierPrice: 100, shelfLife: 144 },
-    { name: "Grapes", basePrice: 360, supplierPrice: 230, shelfLife: 72 },
-    { name: "Strawberries", basePrice: 430, supplierPrice: 280, shelfLife: 72, trendLabel: "Trending" },
-    { name: "Blueberries", basePrice: 480, supplierPrice: 320, shelfLife: 72, trendLabel: "Trending" },
-    { name: "Raspberries", basePrice: 520, supplierPrice: 350, shelfLife: 60, trendLabel: "Trending" },
-    { name: "Watermelon", basePrice: 780, supplierPrice: 520, shelfLife: 96 },
-    { name: "Rockmelon", basePrice: 660, supplierPrice: 430, shelfLife: 96 },
-    { name: "Pineapple", basePrice: 540, supplierPrice: 350, shelfLife: 120 },
-    { name: "Mango", basePrice: 340, supplierPrice: 220, shelfLife: 84 },
-    { name: "Kiwifruit", basePrice: 280, supplierPrice: 170, shelfLife: 108 },
-    { name: "Peaches", basePrice: 310, supplierPrice: 190, shelfLife: 72 },
-    { name: "Nectarines", basePrice: 320, supplierPrice: 200, shelfLife: 72 },
-    { name: "Plums", basePrice: 260, supplierPrice: 160, shelfLife: 84 },
-    { name: "Pears", basePrice: 230, supplierPrice: 145, shelfLife: 108 },
-    { name: "Avocados", basePrice: 290, supplierPrice: 180, shelfLife: 72, keywords: ["guac", "guacamole"] },
-  ],
-);
+export function getCatalogProductBySku(sku: string) {
+  return PRODUCT_CATALOG.find((product) => product.sku === sku) ?? null;
+}
 
-const vegetables = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.05,
-    popularityScore: 1.03,
-    trendLabel: "Steady",
-    spoilable: true,
-    shelfLife: 120,
-    keywords: ["vegetable", "veg", "fresh", "produce"],
-    descriptionSuffix: "offered as fresh produce for cooking and home meals.",
-  },
-  [
-    { name: "Potatoes", basePrice: 420, supplierPrice: 260, shelfLife: 240 },
-    { name: "Sweet Potatoes", basePrice: 470, supplierPrice: 300, shelfLife: 216 },
-    { name: "Carrots", basePrice: 220, supplierPrice: 130, shelfLife: 168 },
-    { name: "Onions", basePrice: 210, supplierPrice: 120, shelfLife: 240 },
-    { name: "Garlic", basePrice: 180, supplierPrice: 100, shelfLife: 240 },
-    { name: "Ginger", basePrice: 240, supplierPrice: 150, shelfLife: 216 },
-    { name: "Broccoli", basePrice: 260, supplierPrice: 160, shelfLife: 96 },
-    { name: "Cauliflower", basePrice: 330, supplierPrice: 210, shelfLife: 96 },
-    { name: "Cabbage", basePrice: 310, supplierPrice: 190, shelfLife: 168 },
-    { name: "Lettuce", basePrice: 230, supplierPrice: 140, shelfLife: 72 },
-    { name: "Spinach", basePrice: 270, supplierPrice: 170, shelfLife: 60 },
-    { name: "Kale", basePrice: 290, supplierPrice: 180, shelfLife: 72 },
-    { name: "Zucchini", basePrice: 240, supplierPrice: 150, shelfLife: 96 },
-    { name: "Eggplant", basePrice: 290, supplierPrice: 180, shelfLife: 96 },
-    { name: "Capsicum", basePrice: 260, supplierPrice: 160, shelfLife: 96, keywords: ["pepper", "bell pepper"] },
-    { name: "Tomatoes", basePrice: 210, supplierPrice: 130, shelfLife: 84, trendLabel: "Fresh demand", keywords: ["fresh tomatoes"] },
-    { name: "Cucumber", basePrice: 220, supplierPrice: 135, shelfLife: 72 },
-    { name: "Pumpkin", basePrice: 450, supplierPrice: 290, shelfLife: 216 },
-    { name: "Corn Cobs", basePrice: 260, supplierPrice: 160, shelfLife: 84 },
-    { name: "Green Beans", basePrice: 280, supplierPrice: 170, shelfLife: 72 },
-    { name: "Peas", basePrice: 250, supplierPrice: 150, shelfLife: 84 },
-    { name: "Mushrooms", basePrice: 320, supplierPrice: 210, shelfLife: 60 },
-  ],
-);
+export function getCatalogProductByName(name: string) {
+  return PRODUCT_CATALOG.find((product) => product.name === name) ?? null;
+}
 
-const meatAndSeafood = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.09,
-    popularityScore: 1.07,
-    trendLabel: "Busy kitchens",
-    spoilable: true,
-    shelfLife: 72,
-    keywords: ["meat", "protein", "seafood", "dinner"],
-    descriptionSuffix: "stocked as a protein staple for regular grocery baskets.",
-  },
-  [
-    { name: "Chicken Breast", basePrice: 760, supplierPrice: 520, shelfLife: 72 },
-    { name: "Chicken Thighs", basePrice: 720, supplierPrice: 500, shelfLife: 72 },
-    { name: "Whole Chicken", basePrice: 980, supplierPrice: 690, shelfLife: 72 },
-    { name: "Beef Steak", basePrice: 1180, supplierPrice: 860, shelfLife: 72 },
-    { name: "Beef Mince", basePrice: 820, supplierPrice: 570, shelfLife: 72 },
-    { name: "Lamb Chops", basePrice: 1320, supplierPrice: 980, shelfLife: 72 },
-    { name: "Lamb Leg", basePrice: 1890, supplierPrice: 1410, shelfLife: 72 },
-    { name: "Pork Chops", basePrice: 920, supplierPrice: 650, shelfLife: 72 },
-    { name: "Bacon Rashers", basePrice: 640, supplierPrice: 430, shelfLife: 96 },
-    { name: "Sliced Ham", basePrice: 540, supplierPrice: 350, shelfLife: 96 },
-    { name: "Sausages", basePrice: 680, supplierPrice: 460, shelfLife: 72 },
-    { name: "Salami", basePrice: 710, supplierPrice: 470, shelfLife: 120 },
-    { name: "Canned Tuna", basePrice: 290, supplierPrice: 180, spoilable: false, shelfLife: 720, trendLabel: "Pantry staple", keywords: ["tuna can", "pantry protein"] },
-    { name: "Fresh Salmon", basePrice: 1290, supplierPrice: 930, shelfLife: 60 },
-    { name: "Raw Prawns", basePrice: 1040, supplierPrice: 760, shelfLife: 48 },
-    { name: "Fish Fillets", basePrice: 980, supplierPrice: 700, shelfLife: 60 },
-  ],
-);
+function clampPrice(value: number, minimum = 100) {
+  return Math.max(minimum, Math.round(value));
+}
 
-const dairyAndEggs = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.08,
-    popularityScore: 1.06,
-    trendLabel: "Breakfast rush",
-    spoilable: true,
-    shelfLife: 120,
-    keywords: ["dairy", "fridge", "breakfast", "eggs"],
-    descriptionSuffix: "carried as a chilled grocery staple for home kitchens.",
-  },
-  [
-    { name: "Full Cream Milk", category: ProductCategory.DRINKS, basePrice: 410, supplierPrice: 280, shelfLife: 96, keywords: ["milk"] },
-    { name: "Skim Milk", category: ProductCategory.DRINKS, basePrice: 410, supplierPrice: 280, shelfLife: 96, keywords: ["milk"] },
-    { name: "Chocolate Milk", category: ProductCategory.DRINKS, basePrice: 470, supplierPrice: 320, shelfLife: 96, keywords: ["milk drink"] },
-    { name: "Cheddar Cheese", basePrice: 650, supplierPrice: 440, shelfLife: 168 },
-    { name: "Mozzarella Cheese", basePrice: 680, supplierPrice: 460, shelfLife: 168 },
-    { name: "Parmesan Cheese", basePrice: 740, supplierPrice: 520, shelfLife: 216 },
-    { name: "Plain Yogurt", basePrice: 310, supplierPrice: 190, shelfLife: 144, keywords: ["yogurt"] },
-    { name: "Greek Yogurt", basePrice: 360, supplierPrice: 230, shelfLife: 144, keywords: ["yogurt"] },
-    { name: "Butter", basePrice: 490, supplierPrice: 320, shelfLife: 216 },
-    { name: "Margarine", basePrice: 430, supplierPrice: 280, shelfLife: 240 },
-    { name: "Thickened Cream", basePrice: 520, supplierPrice: 350, shelfLife: 96 },
-    { name: "Eggs", basePrice: 620, supplierPrice: 470, shelfLife: 144, trendLabel: "High demand", keywords: ["egg carton"] },
-  ],
-);
+function buildKeywords(name: string, category: ProductCategory, unitLabel: string) {
+  const tokens = name
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
 
-const bakery = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.06,
-    popularityScore: 1.05,
-    trendLabel: "Fresh bake",
-    spoilable: true,
-    shelfLife: 72,
-    keywords: ["bakery", "bread", "fresh"],
-    descriptionSuffix: "supplied as a bakery item for daily shoppers.",
-  },
-  [
-    { name: "White Bread Loaf", basePrice: 320, supplierPrice: 220, trendLabel: "Steady", keywords: ["bread loaf", "white bread"], sku: "food-bread" },
-    { name: "Wholemeal Bread Loaf", basePrice: 340, supplierPrice: 230, keywords: ["bread loaf", "wholemeal bread"] },
-    { name: "Multigrain Bread Loaf", basePrice: 360, supplierPrice: 250, keywords: ["bread loaf", "multigrain bread"] },
-    { name: "Bread Rolls", basePrice: 380, supplierPrice: 260 },
-    { name: "Burger Buns", basePrice: 390, supplierPrice: 260 },
-    { name: "Tortilla Wraps", basePrice: 420, supplierPrice: 290, shelfLife: 120 },
-    { name: "Croissants", basePrice: 450, supplierPrice: 300 },
-    { name: "Chocolate Muffins", basePrice: 430, supplierPrice: 290 },
-    { name: "Cupcakes", basePrice: 460, supplierPrice: 320 },
-    { name: "Sponge Cake", basePrice: 620, supplierPrice: 430 },
-    { name: "Meat Pies", basePrice: 520, supplierPrice: 350, shelfLife: 60 },
-    { name: "Sausage Rolls", basePrice: 510, supplierPrice: 340, shelfLife: 60 },
-  ],
-);
+  return Array.from(
+    new Set(
+      [
+        ...tokens,
+        name.toLowerCase(),
+        unitLabel.toLowerCase(),
+        ...CATEGORY_DEFINITIONS[category].keywords,
+      ].map((value) => value.toLowerCase()),
+    ),
+  );
+}
 
-const pantry = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.01,
-    popularityScore: 1.02,
-    trendLabel: "Pantry staple",
-    spoilable: false,
-    keywords: ["pantry", "staple", "grocery"],
-    descriptionSuffix: "kept as a shelf-stable grocery staple.",
-  },
-  [
-    { name: "White Rice", basePrice: 550, supplierPrice: 390, keywords: ["rice"] },
-    { name: "Brown Rice", basePrice: 590, supplierPrice: 420, keywords: ["rice"] },
-    { name: "Dry Pasta", basePrice: 470, supplierPrice: 300, keywords: ["pasta"] },
-    { name: "Spaghetti", basePrice: 450, supplierPrice: 290, keywords: ["pasta"] },
-    { name: "Instant Noodles", basePrice: 220, supplierPrice: 130, trendLabel: "Popular" },
-    { name: "Plain Flour", basePrice: 330, supplierPrice: 210 },
-    { name: "Self-Raising Flour", basePrice: 350, supplierPrice: 230 },
-    { name: "White Sugar", basePrice: 300, supplierPrice: 190 },
-    { name: "Brown Sugar", basePrice: 330, supplierPrice: 210 },
-    { name: "Table Salt", basePrice: 180, supplierPrice: 100 },
-    { name: "Black Pepper", basePrice: 250, supplierPrice: 150 },
-    { name: "Rolled Oats", basePrice: 360, supplierPrice: 240 },
-    { name: "Cornflakes Cereal", basePrice: 520, supplierPrice: 340, keywords: ["cereal"] },
-    { name: "Muesli Cereal", basePrice: 560, supplierPrice: 370, keywords: ["cereal"] },
-    { name: "Baked Beans Can", basePrice: 240, supplierPrice: 150 },
-    { name: "Canned Tomatoes", basePrice: 210, supplierPrice: 130 },
-    { name: "Canned Corn", basePrice: 200, supplierPrice: 120 },
-    { name: "Instant Soup Packets", basePrice: 260, supplierPrice: 160 },
-  ],
-);
+function estimateProducePrice(name: string, unitLabel: string) {
+  if (unitLabel === "/kg") {
+    if (/berry|cherries|lychee/.test(name)) return 1590;
+    if (/grapes/.test(name)) return 1090;
+    if (/avocado/.test(name)) return 1290;
+    if (/mango|kiwifruit|plum|nectarine|peach/.test(name)) return 690;
+    if (/apple|pear|orange|mandarin|banana/.test(name)) return 490;
+    if (/capsicum|tomatoes|beans|snow peas|brussels sprouts/.test(name)) return 990;
+    if (/mushrooms/.test(name)) return 1690;
+    if (/potato|onion|pumpkin|carrots|sweet potatoes/.test(name)) return 390;
+    if (/ginger|garlic|chilli/.test(name)) return 1290;
+    return 590;
+  }
 
-const snacks = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.1,
-    popularityScore: 1.13,
-    trendLabel: "Popular",
-    spoilable: false,
-    keywords: ["snacks", "treat", "quick buy"],
-    descriptionSuffix: "stocked as a snack item for impulse shoppers.",
-  },
-  [
-    { name: "Potato Chips Packet", basePrice: 280, supplierPrice: 170, keywords: ["chips"] },
-    { name: "Corn Chips Packet", basePrice: 290, supplierPrice: 180, keywords: ["chips"] },
-    { name: "Crackers Box", basePrice: 330, supplierPrice: 210 },
-    { name: "Sweet Biscuits Packet", basePrice: 340, supplierPrice: 220 },
-    { name: "Chocolate Bar", basePrice: 230, supplierPrice: 140 },
-    { name: "Lollies Bag", basePrice: 290, supplierPrice: 180 },
-    { name: "Muesli Bars Box", basePrice: 450, supplierPrice: 300 },
-    { name: "Protein Bars Box", basePrice: 580, supplierPrice: 390 },
-    { name: "Microwave Popcorn", basePrice: 350, supplierPrice: 220 },
-    { name: "Mixed Nuts Pack", basePrice: 520, supplierPrice: 350 },
-    { name: "Trail Mix Pack", basePrice: 490, supplierPrice: 330 },
-  ],
-);
+  if (unitLabel === "per punnet") {
+    if (/strawberries/.test(name)) return 450;
+    if (/blueberries|raspberries|blackberries/.test(name)) return 550;
+    if (/mushrooms/.test(name)) return 450;
+    return 420;
+  }
 
-const condiments = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 0.98,
-    popularityScore: 1,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["condiments", "sauce", "pantry"],
-    descriptionSuffix: "kept as a pantry condiment for cooking and serving.",
-  },
-  [
-    { name: "Tomato Sauce Bottle", basePrice: 340, supplierPrice: 220 },
-    { name: "Ketchup Bottle", basePrice: 350, supplierPrice: 230 },
-    { name: "BBQ Sauce Bottle", basePrice: 390, supplierPrice: 260 },
-    { name: "Mayonnaise Jar", basePrice: 410, supplierPrice: 280 },
-    { name: "Mustard Bottle", basePrice: 330, supplierPrice: 210 },
-    { name: "Soy Sauce Bottle", basePrice: 360, supplierPrice: 230 },
-    { name: "Hot Sauce Bottle", basePrice: 380, supplierPrice: 240 },
-    { name: "Salad Dressing Bottle", basePrice: 390, supplierPrice: 250 },
-    { name: "Olive Oil Bottle", basePrice: 780, supplierPrice: 560, popularityScore: 1.04 },
-    { name: "Vegetable Oil Bottle", basePrice: 550, supplierPrice: 380 },
-    { name: "White Vinegar Bottle", basePrice: 290, supplierPrice: 180 },
-    { name: "Honey Jar", basePrice: 620, supplierPrice: 430, popularityScore: 1.05 },
-    { name: "Jam Jar", basePrice: 430, supplierPrice: 290 },
-    { name: "Peanut Butter Jar", basePrice: 470, supplierPrice: 320, popularityScore: 1.06 },
-  ],
-);
+  if (unitLabel === "per 1kg bag") return 350;
+  if (unitLabel === "per 500g bag") return 290;
+  if (unitLabel === "per bunch") return /fresh herbs mix/.test(name) ? 450 : 280;
+  if (unitLabel === "per bag") return /lettuce|spinach|kale|bean sprouts/.test(name) ? 350 : 320;
+  if (unitLabel === "per pack") {
+    if (/cut watermelon|cut rockmelon|sliced pineapple|sliced mango/.test(name)) return 550;
+    if (/broccoli florets|cauliflower florets|cut pumpkin|sliced mushrooms/.test(name)) return 420;
+    return 390;
+  }
 
-const drinks = createSection(
-  {
-    category: ProductCategory.DRINKS,
-    prefix: "drinks",
-    demandScore: 1.12,
-    popularityScore: 1.1,
-    trendLabel: "Trending",
-    spoilable: false,
-    keywords: ["drink", "beverage", "refreshment"],
-    descriptionSuffix: "offered as a drink item for everyday baskets.",
-  },
-  [
-    { name: "Bottled Water", basePrice: 190, supplierPrice: 100, trendLabel: "High demand", keywords: ["water", "cheap drink"], sku: "drink-water" },
-    { name: "Sparkling Water Bottle", basePrice: 240, supplierPrice: 140, keywords: ["sparkling water"] },
-    { name: "Cola Soft Drink Bottle", basePrice: 260, supplierPrice: 150, keywords: ["cola", "soft drink"] },
-    { name: "Lemonade Soft Drink Bottle", basePrice: 260, supplierPrice: 150, keywords: ["lemonade", "soft drink"] },
-    { name: "Orange Juice Carton", basePrice: 360, supplierPrice: 230, spoilable: true, shelfLife: 168, keywords: ["juice"], sku: "drink-juice" },
-    { name: "Apple Juice Carton", basePrice: 360, supplierPrice: 230, spoilable: true, shelfLife: 168, keywords: ["juice"] },
-    { name: "Energy Drink Can", basePrice: 340, supplierPrice: 220, keywords: ["energy drink"] },
-    { name: "Sports Drink Bottle", basePrice: 310, supplierPrice: 200, keywords: ["sports drink"] },
-    { name: "Ground Coffee Bag", basePrice: 720, supplierPrice: 500, keywords: ["coffee"], trendLabel: "Morning boost" },
-    { name: "Instant Coffee Jar", basePrice: 650, supplierPrice: 450, keywords: ["coffee"], trendLabel: "Morning boost" },
-    { name: "Tea Bags Box", basePrice: 460, supplierPrice: 300, keywords: ["tea"] },
-    { name: "Green Tea Box", basePrice: 490, supplierPrice: 320, keywords: ["tea"] },
-    { name: "Hot Chocolate Powder Tin", basePrice: 540, supplierPrice: 360, keywords: ["hot chocolate"] },
-  ],
-);
+  if (unitLabel === "each") {
+    if (/watermelon/.test(name)) return 790;
+    if (/coconut|dragon fruit|pineapple|papaya/.test(name)) return 550;
+    if (/rockmelon/.test(name)) return 420;
+    if (/avocados/.test(name)) return 260;
+    if (/broccoli|cauliflower|cabbage|lettuce|celery|leeks|bok choy/.test(name)) return 320;
+    if (/corn cobs/.test(name)) return 120;
+    if (/garlic|passionfruit/.test(name)) return 130;
+    return 250;
+  }
 
-const frozen = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.02,
-    popularityScore: 1.02,
-    trendLabel: "Cold aisle",
-    spoilable: true,
-    shelfLife: 720,
-    keywords: ["frozen", "freezer"],
-    descriptionSuffix: "kept in the frozen range for longer shelf life.",
-  },
-  [
-    { name: "Frozen Vegetables Bag", basePrice: 420, supplierPrice: 280 },
-    { name: "Frozen Fruit Bag", basePrice: 460, supplierPrice: 310 },
-    { name: "Frozen Pizza", basePrice: 780, supplierPrice: 540 },
-    { name: "Frozen Chips Bag", basePrice: 430, supplierPrice: 280 },
-    { name: "Frozen Chicken Nuggets", basePrice: 620, supplierPrice: 420 },
-    { name: "Ice Cream Tub", basePrice: 690, supplierPrice: 470, trendLabel: "Popular" },
-    { name: "Ice Blocks Pack", basePrice: 470, supplierPrice: 320, trendLabel: "Popular" },
-    { name: "Frozen Ready Meals", basePrice: 730, supplierPrice: 500 },
-  ],
-);
+  return 490;
+}
 
-const deliReadyFood = createSection(
-  {
-    category: ProductCategory.FOOD,
-    prefix: "food",
-    demandScore: 1.08,
-    popularityScore: 1.07,
-    trendLabel: "Lunch rush",
-    spoilable: true,
-    shelfLife: 48,
-    keywords: ["deli", "ready food", "quick lunch"],
-    descriptionSuffix: "prepared for convenience-focused shoppers.",
-  },
-  [
-    { name: "Roast Chicken", basePrice: 1120, supplierPrice: 790 },
-    { name: "Pre-Made Sandwich", basePrice: 520, supplierPrice: 350 },
-    { name: "Pre-Made Wrap", basePrice: 550, supplierPrice: 370 },
-    { name: "Pre-Made Salad Bowl", basePrice: 620, supplierPrice: 430 },
-    { name: "Sushi Rolls Pack", basePrice: 680, supplierPrice: 470 },
-    { name: "Sliced Ham Pack", basePrice: 490, supplierPrice: 320 },
-    { name: "Cheese Slices Pack", basePrice: 450, supplierPrice: 300 },
-  ],
-);
+function estimateMeatPrice(name: string, unitLabel: string) {
+  if (unitLabel === "/kg") {
+    if (/wagyu|ribeye|scotch fillet|t-bone|porterhouse/.test(name)) return 3290;
+    if (/sirloin|lamb chops loin|lamb chops forequarter/.test(name)) return 2590;
+    if (/salmon|barramundi|flathead/.test(name)) return 2890;
+    if (/beef mince|lean beef mince/.test(name)) return 1490;
+    if (/premium beef mince/.test(name)) return 1790;
+    if (/chicken/.test(name)) return /marinated/.test(name) ? 1490 : 1190;
+    if (/pork belly/.test(name)) return 1890;
+    if (/pork chops|pork mince/.test(name)) return 1590;
+    if (/bacon/.test(name)) return 1890;
+    if (/prawns/.test(name)) return 2690;
+    if (/fish fillets|basa/.test(name)) return 1990;
+    return 1890;
+  }
 
-const baby = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "essentials",
-    demandScore: 0.97,
-    popularityScore: 0.98,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["baby", "parenting", "family"],
-    descriptionSuffix: "supplied as a baby-care essential.",
-  },
-  [
-    { name: "Baby Food Puree Pouch", basePrice: 260, supplierPrice: 160, spoilable: true, shelfLife: 240 },
-    { name: "Infant Formula Tin", basePrice: 1890, supplierPrice: 1410 },
-    { name: "Nappies Pack", basePrice: 1490, supplierPrice: 1090 },
-    { name: "Baby Wipes Pack", basePrice: 520, supplierPrice: 350 },
-  ],
-);
+  if (unitLabel === "per 100g") {
+    if (/roast beef/.test(name)) return 480;
+    if (/salami/.test(name)) return 350;
+    return 320;
+  }
 
-const personalCare = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "essentials",
-    demandScore: 1.03,
-    popularityScore: 1.02,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["personal care", "bathroom", "hygiene"],
-    descriptionSuffix: "stocked as a personal-care essential.",
-  },
-  [
-    { name: "Shampoo Bottle", basePrice: 690, supplierPrice: 430, keywords: ["shampoo"], sku: "essentials-shampoo" },
-    { name: "Conditioner Bottle", basePrice: 690, supplierPrice: 430 },
-    { name: "Bar Soap", basePrice: 260, supplierPrice: 150, keywords: ["soap"], sku: "essentials-soap" },
-    { name: "Hand Soap Pump", basePrice: 390, supplierPrice: 250, keywords: ["soap pump", "liquid soap"] },
-    { name: "Body Wash Bottle", basePrice: 620, supplierPrice: 400 },
-    { name: "Toothpaste Tube", basePrice: 360, supplierPrice: 220 },
-    { name: "Toothbrush", basePrice: 340, supplierPrice: 190, keywords: ["toothbrushes"], sku: "essentials-toothbrushes" },
-    { name: "Dental Floss", basePrice: 280, supplierPrice: 170 },
-    { name: "Mouthwash Bottle", basePrice: 520, supplierPrice: 340 },
-    { name: "Deodorant Stick", basePrice: 510, supplierPrice: 330 },
-    { name: "Roll-On Deodorant", basePrice: 480, supplierPrice: 310 },
-    { name: "Face Wash Tube", basePrice: 590, supplierPrice: 390 },
-    { name: "Moisturiser Cream", basePrice: 650, supplierPrice: 430 },
-    { name: "Lip Balm", basePrice: 240, supplierPrice: 140 },
-    { name: "Razor", basePrice: 360, supplierPrice: 220 },
-    { name: "Shaving Cream Can", basePrice: 420, supplierPrice: 260 },
-    { name: "Hair Brush", basePrice: 390, supplierPrice: 240 },
-    { name: "Comb", basePrice: 220, supplierPrice: 120 },
-    { name: "Hair Ties Pack", basePrice: 280, supplierPrice: 170 },
-  ],
-);
+  if (unitLabel === "per can") return 210;
+  if (unitLabel === "per pack") {
+    if (/fish fillets/.test(name)) return 890;
+    if (/mussels/.test(name)) return 1090;
+    if (/squid rings|seafood sticks/.test(name)) return 690;
+    if (/beef burger patties/.test(name)) return 990;
+    return 790;
+  }
 
-const health = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "essentials",
-    demandScore: 0.95,
-    popularityScore: 0.97,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["health", "medical", "first aid"],
-    descriptionSuffix: "carried as a health and wellness item.",
-  },
-  [
-    { name: "Paracetamol Tablets", basePrice: 390, supplierPrice: 250 },
-    { name: "Ibuprofen Tablets", basePrice: 410, supplierPrice: 270 },
-    { name: "Vitamin Tablets", basePrice: 620, supplierPrice: 410 },
-    { name: "Adhesive Bandages", basePrice: 260, supplierPrice: 160 },
-    { name: "First Aid Kit", basePrice: 1280, supplierPrice: 940 },
-  ],
-);
+  if (unitLabel === "each") {
+    if (/cooked whole chicken/.test(name)) return 1290;
+    if (/chorizo/.test(name)) return 480;
+    return 390;
+  }
 
-const cleaning = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "essentials",
-    demandScore: 1.01,
-    popularityScore: 1.01,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["cleaning", "household cleaning"],
-    descriptionSuffix: "kept as a cleaning staple for home care.",
-  },
-  [
-    { name: "Laundry Detergent Liquid", basePrice: 980, supplierPrice: 650, keywords: ["laundry detergent"], sku: "essentials-detergent" },
-    { name: "Fabric Softener Bottle", basePrice: 760, supplierPrice: 500 },
-    { name: "Dishwashing Liquid Bottle", basePrice: 390, supplierPrice: 240 },
-    { name: "Dishwasher Tablets Pack", basePrice: 920, supplierPrice: 620 },
-    { name: "Surface Cleaner Spray", basePrice: 480, supplierPrice: 310 },
-    { name: "Disinfectant Spray", basePrice: 520, supplierPrice: 340 },
-    { name: "Glass Cleaner Spray", basePrice: 450, supplierPrice: 290 },
-    { name: "Sponges Pack", basePrice: 260, supplierPrice: 160, keywords: ["cleaning sponges"] },
-    { name: "Scrub Brush", basePrice: 320, supplierPrice: 200 },
-    { name: "Broom", basePrice: 890, supplierPrice: 620 },
-    { name: "Dustpan", basePrice: 340, supplierPrice: 210 },
-    { name: "Mop", basePrice: 1040, supplierPrice: 730 },
-    { name: "Bucket", basePrice: 470, supplierPrice: 310 },
-  ],
-);
+  return 990;
+}
 
-const household = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "essentials",
-    demandScore: 1.04,
-    popularityScore: 1.03,
-    trendLabel: "Useful pick",
-    spoilable: false,
-    keywords: ["household", "home care"],
-    descriptionSuffix: "supplied as a household essential.",
-  },
-  [
-    { name: "Wet Wipes Pack", basePrice: 360, supplierPrice: 230 },
-    { name: "Toilet Paper Pack", basePrice: 890, supplierPrice: 590 },
-    { name: "Paper Towel Rolls", basePrice: 640, supplierPrice: 420 },
-    { name: "Tissues Box", basePrice: 300, supplierPrice: 180, keywords: ["tissues"], sku: "essentials-tissues" },
-    { name: "Garbage Bags Roll", basePrice: 410, supplierPrice: 260 },
-    { name: "Cling Wrap Roll", basePrice: 320, supplierPrice: 200 },
-    { name: "Aluminium Foil Roll", basePrice: 360, supplierPrice: 230 },
-    { name: "Baking Paper Roll", basePrice: 340, supplierPrice: 220 },
-    { name: "Food Storage Containers", category: ProductCategory.KITCHEN, basePrice: 790, supplierPrice: 540, keywords: ["containers", "kitchen storage"] },
-    { name: "Matches Box", basePrice: 190, supplierPrice: 100, keywords: ["matches"] },
-  ],
-);
+function estimateDairyPrice(name: string, unitLabel: string) {
+  if (unitLabel === "/kg") {
+    if (/parmesan/.test(name)) return 2290;
+    if (/tasty cheese|cheddar block|mozzarella block/.test(name)) return 1290;
+    return 1590;
+  }
 
-const pet = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "essentials",
-    demandScore: 0.99,
-    popularityScore: 1.01,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["pet", "dog", "cat"],
-    descriptionSuffix: "kept as a pet-care staple.",
-  },
-  [
-    { name: "Dry Dog Food Bag", basePrice: 1490, supplierPrice: 1090 },
-    { name: "Wet Dog Food Cans", basePrice: 520, supplierPrice: 340 },
-    { name: "Dry Cat Food Bag", basePrice: 1390, supplierPrice: 1010 },
-    { name: "Wet Cat Food Cans", basePrice: 490, supplierPrice: 320 },
-    { name: "Cat Litter Bag", basePrice: 1240, supplierPrice: 890 },
-  ],
-);
+  if (unitLabel === "each") {
+    if (/milk 1l/.test(name)) return 250;
+    if (/milk 2l/.test(name)) return 430;
+    if (/almond milk|soy milk|oat milk/.test(name)) return 350;
+    if (/chocolate milk small/.test(name)) return 260;
+    if (/chocolate milk large/.test(name)) return 420;
+    if (/single serve yogurt/.test(name)) return 180;
+    if (/butter/.test(name)) return 690;
+    if (/thickened cream 300ml/.test(name)) return 300;
+    if (/thickened cream 600ml/.test(name)) return 520;
+    if (/eggs/.test(name)) return /organic/.test(name) ? 890 : /free-range/.test(name) ? 690 : 560;
+    return 450;
+  }
 
-const general = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "general",
-    demandScore: 0.97,
-    popularityScore: 0.98,
-    trendLabel: "Mixed demand",
-    spoilable: false,
-    keywords: ["general store", "everyday"],
-    descriptionSuffix: "available as a general small-good in Bazaarly.",
-  },
-  [
-    { name: "Socks Pair", category: ProductCategory.CLOTHES, basePrice: 390, supplierPrice: 240, keywords: ["socks"], sku: "clothes-socks", popularityScore: 1.05, demandScore: 1.08, trendLabel: "Reliable seller" },
-    { name: "Underwear Pack", category: ProductCategory.CLOTHES, basePrice: 460, supplierPrice: 280, keywords: ["underwear"], sku: "clothes-underwear", popularityScore: 1.06, demandScore: 1.09, trendLabel: "Reliable seller" },
-    { name: "T-Shirt", category: ProductCategory.CLOTHES, basePrice: 890, supplierPrice: 610, keywords: ["shirt", "tee"], sku: "clothes-tshirts", popularityScore: 1.07, demandScore: 1.04, trendLabel: "Popular basics" },
-    { name: "Kitchen Knife", category: ProductCategory.KITCHEN, basePrice: 980, supplierPrice: 690, keywords: ["knife"], sku: "kitchen-knives", trendLabel: "Selective demand" },
-    { name: "Cutting Board", category: ProductCategory.KITCHEN, basePrice: 690, supplierPrice: 470, keywords: ["board"], sku: "kitchen-cutting-board", trendLabel: "Useful pick" },
-    { name: "Frying Pan", category: ProductCategory.KITCHEN, basePrice: 1240, supplierPrice: 880, sku: "kitchen-frying-pan", trendLabel: "Useful pick" },
-    { name: "Cooking Pot", category: ProductCategory.KITCHEN, basePrice: 1390, supplierPrice: 990, sku: "kitchen-cooking-pot", trendLabel: "Useful pick" },
-    { name: "Blender Appliance", category: ProductCategory.KITCHEN, basePrice: 2490, supplierPrice: 1890, sku: "kitchen-blender-appliance", trendLabel: "Selective demand" },
-    { name: "Toaster Appliance", category: ProductCategory.KITCHEN, basePrice: 1890, supplierPrice: 1410, sku: "kitchen-toaster-appliance", trendLabel: "Selective demand" },
-    { name: "Batteries Pack", basePrice: 590, supplierPrice: 390, trendLabel: "Useful pick" },
-    { name: "Light Bulbs Pack", basePrice: 720, supplierPrice: 490, trendLabel: "Useful pick" },
-    { name: "Pen", basePrice: 180, supplierPrice: 90 },
-    { name: "Notebook", basePrice: 290, supplierPrice: 160 },
-    { name: "Toy Car", basePrice: 520, supplierPrice: 330, popularityScore: 1.01 },
-    { name: "Doll", basePrice: 620, supplierPrice: 410, popularityScore: 1.01 },
-    { name: "Lego Set", basePrice: 2490, supplierPrice: 1890, popularityScore: 1.03 },
-    { name: "Jigsaw Puzzle", basePrice: 840, supplierPrice: 560, popularityScore: 1.02 },
-  ],
-);
+  if (unitLabel === "per pack") return /feta/.test(name) ? 520 : /parmesan grated/.test(name) ? 620 : 540;
+  return 420;
+}
 
-const legacyUniqueProducts = createSection(
-  {
-    category: ProductCategory.ESSENTIALS,
-    prefix: "legacy",
-    demandScore: 0.95,
-    popularityScore: 0.97,
-    trendLabel: "Steady",
-    spoilable: false,
-    keywords: ["legacy", "existing"],
-    descriptionSuffix: "kept in the catalog because it already exists in the live Bazaarly world.",
-  },
-  [
-    { name: "Plates", category: ProductCategory.KITCHEN, basePrice: 740, supplierPrice: 510, sku: "kitchen-plates", keywords: ["dishes", "kitchen accessories"] },
-    { name: "Cups", category: ProductCategory.KITCHEN, basePrice: 540, supplierPrice: 360, sku: "kitchen-cups", keywords: ["drinkware", "mugs"] },
-    { name: "Spoons", category: ProductCategory.KITCHEN, basePrice: 430, supplierPrice: 290, sku: "kitchen-spoons", keywords: ["cutlery", "utensils"] },
-    { name: "Bowls", category: ProductCategory.KITCHEN, basePrice: 610, supplierPrice: 410, sku: "kitchen-bowls", keywords: ["meal prep", "tableware"] },
-    { name: "Spatulas", category: ProductCategory.KITCHEN, basePrice: 360, supplierPrice: 220, sku: "kitchen-spatulas", keywords: ["cooking", "utensils"] },
-    { name: "Hats", category: ProductCategory.CLOTHES, basePrice: 760, supplierPrice: 500, sku: "clothes-hats", keywords: ["cap", "fashion"] },
-    { name: "Hoodies", category: ProductCategory.CLOTHES, basePrice: 1490, supplierPrice: 1040, sku: "clothes-hoodies", keywords: ["hoodie", "outerwear"] },
-    { name: "Shorts", category: ProductCategory.CLOTHES, basePrice: 840, supplierPrice: 560, sku: "clothes-shorts", keywords: ["summer", "casual"] },
-  ],
-);
+function estimateBakeryPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per loaf") {
+    if (/sourdough/.test(name)) return 690;
+    if (/banana bread/.test(name)) return 650;
+    return /multigrain|wholemeal/.test(name) ? 470 : 420;
+  }
+  if (unitLabel === "per pack") {
+    if (/croissants|mini croissants/.test(name)) return 590;
+    if (/muffins|cupcakes/.test(name)) return 590;
+    if (/naan|pizza base|bagels/.test(name)) return 520;
+    if (/sausage rolls mini/.test(name)) return 690;
+    return 450;
+  }
+  if (unitLabel === "each") {
+    if (/sponge cake/.test(name)) return /cream/.test(name) ? 790 : 590;
+    if (/chunky beef pies/.test(name)) return 650;
+    if (/meat pies|sausage rolls large/.test(name)) return 480;
+    if (/garlic bread|turkish bread/.test(name)) return 390;
+    return 360;
+  }
+  return 450;
+}
 
-export const PRODUCT_CATALOG: CatalogProduct[] = [
-  ...fruits,
-  ...vegetables,
-  ...meatAndSeafood,
-  ...dairyAndEggs,
-  ...bakery,
-  ...pantry,
-  ...snacks,
-  ...condiments,
-  ...drinks,
-  ...frozen,
-  ...deliReadyFood,
-  ...baby,
-  ...personalCare,
-  ...health,
-  ...cleaning,
-  ...household,
-  ...pet,
-  ...general,
-  ...legacyUniqueProducts,
-];
+function estimatePantryPrice(name: string, unitLabel: string) {
+  if (unitLabel === "/kg") {
+    if (/olive oil/.test(name)) return 1600;
+    if (/sesame oil/.test(name)) return 1100;
+    if (/honey/.test(name)) return 1200;
+    if (/rice/.test(name)) return 450;
+    if (/flour|sugar/.test(name)) return 270;
+    if (/rolled oats/.test(name)) return 450;
+    return 380;
+  }
+  if (unitLabel === "per 500g") return /coffee/.test(name) ? 1400 : 230;
+  if (unitLabel === "per box") {
+    if (/cereal/.test(name)) return 650;
+    if (/coffee pods/.test(name)) return 1090;
+    if (/lasagne sheets/.test(name)) return 320;
+    return 420;
+  }
+  if (unitLabel === "per pack") {
+    if (/instant soup/.test(name)) return 220;
+    if (/stock cubes/.test(name)) return 280;
+    if (/corn flour/.test(name)) return 240;
+    return 350;
+  }
+  if (unitLabel === "per jar") {
+    if (/honey/.test(name)) return /organic/.test(name) ? 1290 : 1090;
+    if (/peanut butter/.test(name)) return 480;
+    if (/jam/.test(name)) return 450;
+    if (/mayonnaise|mustard dijon/.test(name)) return 420;
+    return 380;
+  }
+  if (unitLabel === "per bottle") {
+    if (/olive oil extra virgin/.test(name)) return 1800;
+    if (/olive oil regular/.test(name)) return 1300;
+    if (/sesame oil/.test(name)) return 890;
+    if (/salad dressing/.test(name)) return 420;
+    if (/bbq sauce|fish sauce|oyster sauce/.test(name)) return 420;
+    return 320;
+  }
+  if (unitLabel === "each") {
+    if (/cup noodles/.test(name)) return 230;
+    if (/instant noodles/.test(name)) return 120;
+    if (/beans|tomatoes|corn|chickpeas|lentils|coconut milk/.test(name)) return 180;
+    if (/passata bottle/.test(name)) return 250;
+    if (/tomato paste tube/.test(name)) return 180;
+    return 220;
+  }
+  return 350;
+}
+
+function estimateSnackPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per bag") {
+    if (/mixed nuts|trail mix/.test(name)) return 590;
+    if (/beef jerky/.test(name)) return 690;
+    if (/potato chips|corn chips|pretzels/.test(name)) return 320;
+    if (/lollies/.test(name)) return 300;
+    return 360;
+  }
+  if (unitLabel === "per box") {
+    if (/protein bars/.test(name)) return /low sugar/.test(name) ? 1090 : 990;
+    if (/muesli bars/.test(name)) return 520;
+    if (/crackers/.test(name)) return 350;
+    return 420;
+  }
+  if (unitLabel === "per pack") {
+    if (/cookies|sweet biscuits/.test(name)) return 350;
+    if (/fruit leather/.test(name)) return 450;
+    if (/microwave popcorn/.test(name)) return 260;
+    if (/ice cream sticks/.test(name)) return 750;
+    return 420;
+  }
+  if (unitLabel === "each") {
+    if (/chocolate bar/.test(name)) return 250;
+    if (/ice cream tub|frozen yoghurt tub/.test(name)) return 650;
+    return 320;
+  }
+  return 420;
+}
+
+function estimateDrinkPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per litre") {
+    if (/orange juice|apple juice/.test(name)) return 420;
+    if (/mango nectar/.test(name)) return 360;
+    return 330;
+  }
+  if (unitLabel === "per 500g") return 1600;
+  if (unitLabel === "per jar") return /instant coffee/.test(name) ? 890 : 750;
+  if (unitLabel === "per box") return /tea/.test(name) ? 450 : /coffee pods/.test(name) ? 1390 : 590;
+  if (unitLabel === "per tin") return /dark hot chocolate/.test(name) ? 720 : 620;
+  if (unitLabel === "per bottle") return /sparkling water/.test(name) ? 220 : 320;
+  if (unitLabel === "each") {
+    if (/bottled water small/.test(name)) return 150;
+    if (/bottled water large/.test(name)) return 230;
+    if (/cola|lemonade/.test(name)) return 350;
+    if (/energy drink/.test(name)) return 420;
+    if (/sports drink/.test(name)) return 380;
+    if (/iced tea bottle/.test(name)) return 340;
+    return 320;
+  }
+  return 350;
+}
+
+function estimateClothingPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per pair") {
+    if (/running shoes|training shoes/.test(name)) return 12900;
+    if (/football boots/.test(name)) return 14900;
+    if (/formal dress shoes|leather boots|work boots/.test(name)) return 16900;
+    if (/casual sneakers|high top sneakers|low top sneakers/.test(name)) return 9900;
+    if (/slippers/.test(name)) return 2500;
+    if (/slides|flip flops/.test(name)) return 1900;
+    if (/gloves/.test(name)) return 1900;
+    return 2900;
+  }
+  if (unitLabel === "per pack") {
+    if (/socks/.test(name)) return 1200;
+    if (/boxer|briefs/.test(name)) return 1800;
+    return 1500;
+  }
+  if (unitLabel === "each") {
+    if (/t-shirt|singlet|tank/.test(name)) return /graphic|oversized|sports/.test(name) ? 3000 : 2200;
+    if (/polo shirt|button up shirt|dress shirt|flannel|denim shirt/.test(name)) return 4500;
+    if (/hoodie|crewneck|fleece sweatshirt|hi-vis hoodie/.test(name)) return 6500;
+    if (/light jacket|denim jacket|bomber jacket|windbreaker/.test(name)) return 8900;
+    if (/puffer jacket|rain jacket/.test(name)) return 11900;
+    if (/leather jacket/.test(name)) return 19900;
+    if (/blazer|suit jacket/.test(name)) return /formal/.test(name) ? 14900 : 9900;
+    if (/jeans|chinos|cargo pants|track pants|joggers|sweatpants|dress pants|rain pants/.test(name)) return 6500;
+    if (/shorts|swim shorts|work shorts/.test(name)) return 3900;
+    if (/pyjama set/.test(name)) return 4900;
+    if (/pyjama pants|sleep shorts|robe/.test(name)) return 3500;
+    if (/beanie|cap|bucket hat|scarf/.test(name)) return 2200;
+    if (/belt leather/.test(name)) return 3500;
+    if (/belt casual|wallet|coin pouch/.test(name)) return 2500;
+    if (/watch digital/.test(name)) return 6900;
+    if (/watch analog/.test(name)) return 8900;
+    if (/sunglasses sport/.test(name)) return 6900;
+    if (/sunglasses/.test(name)) return 3900;
+    return 2900;
+  }
+  return 3500;
+}
+
+function estimateSchoolPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per ream") return 900;
+  if (unitLabel === "per pack") {
+    if (/colour pencils|markers|highlighters|whiteboard markers|paint brushes/.test(name)) return 690;
+    if (/crayons/.test(name)) return 450;
+    if (/sticky notes|binder clips|paper clips/.test(name)) return 320;
+    if (/paint set/.test(name)) return 990;
+    if (/playing cards|tennis balls/.test(name)) return 450;
+    return 420;
+  }
+  if (unitLabel === "each") {
+    if (/notebook|workbook|sketchbook|display book|document wallet|clipboard/.test(name)) return 450;
+    if (/printer paper ream/.test(name)) return 900;
+    if (/photo paper/.test(name)) return 2900;
+    if (/blue pen|black pen|gel pen|ballpoint pen|wooden pencil/.test(name)) return 300;
+    if (/mechanical pencil/.test(name)) return 450;
+    if (/eraser|sharpener|ruler|glue stick|clear tape/.test(name)) return 250;
+    if (/liquid glue|scissors|stapler|staples refill/.test(name)) return 550;
+    if (/whiteboard small/.test(name)) return 1500;
+    if (/desk organiser/.test(name)) return 1200;
+    if (/calculator basic/.test(name)) return 1600;
+    if (/scientific calculator/.test(name)) return 3500;
+    if (/backpack small/.test(name)) return 2900;
+    if (/backpack large/.test(name)) return 4500;
+    if (/pencil case/.test(name)) return 1200;
+    if (/lunch box/.test(name)) return /insulated/.test(name) ? 2400 : 1500;
+    if (/drink bottle plastic/.test(name)) return 1200;
+    if (/drink bottle metal/.test(name)) return 2500;
+    if (/toy car small|toy truck|action figure/.test(name)) return 1200;
+    if (/doll basic/.test(name)) return 1900;
+    if (/building blocks set/.test(name)) return 3500;
+    if (/lego style set small/.test(name)) return 2900;
+    if (/lego style set large/.test(name)) return 7900;
+    if (/jigsaw puzzle small/.test(name)) return 1500;
+    if (/jigsaw puzzle large/.test(name)) return 2500;
+    if (/colouring book/.test(name)) return 450;
+    if (/play dough pack/.test(name)) return 550;
+    if (/board game basic/.test(name)) return 1900;
+    if (/soccer ball|basketball/.test(name)) return 2500;
+    if (/water blaster/.test(name)) return 1800;
+    if (/remote control car/.test(name)) return 4500;
+    if (/plush toy small/.test(name)) return 1200;
+    if (/plush toy large/.test(name)) return 2500;
+    return 600;
+  }
+  return 600;
+}
+
+function estimatePersonalCarePrice(name: string, unitLabel: string) {
+  if (unitLabel === "per pack") {
+    if (/razors disposable/.test(name)) return 690;
+    if (/cotton buds|cotton pads|bandages/.test(name)) return 320;
+    return 390;
+  }
+  if (unitLabel === "each") {
+    if (/electric toothbrush/.test(name)) return 6900;
+    if (/toothbrush/.test(name)) return 350;
+    if (/toothpaste/.test(name)) return 450;
+    if (/mouthwash/.test(name)) return 650;
+    if (/shampoo|conditioner|body wash/.test(name)) return 690;
+    if (/face wash/.test(name)) return 790;
+    if (/moisturiser/.test(name)) return 950;
+    if (/lip balm/.test(name)) return 350;
+    if (/deodorant/.test(name)) return 590;
+    if (/shaving cream|hand soap liquid|hand sanitiser/.test(name)) return 450;
+    if (/sunscreen/.test(name)) return 790;
+    if (/tissues box|wet wipes pack/.test(name)) return 320;
+    if (/paracetamol|ibuprofen/.test(name)) return 450;
+    if (/vitamin tablets/.test(name)) return 1200;
+    if (/antiseptic cream/.test(name)) return 450;
+    if (/first aid kit/.test(name)) return 2200;
+    if (/thermometer digital/.test(name)) return 1490;
+    if (/heat pack reusable/.test(name)) return 1800;
+    if (/eye drops|cough syrup|dental floss/.test(name)) return 480;
+    return 450;
+  }
+  return 450;
+}
+
+function estimateCleaningPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per pair") return /rubber gloves/.test(name) ? 490 : 690;
+  if (unitLabel === "per pack") {
+    if (/cloth|microfibre|sponges|clothes hangers/.test(name)) return 490;
+    if (/plain candles/.test(name)) return 320;
+    return 420;
+  }
+  if (unitLabel === "each") {
+    if (/laundry detergent small/.test(name)) return 790;
+    if (/laundry detergent large/.test(name)) return 1690;
+    if (/dishwasher tablets/.test(name)) return 1590;
+    if (/fabric softener/.test(name)) return 690;
+    if (/dishwashing liquid/.test(name)) return /large/.test(name) ? 550 : 350;
+    if (/surface cleaner|disinfectant|glass cleaner|mould cleaner|air freshener spray|toilet cleaner/.test(name)) return 450;
+    if (/bleach bottle/.test(name)) return 300;
+    if (/bin bags|food storage bags|zip lock/.test(name)) return 390;
+    if (/cling wrap|aluminium foil|baking paper/.test(name)) return 320;
+    if (/paper towel rolls/.test(name)) return 450;
+    if (/toilet paper 2 ply/.test(name)) return 690;
+    if (/toilet paper 3 ply/.test(name)) return 890;
+    if (/air freshener gel/.test(name)) return 350;
+    if (/scented candles/.test(name)) return 490;
+    if (/matches box/.test(name)) return 180;
+    if (/batteries/.test(name)) return 690;
+    if (/light bulb/.test(name)) return 590;
+    if (/extension cord short/.test(name)) return 1490;
+    if (/extension cord long/.test(name)) return 2490;
+    if (/power board basic/.test(name)) return 1900;
+    if (/power board surge protected/.test(name)) return 2900;
+    if (/door mat/.test(name)) return /large/.test(name) ? 2500 : 1500;
+    if (/umbrella compact/.test(name)) return 1900;
+    if (/umbrella full size/.test(name)) return 2500;
+    if (/rain poncho/.test(name)) return 590;
+    if (/laundry basket/.test(name)) return /large/.test(name) ? 2900 : 1900;
+    if (/pegs pack/.test(name)) return 350;
+    if (/ironing board/.test(name)) return 4900;
+    if (/iron clothes/.test(name)) return 3900;
+    if (/storage box small/.test(name)) return 990;
+    if (/storage box medium/.test(name)) return 1490;
+    if (/storage box large/.test(name)) return 2200;
+    if (/drawer organiser|shelf organiser/.test(name)) return 1200;
+    if (/shoe rack|coat hooks/.test(name)) return 2500;
+    if (/mirror small/.test(name)) return 1900;
+    if (/mirror medium/.test(name)) return 2900;
+    if (/picture frame small/.test(name)) return 990;
+    if (/picture frame large/.test(name)) return 1800;
+    return 420;
+  }
+  return 450;
+}
+
+function estimateKitchenPrice(name: string, unitLabel: string) {
+  if (unitLabel === "per set") return /cutlery set metal/.test(name) ? 3900 : 1200;
+  if (unitLabel === "each") {
+    if (/plate ceramic|bowl ceramic|mug ceramic|glass tumbler|wine glass/.test(name)) return 690;
+    if (/plate plastic|bowl plastic/.test(name)) return 350;
+    if (/chef knife/.test(name)) return 3900;
+    if (/paring knife|bread knife/.test(name)) return 1900;
+    if (/cutting board/.test(name)) return /large/.test(name) ? 2200 : 1200;
+    if (/frying pan/.test(name)) return /large/.test(name) ? 5900 : 3900;
+    if (/saucepan/.test(name)) return /large/.test(name) ? 5500 : 3500;
+    if (/cooking pot/.test(name)) return /large/.test(name) ? 7900 : 4900;
+    if (/baking tray|muffin tray/.test(name)) return 1800;
+    if (/mixing bowl/.test(name)) return /large/.test(name) ? 1500 : 900;
+    if (/measuring cups set|measuring spoons set/.test(name)) return 1200;
+    if (/colander|grater|dish rack/.test(name)) return 1900;
+    if (/peeler|can opener|bottle opener|tongs|spatula|wooden spoon|ladle|whisk/.test(name)) return 790;
+    if (/food storage containers set/.test(name)) return 2900;
+    if (/lunch bag insulated/.test(name)) return 2400;
+    if (/travel mug|coffee cup reusable|thermos flask/.test(name)) return 2500;
+    if (/water jug/.test(name)) return 1900;
+    return 950;
+  }
+  return 1200;
+}
+
+function estimateBabyPrice(name: string, unitLabel: string) {
+  if (unitLabel === "each") {
+    if (/infant formula tin/.test(name)) return 2890;
+    if (/baby food pouch/.test(name)) return 250;
+    if (/baby cereal box/.test(name)) return 550;
+    if (/baby bottle twin pack/.test(name)) return 1800;
+    if (/baby bottle/.test(name)) return 900;
+    if (/dummy pack|baby bib pack|baby socks pack/.test(name)) return 950;
+    if (/teether/.test(name)) return 1200;
+    if (/nappies small pack/.test(name)) return 1490;
+    if (/nappies value pack/.test(name)) return 2990;
+    if (/baby wipes small pack/.test(name)) return 350;
+    if (/baby wipes bulk pack/.test(name)) return 790;
+    if (/baby shampoo|baby wash|baby lotion/.test(name)) return 550;
+    if (/baby blanket|baby towel hooded/.test(name)) return 2500;
+    if (/baby onesie/.test(name)) return 1200;
+    if (/baby bath tub/.test(name)) return 3900;
+    if (/pram basic/.test(name)) return 14900;
+    if (/car seat basic/.test(name)) return 19900;
+    if (/high chair basic/.test(name)) return 8900;
+    return 1200;
+  }
+  return 1200;
+}
+
+function estimatePetPrice(name: string, unitLabel: string) {
+  if (unitLabel === "each") {
+    if (/dry dog food small bag|dry cat food small bag/.test(name)) return 1890;
+    if (/dry dog food large bag|dry cat food large bag/.test(name)) return 4990;
+    if (/wet dog food can|wet cat food can/.test(name)) return 220;
+    if (/dog treats/.test(name)) return 550;
+    if (/dog leash|dog collar/.test(name)) return 1500;
+    if (/dog harness/.test(name)) return 2900;
+    if (/dog bowl large|dog bed small|cat scratching post/.test(name)) return 3900;
+    if (/dog bowl small|cat bowl small|cat toy interactive/.test(name)) return 1800;
+    if (/dog bed large/.test(name)) return 5900;
+    if (/chew toy dog|tennis ball dog toy|cat toy small/.test(name)) return 950;
+    if (/cat litter clumping bag/.test(name)) return 1890;
+    if (/cat litter bag/.test(name)) return 1490;
+    if (/fish food flakes/.test(name)) return 650;
+    if (/bird seed bag/.test(name)) return 1200;
+    return 1200;
+  }
+  return 1200;
+}
+
+function estimateTechPrice(name: string) {
+  if (/phone charger cable|fast charging cable/.test(name)) return 2500;
+  if (/wall charger adapter/.test(name)) return 3500;
+  if (/wireless charger/.test(name)) return 5900;
+  if (/power bank small/.test(name)) return 3900;
+  if (/power bank large/.test(name)) return 7900;
+  if (/earphones wired/.test(name)) return 1900;
+  if (/earbuds wireless budget/.test(name)) return 6900;
+  if (/earbuds wireless premium/.test(name)) return 24900;
+  if (/headphones over ear/.test(name)) return 9900;
+  if (/noise cancelling headphones/.test(name)) return 34900;
+  if (/bluetooth speaker small/.test(name)) return 6900;
+  if (/bluetooth speaker large/.test(name)) return 14900;
+  if (/smartphone budget/.test(name)) return 24900;
+  if (/smartphone mid range/.test(name)) return 69900;
+  if (/smartphone flagship/.test(name)) return 149900;
+  if (/foldable smartphone/.test(name)) return 249900;
+  if (/tablet mini/.test(name)) return 49900;
+  if (/tablet standard/.test(name)) return 69900;
+  if (/tablet pro/.test(name)) return 159900;
+  if (/smartwatch fitness/.test(name)) return 29900;
+  if (/smartwatch premium/.test(name)) return 69900;
+  if (/fitness tracker/.test(name)) return 14900;
+  if (/laptop budget/.test(name)) return 69900;
+  if (/laptop business/.test(name)) return 129900;
+  if (/laptop ultrabook/.test(name)) return 179900;
+  if (/gaming laptop/.test(name)) return 249900;
+  if (/2 in 1 laptop/.test(name)) return 149900;
+  if (/desktop office pc/.test(name)) return 99900;
+  if (/desktop gaming pc/.test(name)) return 249900;
+  if (/mini desktop pc/.test(name)) return 89900;
+  if (/all in one pc/.test(name)) return 159900;
+  if (/monitor 24 inch/.test(name) && !/gaming/.test(name)) return 17900;
+  if (/gaming monitor 24 inch/.test(name)) return 24900;
+  if (/gaming monitor 27 inch/.test(name)) return 39900;
+  if (/ultrawide monitor/.test(name)) return 59900;
+  if (/4k monitor/.test(name)) return 54900;
+  if (/mechanical keyboard/.test(name)) return 9900;
+  if (/wireless keyboard/.test(name)) return 6900;
+  if (/gaming mouse wired/.test(name)) return 4900;
+  if (/gaming mouse wireless/.test(name)) return 9900;
+  if (/ergonomic mouse/.test(name)) return 5900;
+  if (/webcam full hd/.test(name)) return 9900;
+  if (/microphone usb/.test(name)) return 12900;
+  if (/usb flash drive 32gb/.test(name)) return 1500;
+  if (/usb flash drive 64gb/.test(name)) return 2500;
+  if (/external ssd 500gb/.test(name)) return 9900;
+  if (/external ssd 1tb/.test(name)) return 15900;
+  if (/external hdd 2tb/.test(name)) return 10900;
+  if (/wifi router basic/.test(name)) return 12900;
+  if (/wifi router high speed/.test(name)) return 29900;
+  if (/mesh wifi system/.test(name)) return 39900;
+  if (/printer inkjet/.test(name)) return 7900;
+  if (/printer laser/.test(name)) return 19900;
+  if (/printer all in one/.test(name)) return 14900;
+  if (/scanner flatbed/.test(name)) return 12900;
+  if (/gaming headset/.test(name)) return 14900;
+  if (/vr headset standalone/.test(name)) return 89900;
+  if (/handheld gaming console/.test(name)) return 49900;
+  if (/gaming console standard/.test(name)) return 79900;
+  if (/gaming console digital/.test(name)) return 64900;
+  if (/action camera/.test(name)) return 49900;
+  if (/digital camera compact/.test(name)) return 69900;
+  if (/mirrorless camera/.test(name)) return 149900;
+  if (/camera tripod/.test(name)) return 8900;
+  if (/smart tv 43 inch/.test(name)) return 49900;
+  if (/smart tv 55 inch/.test(name)) return 79900;
+  if (/smart tv 65 inch/.test(name)) return 119900;
+  if (/oled tv premium/.test(name)) return 249900;
+  if (/soundbar/.test(name)) return 29900;
+  if (/smart home hub/.test(name)) return 14900;
+  if (/smart light bulb/.test(name)) return 2500;
+  if (/smart plug/.test(name)) return 2900;
+  if (/security camera indoor/.test(name)) return 7900;
+  if (/security camera outdoor/.test(name)) return 12900;
+  if (/microwave basic/.test(name)) return 14900;
+  if (/microwave grill/.test(name)) return 24900;
+  if (/air fryer small/.test(name)) return 9900;
+  if (/air fryer large/.test(name)) return 19900;
+  if (/toaster 2 slice/.test(name)) return 4900;
+  if (/toaster 4 slice/.test(name)) return 7900;
+  if (/kettle electric/.test(name)) return 5900;
+  if (/blender standard/.test(name)) return 6900;
+  if (/blender high power/.test(name)) return 14900;
+  if (/food processor/.test(name)) return 12900;
+  if (/coffee machine pod/.test(name)) return 11900;
+  if (/coffee machine espresso/.test(name)) return 39900;
+  if (/vacuum cleaner standard/.test(name)) return 14900;
+  if (/vacuum cleaner cordless/.test(name)) return 39900;
+  if (/robot vacuum/.test(name)) return 79900;
+  if (/washing machine top load/.test(name)) return 69900;
+  if (/washing machine front load/.test(name)) return 89900;
+  if (/dryer standard/.test(name)) return 69900;
+  if (/dishwasher compact/.test(name)) return 69900;
+  if (/dishwasher full size/.test(name)) return 99900;
+  if (/fridge small/.test(name)) return 49900;
+  if (/fridge medium/.test(name)) return 99900;
+  if (/fridge large/.test(name)) return 159900;
+  if (/freezer chest small/.test(name)) return 59900;
+  if (/portable heater/.test(name)) return 7900;
+  if (/tower fan/.test(name)) return 9900;
+  if (/air purifier/.test(name)) return 24900;
+  if (/portable air conditioner/.test(name)) return 59900;
+  if (/office chair ergonomic/.test(name)) return 29900;
+  if (/gaming chair/.test(name)) return 39900;
+  if (/desk basic/.test(name)) return 19900;
+  if (/standing desk electric/.test(name)) return 69900;
+  if (/bed frame single/.test(name)) return 24900;
+  if (/bed frame queen/.test(name)) return 49900;
+  if (/mattress single/.test(name)) return 29900;
+  if (/mattress queen/.test(name)) return 69900;
+  if (/wardrobe basic/.test(name)) return 39900;
+  if (/bookshelf/.test(name)) return 14900;
+  if (/side table/.test(name)) return 9900;
+  return 8900;
+}
+
+function estimateBasePriceCents(category: ProductCategory, name: string, unitLabel: string) {
+  const normalizedName = name.toLowerCase();
+  switch (category) {
+    case ProductCategory.PRODUCE:
+      return estimateProducePrice(normalizedName, unitLabel);
+    case ProductCategory.MEAT_AND_SEAFOOD:
+      return estimateMeatPrice(normalizedName, unitLabel);
+    case ProductCategory.DAIRY_AND_EGGS:
+      return estimateDairyPrice(normalizedName, unitLabel);
+    case ProductCategory.BAKERY:
+      return estimateBakeryPrice(normalizedName, unitLabel);
+    case ProductCategory.PANTRY:
+      return estimatePantryPrice(normalizedName, unitLabel);
+    case ProductCategory.SNACKS_AND_SWEETS:
+      return estimateSnackPrice(normalizedName, unitLabel);
+    case ProductCategory.DRINKS:
+      return estimateDrinkPrice(normalizedName, unitLabel);
+    case ProductCategory.CLOTHING_AND_FOOTWEAR:
+      return estimateClothingPrice(normalizedName, unitLabel);
+    case ProductCategory.SCHOOL_STATIONERY_AND_TOYS:
+      return estimateSchoolPrice(normalizedName, unitLabel);
+    case ProductCategory.PERSONAL_CARE_AND_HEALTH:
+      return estimatePersonalCarePrice(normalizedName, unitLabel);
+    case ProductCategory.CLEANING_AND_HOUSEHOLD:
+      return estimateCleaningPrice(normalizedName, unitLabel);
+    case ProductCategory.KITCHEN_AND_DINING:
+      return estimateKitchenPrice(normalizedName, unitLabel);
+    case ProductCategory.BABY:
+      return estimateBabyPrice(normalizedName, unitLabel);
+    case ProductCategory.PET:
+      return estimatePetPrice(normalizedName, unitLabel);
+    case ProductCategory.TECH_ELECTRONICS_AND_APPLIANCES:
+      return estimateTechPrice(normalizedName);
+    default:
+      return 500;
+  }
+}
+
+function inferSpoilage(category: ProductCategory, name: string) {
+  if (
+    category === ProductCategory.PRODUCE ||
+    category === ProductCategory.MEAT_AND_SEAFOOD ||
+    category === ProductCategory.BAKERY
+  ) {
+    return true;
+  }
+
+  if (category === ProductCategory.DAIRY_AND_EGGS) {
+    return true;
+  }
+
+  if (category === ProductCategory.DRINKS) {
+    return /juice|milk/.test(name);
+  }
+
+  if (category === ProductCategory.SNACKS_AND_SWEETS) {
+    return /ice cream|frozen yoghurt/.test(name);
+  }
+
+  return false;
+}
+
+function inferShelfLife(category: ProductCategory, name: string, spoilable: boolean) {
+  if (!spoilable) {
+    return undefined;
+  }
+
+  if (category === ProductCategory.PRODUCE) {
+    if (/berries|leaf|spinach|kale|bean sprouts/.test(name)) return 72;
+    if (/mushrooms|cut /.test(name)) return 84;
+    return 120;
+  }
+
+  if (category === ProductCategory.MEAT_AND_SEAFOOD) {
+    if (/canned tuna/.test(name)) return 720;
+    if (/prawns|fish|salmon|mussels|squid/.test(name)) return 60;
+    return 72;
+  }
+
+  if (category === ProductCategory.DAIRY_AND_EGGS) {
+    if (/milk|cream/.test(name)) return 96;
+    return 168;
+  }
+
+  if (category === ProductCategory.BAKERY) {
+    return 72;
+  }
+
+  if (category === ProductCategory.DRINKS) {
+    return 168;
+  }
+
+  if (category === ProductCategory.SNACKS_AND_SWEETS) {
+    return 360;
+  }
+
+  return 120;
+}
+
+function inferDemandScore(category: ProductCategory, name: string) {
+  const base = CATEGORY_DEFINITIONS[category].demandScore;
+
+  if (/water|milk|bread|rice|eggs|toilet paper|laundry detergent|smartphone/.test(name)) {
+    return Number((base + 0.08).toFixed(2));
+  }
+
+  if (/seasonal|premium|foldable|oled/.test(name)) {
+    return Number((base - 0.04).toFixed(2));
+  }
+
+  return base;
+}
+
+function inferPopularityScore(category: ProductCategory, name: string) {
+  const base = CATEGORY_DEFINITIONS[category].popularityScore;
+
+  if (/apple|banana|bread|chips|cola|t-shirt|notebook|toothpaste|phone charger cable/.test(name)) {
+    return Number((base + 0.08).toFixed(2));
+  }
+
+  return base;
+}
+
+function inferTrendLabel(category: ProductCategory, name: string) {
+  if (/water|juice|cola|sports drink|energy drink/.test(name)) return "Trending";
+  if (/berries|avocados|salmon|air fryer|smartphone|wireless/.test(name)) return "High demand";
+  return CATEGORY_DEFINITIONS[category].trendLabel;
+}
+
+function describeProduct(category: ProductCategory, name: string, unitLabel: string) {
+  return `${name} priced ${unitLabel} for the Bazaarly Australian market.`;
+}
+
+function buildCatalogProducts(): CatalogProduct[] {
+  return CATALOG_SOURCE.flatMap((section) =>
+    section.items.map((item) => {
+      const category = ProductCategory[section.enumValue as keyof typeof ProductCategory];
+      const definition = CATEGORY_DEFINITIONS[category];
+      const basePrice = clampPrice(estimateBasePriceCents(category, item.name, item.unitLabel));
+      const supplierPrice = clampPrice(basePrice * definition.supplierRatio, 60);
+      const spoilable = inferSpoilage(category, item.name.toLowerCase()) || definition.spoilable;
+
+      return {
+        sku: `${definition.prefix}-${slugifyName(item.name)}`,
+        name: item.name,
+        category,
+        unitLabel: item.unitLabel,
+        description: describeProduct(category, item.name, item.unitLabel),
+        basePrice,
+        supplierPrice,
+        demandScore: inferDemandScore(category, item.name.toLowerCase()),
+        popularityScore: inferPopularityScore(category, item.name.toLowerCase()),
+        trendLabel: inferTrendLabel(category, item.name.toLowerCase()),
+        spoilable,
+        shelfLife: inferShelfLife(category, item.name.toLowerCase(), spoilable) ?? definition.shelfLife,
+        keywords: buildKeywords(item.name, category, item.unitLabel),
+      };
+    }),
+  );
+}
+
+export const PRODUCT_CATALOG: CatalogProduct[] = buildCatalogProducts();
 
 export const SHOP_THEMES = [
   { label: "Forest", value: "#2D6A4F" },
@@ -654,8 +1025,8 @@ export const INITIAL_USERS = [
     shop: {
       name: "Fresh Basket Co",
       slug: "fresh-basket-co",
-      description: "Fast-moving produce and breakfast staples with sharp prices.",
-      categoryFocus: ProductCategory.FOOD,
+      description: "Fresh produce, bakery staples, and everyday grocery picks for fast-moving baskets.",
+      categoryFocus: ProductCategory.PRODUCE,
       accentColor: "#2D6A4F",
       rating: 4.6,
       totalSales: 34,
@@ -670,7 +1041,7 @@ export const INITIAL_USERS = [
     shop: {
       name: "Sip Street",
       slug: "sip-street",
-      description: "Cold drinks, lunchbox staples, and convenient bundles.",
+      description: "Drinks, pantry staples, and snackable add-ons for quick everyday shopping.",
       categoryFocus: ProductCategory.DRINKS,
       accentColor: "#1D4ED8",
       rating: 4.4,
@@ -686,8 +1057,8 @@ export const INITIAL_USERS = [
     shop: {
       name: "Homeware Nook",
       slug: "homeware-nook",
-      description: "Kitchen basics and household small goods for practical shoppers.",
-      categoryFocus: ProductCategory.KITCHEN,
+      description: "Kitchen, dining, and household essentials for practical Australian shoppers.",
+      categoryFocus: ProductCategory.KITCHEN_AND_DINING,
       accentColor: "#C96C50",
       rating: 4.3,
       totalSales: 18,
@@ -702,8 +1073,8 @@ export const INITIAL_USERS = [
     shop: {
       name: "Daily Thread",
       slug: "daily-thread",
-      description: "Simple clothes and daily essentials with consistent stock.",
-      categoryFocus: ProductCategory.CLOTHES,
+      description: "Clothing, footwear, and personal care basics with dependable stock.",
+      categoryFocus: ProductCategory.CLOTHING_AND_FOOTWEAR,
       accentColor: "#D4A017",
       rating: 4.2,
       totalSales: 21,
@@ -717,7 +1088,7 @@ export const INITIAL_BOTS = [
     displayName: "Penny Saver",
     type: BotPersonality.BUDGET,
     budget: 1800,
-    preferenceCategory: ProductCategory.FOOD,
+    preferenceCategory: ProductCategory.PANTRY,
     activityLevel: 75,
   },
   {
@@ -731,21 +1102,21 @@ export const INITIAL_BOTS = [
     displayName: "Loyal Lee",
     type: BotPersonality.LOYAL,
     budget: 2600,
-    preferenceCategory: ProductCategory.ESSENTIALS,
+    preferenceCategory: ProductCategory.PERSONAL_CARE_AND_HEALTH,
     activityLevel: 68,
   },
   {
     displayName: "Bulk Brooke",
     type: BotPersonality.BULK,
     budget: 4800,
-    preferenceCategory: ProductCategory.FOOD,
+    preferenceCategory: ProductCategory.PANTRY,
     activityLevel: 52,
   },
   {
     displayName: "Random Riley",
     type: BotPersonality.RANDOM,
     budget: 2400,
-    preferenceCategory: ProductCategory.KITCHEN,
+    preferenceCategory: ProductCategory.KITCHEN_AND_DINING,
     activityLevel: 58,
   },
 ] as const;

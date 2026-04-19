@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
+import { CATEGORY_OPTIONS } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
 
 function buildMarketplaceHref(
@@ -96,11 +97,11 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
             Category
             <select name="category" defaultValue={typeof params.category === "string" ? params.category : "ALL"}>
               <option value="ALL">All</option>
-              <option value="FOOD">Food</option>
-              <option value="DRINKS">Drinks</option>
-              <option value="KITCHEN">Kitchen</option>
-              <option value="CLOTHES">Clothes</option>
-              <option value="ESSENTIALS">Essentials</option>
+              {CATEGORY_OPTIONS.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
             </select>
           </label>
           <label>

@@ -38,10 +38,12 @@ Current release posture:
 
 - Keep `.env` files out of Git
 - If production data is new or reset, run migrations before seeding
+- For the catalog replacement pass, run the latest catalog migration and then reseed with `SEED_MODE=reset` if you want the old catalog fully removed from the world data
 - Seeded accounts and sample world state are intended for initial world setup only
 - Older pre-password accounts should not be reused; recreate them with normal password auth if needed
 - Prisma is configured with `DATABASE_URL` and `DATABASE_URL_UNPOOLED`
 - Before launch, make sure the latest auth/session migrations are applied
+- Product pricing is now stored in AUD cents and products carry a dedicated `unitLabel` for display and pricing basis
 
 ## Required Launch Migrations
 
@@ -51,6 +53,7 @@ Apply these in order:
 2. `20260418184000_add_password_hash`
 3. `20260419110000_add_sessions`
 4. `20260419123000_add_auth_throttle`
+5. `20260419143000_replace_catalog_categories_and_units`
 
 ## Files To Check First
 

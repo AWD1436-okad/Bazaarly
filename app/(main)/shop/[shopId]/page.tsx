@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
-import { formatCurrency } from "@/lib/money";
+import { formatPriceWithUnit } from "@/lib/money";
 import { getShopPageData } from "@/lib/marketplace";
 
 type ShopPageProps = {
@@ -33,7 +34,9 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
     <div className="page-grid">
       <section className="hero-card">
         <div className="stack">
-          <span className="tag">{shop.categoryFocus ?? "GENERAL SHOP"}</span>
+          <span className="tag">
+            {shop.categoryFocus ? getCategoryLabel(shop.categoryFocus) : "General Shop"}
+          </span>
           <h1>{shop.name}</h1>
           <p>{shop.description}</p>
           <div className="section-row">
@@ -59,7 +62,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         {shop.listings.map((listing) => (
           <article key={listing.id} className="listing-card">
             <div className="listing-card__header">
-              <span className="category-chip">{listing.product.category}</span>
+              <span className="category-chip">{getCategoryLabel(listing.product.category)}</span>
               <span className={`stock-chip ${listing.quantity <= 0 ? "stock-chip--soldout" : ""}`}>
                 {listing.quantity <= 0 ? "Sold out" : `${listing.quantity} available`}
               </span>
@@ -70,7 +73,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             </div>
             <div className="listing-card__meta">
               <div>
-                <strong>{formatCurrency(listing.price)}</strong>
+                <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel)}</strong>
                 <span>{shop.name}</span>
               </div>
             </div>

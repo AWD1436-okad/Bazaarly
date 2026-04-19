@@ -18,6 +18,8 @@
 - Keep the current setup free-tier compatible and avoid changes that require paid hosting or add-on services
 - Apply the session-table migration before relying on the new session-token auth flow in any environment
 - Apply the auth-throttle migration before relying on the new login/register cooldown guards in any environment
+- Apply the catalog/category/unit migration before relying on the new 15-category, unit-aware catalog in any environment
+- If the goal is full catalog replacement, run the seed in reset mode so old catalog products and their stale dependent rows are removed before the new catalog is inserted
 
 ## Handover Notes
 
@@ -65,3 +67,4 @@ Apply these in order:
 2. `20260418184000_add_password_hash`
 3. `20260419110000_add_sessions`
 4. `20260419123000_add_auth_throttle`
+5. `20260419143000_replace_catalog_categories_and_units`

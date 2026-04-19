@@ -1,9 +1,8 @@
-import { ProductCategory } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
-import { SHOP_THEMES } from "@/lib/catalog";
+import { CATEGORY_OPTIONS, SHOP_THEMES } from "@/lib/catalog";
 
 type OnboardingProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -49,7 +48,8 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
           <div className="hero-card__panel">
             <strong>Allowed categories</strong>
             <p className="muted">
-              Food, drinks, kitchen tools, clothes, and daily essentials only.
+              Pick from any of Bazaarly&apos;s 15 catalog categories, from fresh produce to
+              tech, electronics, and appliances.
             </p>
           </div>
         </div>
@@ -71,9 +71,9 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
               Category focus
               <select name="categoryFocus" defaultValue="">
                 <option value="">Optional</option>
-                {Object.values(ProductCategory).map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                {CATEGORY_OPTIONS.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
                   </option>
                 ))}
               </select>

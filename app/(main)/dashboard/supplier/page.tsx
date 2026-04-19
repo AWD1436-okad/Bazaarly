@@ -1,5 +1,6 @@
+import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
-import { formatCurrency } from "@/lib/money";
+import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 const SUPPLIER_PAGE_SIZE = 18;
@@ -44,14 +45,15 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
       trendLabel: true,
       supplierStock: true,
       marketAveragePrice: true,
-      product: {
-        select: {
-          id: true,
-          name: true,
-          category: true,
-          description: true,
-          basePrice: true,
-        },
+        product: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+            unitLabel: true,
+            description: true,
+            basePrice: true,
+          },
       },
     },
     orderBy: [{ product: { category: "asc" } }, { product: { name: "asc" } }],
@@ -85,16 +87,21 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
           <article key={item.id} className="card">
             <div className="section-row">
               <div>
-                <span className="category-chip">{item.product.category}</span>
+                <span className="category-chip">{getCategoryLabel(item.product.category)}</span>
                 <h2>{item.product.name}</h2>
               </div>
-              <strong>{formatCurrency(item.currentSupplierPrice)}</strong>
+              <strong>{formatPriceWithUnit(item.currentSupplierPrice, item.product.unitLabel)}</strong>
             </div>
             <p>{item.product.description}</p>
             <div className="stack-sm">
               <div className="section-row">
                 <span className="muted">Market average</span>
-                <strong>{formatCurrency(item.marketAveragePrice || item.product.basePrice)}</strong>
+                <strong>
+                  {formatPriceWithUnit(
+                    item.marketAveragePrice || item.product.basePrice,
+                    item.product.unitLabel,
+                  )}
+                </strong>
               </div>
               <div className="section-row">
                 <span className="muted">Demand trend</span>
@@ -107,7 +114,10 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
               <div className="section-row">
                 <span className="muted">Potential gross margin</span>
                 <strong>
-                  {formatCurrency((item.marketAveragePrice || item.product.basePrice) - item.currentSupplierPrice)}
+                  {formatPriceWithUnit(
+                    (item.marketAveragePrice || item.product.basePrice) - item.currentSupplierPrice,
+                    item.product.unitLabel,
+                  )}
                 </strong>
               </div>
             </div>
@@ -115,7 +125,9 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
             <form action="/supplier/buy" method="post" className="inline-form" style={{ marginTop: "1rem" }}>
               <input type="hidden" name="productId" value={item.productId} />
               <input type="number" name="quantity" min={1} defaultValue={1} max={item.supplierStock} />
-              <button type="submit">Buy for {formatCurrency(item.currentSupplierPrice)}</button>
+              <button type="submit">
+                Buy for {formatPriceWithUnit(item.currentSupplierPrice, item.product.unitLabel)}
+              </button>
             </form>
           </article>
         ))}

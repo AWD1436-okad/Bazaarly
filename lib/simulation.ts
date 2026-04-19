@@ -37,18 +37,32 @@ function pickWeighted<T>(options: Array<{ value: T; score: number }>) {
 }
 
 function getTimeBoost(category: ProductCategory, phase: MarketTimePhase) {
-  const foodOrDrink =
-    category === ProductCategory.FOOD || category === ProductCategory.DRINKS;
+  const breakfastOrFresh =
+    category === ProductCategory.PRODUCE ||
+    category === ProductCategory.BAKERY ||
+    category === ProductCategory.DAIRY_AND_EGGS ||
+    category === ProductCategory.DRINKS;
 
-  if (phase === MarketTimePhase.MORNING && foodOrDrink) {
+  if (phase === MarketTimePhase.MORNING && breakfastOrFresh) {
     return 0.12;
   }
 
-  if (phase === MarketTimePhase.EVENING && foodOrDrink) {
+  if (
+    phase === MarketTimePhase.EVENING &&
+    (category === ProductCategory.MEAT_AND_SEAFOOD ||
+      category === ProductCategory.PANTRY ||
+      category === ProductCategory.SNACKS_AND_SWEETS ||
+      category === ProductCategory.DRINKS)
+  ) {
     return 0.08;
   }
 
-  if (phase === MarketTimePhase.AFTERNOON && category === ProductCategory.CLOTHES) {
+  if (
+    phase === MarketTimePhase.AFTERNOON &&
+    (category === ProductCategory.CLOTHING_AND_FOOTWEAR ||
+      category === ProductCategory.SCHOOL_STATIONERY_AND_TOYS ||
+      category === ProductCategory.TECH_ELECTRONICS_AND_APPLIANCES)
+  ) {
     return 0.07;
   }
 

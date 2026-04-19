@@ -2,8 +2,9 @@ import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatusBanner } from "@/components/status-banner";
+import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
-import { formatCurrency } from "@/lib/money";
+import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 const INVENTORY_PAGE_SIZE = 12;
@@ -18,6 +19,7 @@ type FreeInventoryRow = {
   inventoryId: string;
   productId: string;
   productName: string;
+  unitLabel: string;
   availableToList: number;
   marketAveragePrice: number;
 };
@@ -100,6 +102,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           i."id" AS "inventoryId",
           i."productId" AS "productId",
           p."name" AS "productName",
+          p."unitLabel" AS "unitLabel",
           (i."quantity" - i."allocatedQuantity")::int AS "availableToList",
           COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
         ${freeInventoryBaseQuery}
@@ -111,6 +114,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           i."id" AS "inventoryId",
           i."productId" AS "productId",
           p."name" AS "productName",
+          p."unitLabel" AS "unitLabel",
           (i."quantity" - i."allocatedQuantity")::int AS "availableToList",
           COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
         ${freeInventoryBaseQuery}
@@ -140,6 +144,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             select: {
               id: true,
               name: true,
+              unitLabel: true,
+              category: true,
             },
           },
         },
@@ -353,13 +359,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     </option>
                     {listingOptions.map((item) => (
                         <option key={item.inventoryId} value={item.productId}>
-                          {item.productName} - {item.availableToList} available to list
+                          {item.productName} - {item.availableToList} available to list -{" "}
+                          {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel)}
                         </option>
                       ))}
                   </select>
                 </label>
                 <label>
-                  Sale price
+                  Sale price per unit
                   <input
                     name="price"
                     type="number"
@@ -394,10 +401,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       <strong>{item.productName}</strong>
                       <span className="muted">
                         Available in inventory: {item.availableToList} - Market average:{" "}
-                        {formatCurrency(item.marketAveragePrice)}
+                        {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel)}
                       </span>
                     </div>
-                    <strong>{formatCurrency(item.marketAveragePrice)}</strong>
+                    <strong>{formatPriceWithUnit(item.marketAveragePrice, item.unitLabel)}</strong>
                   </div>
                 ))
               )}
@@ -442,7 +449,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     <div className="table-row__meta">
                       <strong>{listing.product.name}</strong>
                       <span className="muted">
-                        {formatCurrency(listing.price)} -{" "}
+                        {getCategoryLabel(listing.product.category)} -{" "}
+                        {formatPriceWithUnit(listing.price, listing.product.unitLabel)} -{" "}
                         {listing.quantity > 0 ? `${listing.quantity} units live` : "Sold out"}
                       </span>
                     </div>
