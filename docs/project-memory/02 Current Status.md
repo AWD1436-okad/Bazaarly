@@ -44,3 +44,4 @@ Changes now in progress:
 - shop listing grids now load in bounded pages instead of fetching every listing for a shop by default
 - no-search marketplace browsing now pages directly at the database level instead of fetching broader listing ranges before slicing
 - query-based marketplace searches now use a lighter path for explicit sort modes and reduced repeated work in the relevance path
+- remaining dashboard supporting reads are now lighter, including a single-query best-seller summary and a cheaper inventory-presence check

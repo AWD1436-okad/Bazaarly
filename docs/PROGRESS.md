@@ -31,6 +31,7 @@
 - Reduced shop-page cost with bounded listing grids instead of loading every listing for a shop at once
 - Reduced no-search marketplace browse cost with database-level paging instead of broader listing fetches before slicing
 - Reduced query-based marketplace search cost by using lighter explicit-sort search paths and less repeated relevance work
+- Reduced remaining dashboard side-read cost by removing the follow-up best-seller product lookup and using a cheaper inventory-presence check
 
 ## Current Focus
 

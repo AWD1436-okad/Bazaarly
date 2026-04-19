@@ -23,3 +23,4 @@
 - Review whether shared navigation data can be trimmed further without losing useful badge/count behavior
 - Review remaining supporting pages for smaller repeat-load queries, especially places that still read broad stats or lists on every authenticated visit
 - Review whether the default relevance-ranked marketplace search path needs a deeper candidate-pool strategy if search result pools grow much larger in production
+- Review whether Milestone 1 now needs only a final verification/cleanup pass rather than another meaningful performance change

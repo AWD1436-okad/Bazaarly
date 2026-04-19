@@ -222,6 +222,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Dashboard Supporting-Reads Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- replaced the dashboard best-seller grouped query plus follow-up product lookup with a single aggregated SQL query joined to products
+- replaced the inventory-owned count query with a cheaper existence check because the dashboard only needs a boolean presence test
+- kept all existing bounded dashboard sections and current UX behavior intact
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

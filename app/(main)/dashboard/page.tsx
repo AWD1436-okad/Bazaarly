@@ -22,6 +22,13 @@ type FreeInventoryRow = {
   marketAveragePrice: number;
 };
 
+type BestSellerRow = {
+  productId: string;
+  productName: string;
+  units: number;
+  revenue: number;
+};
+
 function buildDashboardHref(
   params: Record<string, string | string[] | undefined>,
   updates: Record<string, number | null>,
@@ -83,8 +90,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     recentSales,
     lowStockListings,
     unreadAlerts,
-    bestSellerGroups,
-    inventoryOwnedCount,
+    bestSellerRows,
+    inventoryPresence,
     todayRevenueSummary,
   ] =
     await Promise.all([
@@ -199,28 +206,27 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
-      prisma.orderLineItem.groupBy({
-        where: {
-          order: {
-            sellerId: user.id,
-          },
-        },
-        by: ["productId"],
-        _sum: {
-          quantity: true,
-          lineTotal: true,
-        },
-        orderBy: {
-          _sum: {
-            quantity: "desc",
-          },
-        },
-        take: 4,
-      }),
-      prisma.inventory.count({
+      prisma.$queryRaw<BestSellerRow[]>(Prisma.sql`
+        SELECT
+          oli."productId" AS "productId",
+          p."name" AS "productName",
+          COALESCE(SUM(oli."quantity"), 0)::int AS "units",
+          COALESCE(SUM(oli."lineTotal"), 0)::int AS "revenue"
+        FROM "OrderLineItem" oli
+        INNER JOIN "Order" o ON o."id" = oli."orderId"
+        INNER JOIN "Product" p ON p."id" = oli."productId"
+        WHERE o."sellerId" = ${user.id}
+        GROUP BY oli."productId", p."name"
+        ORDER BY SUM(oli."quantity") DESC, SUM(oli."lineTotal") DESC
+        LIMIT 4
+      `),
+      prisma.inventory.findFirst({
         where: {
           userId: user.id,
           quantity: { gt: 0 },
+        },
+        select: {
+          id: true,
         },
       }),
       prisma.order.aggregate({
@@ -247,27 +253,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const todayRevenue = todayRevenueSummary._sum.totalPrice ?? 0;
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
-  const hasInventory = inventoryOwnedCount > 0;
-  const bestSellerProducts =
-    bestSellerGroups.length > 0
-      ? await prisma.product.findMany({
-          where: {
-            id: {
-              in: bestSellerGroups.map((item) => item.productId),
-            },
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        })
-      : [];
-
-  const productNameMap = new Map(bestSellerProducts.map((product) => [product.id, product.name]));
-  const bestSellers = bestSellerGroups.map((item) => ({
-    name: productNameMap.get(item.productId) ?? "Unknown product",
-    units: item._sum.quantity ?? 0,
-    revenue: item._sum.lineTotal ?? 0,
+  const hasInventory = Boolean(inventoryPresence);
+  const bestSellers = bestSellerRows.map((item) => ({
+    name: item.productName,
+    units: item.units,
+    revenue: item.revenue,
   }));
 
   return (
