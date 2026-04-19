@@ -19,3 +19,4 @@
 - Consider pagination or tighter limits for larger dashboard sections if seller data grows further
 - Add more explicit server-side validation and rate limiting
 - Add observability around slow routes and checkout timing
+- Review whether the dashboard create-listing picker eventually needs a dedicated searchable selector if very large inventories become common

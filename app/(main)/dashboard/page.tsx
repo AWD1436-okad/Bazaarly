@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatusBanner } from "@/components/status-banner";
@@ -5,9 +6,45 @@ import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
+const INVENTORY_PAGE_SIZE = 12;
+const LISTING_PAGE_SIZE = 12;
+const LISTING_OPTION_LIMIT = 40;
+
 type DashboardProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+type FreeInventoryRow = {
+  inventoryId: string;
+  productId: string;
+  productName: string;
+  availableToList: number;
+  marketAveragePrice: number;
+};
+
+function buildDashboardHref(
+  params: Record<string, string | string[] | undefined>,
+  updates: Record<string, number | null>,
+) {
+  const nextParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string" && value.length > 0) {
+      nextParams.set(key, value);
+    }
+  }
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (!value || value <= 1) {
+      nextParams.delete(key);
+    } else {
+      nextParams.set(key, String(value));
+    }
+  }
+
+  const queryString = nextParams.toString();
+  return queryString ? `/dashboard?${queryString}` : "/dashboard";
+}
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
   const user = await requireUser();
@@ -21,32 +58,68 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const supplierSuccess = params.supplierSuccess === "1";
   const listingSuccess = params.listingSuccess === "1";
   const error = typeof params.error === "string" ? params.error : null;
+  const inventoryPage = Math.max(Number(params.inventoryPage ?? "1") || 1, 1);
+  const listingsPage = Math.max(Number(params.listingsPage ?? "1") || 1, 1);
+  const inventoryOffset = (inventoryPage - 1) * INVENTORY_PAGE_SIZE;
+  const listingsOffset = (listingsPage - 1) * LISTING_PAGE_SIZE;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(startOfToday);
+  endOfToday.setDate(endOfToday.getDate() + 1);
 
-  const [inventory, listings, recentSales, lowStockListings, unreadAlerts, bestSellerGroups] =
+  const freeInventoryBaseQuery = Prisma.sql`
+    FROM "Inventory" i
+    INNER JOIN "Product" p ON p."id" = i."productId"
+    LEFT JOIN "MarketProductState" ms ON ms."productId" = p."id"
+    WHERE i."userId" = ${user.id}
+      AND i."quantity" > i."allocatedQuantity"
+  `;
+
+  const [
+    listingOptions,
+    freeInventoryRows,
+    freeInventoryCountRows,
+    listings,
+    recentSales,
+    lowStockListings,
+    unreadAlerts,
+    bestSellerGroups,
+    inventoryOwnedCount,
+    todayRevenueSummary,
+  ] =
     await Promise.all([
-      prisma.inventory.findMany({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          userId: true,
-          productId: true,
-          quantity: true,
-          allocatedQuantity: true,
-          averageUnitCost: true,
-          updatedAt: true,
-          product: {
-            select: {
-              id: true,
-              name: true,
-              basePrice: true,
-              marketState: true,
-            },
-          },
-        },
-        orderBy: { product: { name: "asc" } },
-      }),
+      prisma.$queryRaw<FreeInventoryRow[]>(Prisma.sql`
+        SELECT
+          i."id" AS "inventoryId",
+          i."productId" AS "productId",
+          p."name" AS "productName",
+          (i."quantity" - i."allocatedQuantity")::int AS "availableToList",
+          COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
+        ${freeInventoryBaseQuery}
+        ORDER BY p."name" ASC
+        LIMIT ${LISTING_OPTION_LIMIT}
+      `),
+      prisma.$queryRaw<FreeInventoryRow[]>(Prisma.sql`
+        SELECT
+          i."id" AS "inventoryId",
+          i."productId" AS "productId",
+          p."name" AS "productName",
+          (i."quantity" - i."allocatedQuantity")::int AS "availableToList",
+          COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
+        ${freeInventoryBaseQuery}
+        ORDER BY p."name" ASC
+        OFFSET ${inventoryOffset}
+        LIMIT ${INVENTORY_PAGE_SIZE + 1}
+      `),
+      prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS "count"
+        ${freeInventoryBaseQuery}
+      `),
       prisma.listing.findMany({
-        where: { shopId: user.shop.id },
+        where: {
+          shopId: user.shop.id,
+          OR: [{ active: true }, { quantity: { lte: 0 } }],
+        },
         select: {
           id: true,
           shopId: true,
@@ -64,6 +137,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           },
         },
         orderBy: { updatedAt: "desc" },
+        skip: listingsOffset,
+        take: LISTING_PAGE_SIZE + 1,
       }),
       prisma.order.findMany({
         where: { sellerId: user.id },
@@ -71,7 +146,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           id: true,
           totalPrice: true,
           createdAt: true,
-          buyer: true,
+          buyer: {
+            select: {
+              displayName: true,
+            },
+          },
           lineItems: {
             select: {
               id: true,
@@ -94,13 +173,28 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           quantity: { lte: 5 },
           active: true,
         },
-        include: { product: true },
+        select: {
+          id: true,
+          quantity: true,
+          product: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: { quantity: "asc" },
+        take: 5,
       }),
       prisma.notification.findMany({
         where: {
           userId: user.id,
           read: false,
           type: { in: ["LOW_STOCK", "SALE"] },
+        },
+        select: {
+          id: true,
+          type: true,
+          message: true,
         },
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -123,24 +217,37 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         },
         take: 4,
       }),
+      prisma.inventory.count({
+        where: {
+          userId: user.id,
+          quantity: { gt: 0 },
+        },
+      }),
+      prisma.order.aggregate({
+        where: {
+          sellerId: user.id,
+          createdAt: {
+            gte: startOfToday,
+            lt: endOfToday,
+          },
+        },
+        _sum: {
+          totalPrice: true,
+        },
+      }),
     ]);
 
-  const inventoryWithAvailable = inventory.map((item) => ({
-    ...item,
-    availableToList: item.quantity - item.allocatedQuantity,
-    marketAveragePrice: item.product.marketState?.marketAveragePrice || item.product.basePrice,
-  }));
-  const freeInventory = inventoryWithAvailable.filter((item) => item.availableToList > 0);
-  const visibleListings = listings.filter((listing) => listing.active || listing.quantity <= 0);
+  const visibleInventory = freeInventoryRows.slice(0, INVENTORY_PAGE_SIZE);
+  const hasNextInventoryPage = freeInventoryRows.length > INVENTORY_PAGE_SIZE;
+  const freeInventoryCount = Number(freeInventoryCountRows[0]?.count ?? 0);
+  const visibleListings = listings.slice(0, LISTING_PAGE_SIZE);
+  const hasNextListingsPage = listings.length > LISTING_PAGE_SIZE;
   const defaultListingPrice =
-    freeInventory.length > 0 ? (freeInventory[0].marketAveragePrice / 100).toFixed(2) : "2.50";
-
-  const todayRevenue = recentSales
-    .filter((order) => order.createdAt.toDateString() === new Date().toDateString())
-    .reduce((sum, order) => sum + order.totalPrice, 0);
+    listingOptions.length > 0 ? (listingOptions[0].marketAveragePrice / 100).toFixed(2) : "2.50";
+  const todayRevenue = todayRevenueSummary._sum.totalPrice ?? 0;
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
-  const hasInventory = inventory.some((item) => item.quantity > 0);
+  const hasInventory = inventoryOwnedCount > 0;
   const bestSellerProducts =
     bestSellerGroups.length > 0
       ? await prisma.product.findMany({
@@ -246,7 +353,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 Buy from supplier
               </Link>
             </div>
-            {freeInventory.length > 0 ? (
+            {listingOptions.length > 0 ? (
               <form action="/listings/save" method="post" className="stack-sm">
                 <label>
                   Product
@@ -254,9 +361,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     <option value="" disabled>
                       Choose inventory
                     </option>
-                    {freeInventory.map((item) => (
-                        <option key={item.id} value={item.productId}>
-                          {item.product.name} - {item.availableToList} available to list
+                    {listingOptions.map((item) => (
+                        <option key={item.inventoryId} value={item.productId}>
+                          {item.productName} - {item.availableToList} available to list
                         </option>
                       ))}
                   </select>
@@ -286,15 +393,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               This section only shows stock that is not currently live in your shop.
             </p>
             <div className="table-list">
-              {freeInventory.length === 0 ? (
+              {freeInventoryCount === 0 ? (
                 <div className="empty-state">
                   All of your stock is currently moved into active listings.
                 </div>
               ) : (
-                freeInventory.map((item) => (
-                  <div key={item.id} className="table-row">
+                visibleInventory.map((item) => (
+                  <div key={item.inventoryId} className="table-row">
                     <div className="table-row__meta">
-                      <strong>{item.product.name}</strong>
+                      <strong>{item.productName}</strong>
                       <span className="muted">
                         Available in inventory: {item.availableToList} - Market average:{" "}
                         {formatCurrency(item.marketAveragePrice)}
@@ -305,6 +412,31 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 ))
               )}
             </div>
+            {freeInventoryCount > INVENTORY_PAGE_SIZE ? (
+              <div className="section-row" style={{ marginTop: "1rem" }}>
+                <span className="muted">
+                  Showing page {inventoryPage} of your free inventory
+                </span>
+                <div className="table-row__actions">
+                  {inventoryPage > 1 ? (
+                    <a
+                      href={buildDashboardHref(params, { inventoryPage: inventoryPage - 1 })}
+                      className="ghost-button"
+                    >
+                      Previous
+                    </a>
+                  ) : null}
+                  {hasNextInventoryPage ? (
+                    <a
+                      href={buildDashboardHref(params, { inventoryPage: inventoryPage + 1 })}
+                      className="ghost-button"
+                    >
+                      Next
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section className="card">
@@ -353,6 +485,29 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 ))}
               </div>
             )}
+            {listingsPage > 1 || hasNextListingsPage ? (
+              <div className="section-row" style={{ marginTop: "1rem" }}>
+                <span className="muted">Showing page {listingsPage} of your listings</span>
+                <div className="table-row__actions">
+                  {listingsPage > 1 ? (
+                    <a
+                      href={buildDashboardHref(params, { listingsPage: listingsPage - 1 })}
+                      className="ghost-button"
+                    >
+                      Previous
+                    </a>
+                  ) : null}
+                  {hasNextListingsPage ? (
+                    <a
+                      href={buildDashboardHref(params, { listingsPage: listingsPage + 1 })}
+                      className="ghost-button"
+                    >
+                      Next
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </section>
         </div>
 

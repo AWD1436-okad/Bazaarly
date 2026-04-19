@@ -35,3 +35,5 @@ Changes now in progress:
 - cheaper dashboard best-seller aggregation
 - simulation heartbeat guardrails to reduce wasted calls from hidden or duplicate tabs
 - supplier catalog pagination to reduce supplier-page load and database reads
+- dashboard inventory and listings now use smaller visible slices instead of loading full growth paths into memory
+- today revenue now uses an aggregate query instead of deriving from a tiny recent-sales slice

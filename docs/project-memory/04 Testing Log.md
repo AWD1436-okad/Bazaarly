@@ -62,6 +62,28 @@ Results:
 - `lint`: passed
 - `typecheck`: passed
 
+## Milestone 1 - Dashboard Growth-Path Pass - 2026-04-19
+
+Changes added in this pass:
+
+- paged dashboard inventory section
+- paged dashboard listings section
+- limited listing-form inventory options
+- aggregated today-revenue summary
+- reduced dashboard over-fetch as seller data grows
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

@@ -23,6 +23,7 @@
 - Fixed deployment region mismatch with `vercel.json`
 - Started a no-cost performance pass focused on lighter marketplace loads, cheaper dashboard queries, and lower simulation noise
 - Added supplier-page pagination to reduce catalog load on the shared free-tier stack
+- Reduced dashboard growth cost with paged inventory/listings and a cheaper today-revenue summary query
 
 ## Current Focus
 
