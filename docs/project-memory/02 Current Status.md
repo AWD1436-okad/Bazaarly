@@ -87,3 +87,10 @@ Immediate Milestone 2 follow-up:
 - apply the new session migration where the app database is managed
 - apply the new auth-throttle migration where the app database is managed
 - treat Milestone 2 as effectively complete for v1 once migration and verification are done
+
+## Small Polish Update
+
+- the Bazaarly logo display is now larger and better framed in the shared brand mark
+- marketplace and supplier pages now show a deterministic daily featured product
+- the supplier page now supports category filtering from the header area
+- four premium products were added to the catalog in realistic AUD price ranges

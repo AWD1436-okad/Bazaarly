@@ -1,9 +1,10 @@
 import Link from "next/link";
 
+import { DailyFeatureCard } from "@/components/daily-feature-card";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
-import { CATEGORY_OPTIONS } from "@/lib/catalog";
+import { CATEGORY_OPTIONS, getDailyFeaturedProduct } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
 
 function buildMarketplaceHref(
@@ -33,6 +34,7 @@ type MarketplacePageProps = {
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const params = (await searchParams) ?? {};
+  const featuredProduct = getDailyFeaturedProduct();
   const marketplace = await getMarketplaceData({
     q: typeof params.q === "string" ? params.q : undefined,
     sort: typeof params.sort === "string" ? params.sort : undefined,
@@ -66,6 +68,11 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         </div>
 
         <div className="hero-card__aside">
+          <DailyFeatureCard
+            product={featuredProduct}
+            href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
+            ctaLabel="Shop today's pick"
+          />
           <div className="hero-card__panel">
             <strong>Trending products</strong>
             <div className="stack-sm">

@@ -5,18 +5,19 @@ type BrandLogoProps = {
   className?: string;
 };
 
-export function BrandLogo({ size = 46, className }: BrandLogoProps) {
+export function BrandLogo({ size = 54, className }: BrandLogoProps) {
   return (
     <span
       className={["brand-mark", className].filter(Boolean).join(" ")}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
+      <span className="brand-mark__glow" />
       <Image
         src="/bazaarly-logo.png"
         alt=""
-        width={Math.round(size * 0.72)}
-        height={Math.round(size * 0.72)}
+        fill
+        sizes={`${size}px`}
         className="brand-mark__image"
       />
     </span>

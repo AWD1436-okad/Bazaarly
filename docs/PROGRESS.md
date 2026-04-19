@@ -84,3 +84,10 @@ Biggest zero-cost wins delivered:
 Small leftover items only:
 - rerun local runtime/build verification after the already-documented Windows `.next` / `spawn EPERM` environment issue is cleared
 - clean up local temp files when they are no longer locked by the OS
+
+## Small Polish Update
+
+- polished the shared Bazaarly logo display so the uploaded logo fills the brand mark more cleanly
+- added a deterministic daily featured item panel on marketplace and supplier pages using the existing catalog only
+- added a category selector to the supplier header for quick category browsing
+- added a few premium catalog items in realistic AUD price bands without changing the stack or adding infrastructure

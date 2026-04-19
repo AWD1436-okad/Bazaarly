@@ -188,6 +188,50 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
 };
 
+type PremiumCatalogSeed = {
+  name: string;
+  category: ProductCategory;
+  unitLabel: string;
+  basePrice: number;
+  description: string;
+  keywords?: string[];
+};
+
+const PREMIUM_EXTRA_PRODUCTS: PremiumCatalogSeed[] = [
+  {
+    name: "school shoes",
+    category: ProductCategory.CLOTHING_AND_FOOTWEAR,
+    unitLabel: "per pair",
+    basePrice: 5900,
+    description: "Durable black school shoes priced for Australian families.",
+    keywords: ["school", "uniform", "shoes"],
+  },
+  {
+    name: "cast iron skillet",
+    category: ProductCategory.KITCHEN_AND_DINING,
+    unitLabel: "each",
+    basePrice: 7900,
+    description: "A heavy-duty cast iron skillet for everyday stovetop cooking.",
+    keywords: ["cast iron", "pan", "cookware"],
+  },
+  {
+    name: "dutch oven cast iron",
+    category: ProductCategory.KITCHEN_AND_DINING,
+    unitLabel: "each",
+    basePrice: 12900,
+    description: "A large cast iron dutch oven for slow cooking and baking.",
+    keywords: ["dutch oven", "cast iron", "cooking pot"],
+  },
+  {
+    name: "pet carrier medium",
+    category: ProductCategory.PET,
+    unitLabel: "each",
+    basePrice: 6900,
+    description: "A medium travel carrier for cats and small dogs.",
+    keywords: ["pet carrier", "travel", "cat", "dog"],
+  },
+];
+
 export const CATEGORY_OPTIONS = CATALOG_SOURCE.map((section) => {
   const value = ProductCategory[section.enumValue as keyof typeof ProductCategory];
 
@@ -197,13 +241,24 @@ export const CATEGORY_OPTIONS = CATALOG_SOURCE.map((section) => {
   };
 });
 
-export const CATEGORY_COUNT_EXPECTATIONS = Object.fromEntries(
-  CATALOG_SOURCE.map((section) => [section.enumValue, section.expectedCount]),
-) as Record<ProductCategory, number>;
+export const CATEGORY_COUNT_EXPECTATIONS = (() => {
+  const counts = Object.fromEntries(
+    CATALOG_SOURCE.map((section) => [section.enumValue, section.expectedCount]),
+  ) as Record<ProductCategory, number>;
+
+  for (const product of PREMIUM_EXTRA_PRODUCTS) {
+    counts[product.category] = (counts[product.category] ?? 0) + 1;
+  }
+
+  return counts;
+})();
 
 export const SUPPORTED_UNIT_LABELS = Array.from(
   new Set(
-    CATALOG_SOURCE.flatMap((section) => section.items.map((item) => item.unitLabel)),
+    [
+      ...CATALOG_SOURCE.flatMap((section) => section.items.map((item) => item.unitLabel)),
+      ...PREMIUM_EXTRA_PRODUCTS.map((item) => item.unitLabel),
+    ],
   ),
 ).sort((left, right) => left.localeCompare(right));
 
@@ -229,6 +284,22 @@ export function getCatalogProductBySku(sku: string) {
 
 export function getCatalogProductByName(name: string) {
   return PRODUCT_CATALOG.find((product) => product.name === name) ?? null;
+}
+
+export function getDailyFeaturedProduct(referenceDate = new Date()) {
+  const dayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Brisbane",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(referenceDate);
+
+  const index = Array.from(dayKey).reduce(
+    (total, character) => (total * 31 + character.charCodeAt(0)) % PRODUCT_CATALOG.length,
+    0,
+  );
+
+  return PRODUCT_CATALOG[index];
 }
 
 function clampPrice(value: number, minimum = 100) {
@@ -979,7 +1050,7 @@ function describeProduct(category: ProductCategory, name: string, unitLabel: str
 }
 
 function buildCatalogProducts(): CatalogProduct[] {
-  return CATALOG_SOURCE.flatMap((section) =>
+  const sourceProducts = CATALOG_SOURCE.flatMap((section) =>
     section.items.map((item) => {
       const category = ProductCategory[section.enumValue as keyof typeof ProductCategory];
       const definition = CATEGORY_DEFINITIONS[category];
@@ -1004,6 +1075,35 @@ function buildCatalogProducts(): CatalogProduct[] {
       };
     }),
   );
+
+  const premiumProducts = PREMIUM_EXTRA_PRODUCTS.map((item) => {
+    const definition = CATEGORY_DEFINITIONS[item.category];
+    const supplierPrice = clampPrice(item.basePrice * definition.supplierRatio, 60);
+    const spoilable = inferSpoilage(item.category, item.name.toLowerCase()) || definition.spoilable;
+
+    return {
+      sku: `${definition.prefix}-${slugifyName(item.name)}`,
+      name: item.name,
+      category: item.category,
+      unitLabel: item.unitLabel,
+      description: item.description,
+      basePrice: item.basePrice,
+      supplierPrice,
+      demandScore: inferDemandScore(item.category, item.name.toLowerCase()),
+      popularityScore: inferPopularityScore(item.category, item.name.toLowerCase()),
+      trendLabel: inferTrendLabel(item.category, item.name.toLowerCase()),
+      spoilable,
+      shelfLife: inferShelfLife(item.category, item.name.toLowerCase(), spoilable) ?? definition.shelfLife,
+      keywords: Array.from(
+        new Set([
+          ...buildKeywords(item.name, item.category, item.unitLabel),
+          ...(item.keywords ?? []),
+        ]),
+      ),
+    };
+  });
+
+  return [...sourceProducts, ...premiumProducts];
 }
 
 export const PRODUCT_CATALOG: CatalogProduct[] = buildCatalogProducts();

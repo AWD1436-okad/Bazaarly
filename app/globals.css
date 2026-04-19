@@ -129,24 +129,34 @@ textarea {
 }
 
 .brand-mark {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   flex: 0 0 auto;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #5da04e, #ffc43a);
+  border-radius: 20px;
+  border: 1px solid rgba(221, 215, 200, 0.92);
+  background: linear-gradient(135deg, #eef8ea, #fff5cf);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
     0 10px 24px rgba(31, 41, 51, 0.12);
   overflow: hidden;
-  padding: 0.35rem;
+}
+
+.brand-mark__glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(93, 160, 78, 0.2), transparent 38%),
+    radial-gradient(circle at 80% 85%, rgba(255, 196, 58, 0.22), transparent 44%);
 }
 
 .brand-mark__image {
-  width: 100%;
-  height: auto;
   object-fit: contain;
+  transform: scale(1.42);
+  transform-origin: center;
+  filter: saturate(1.02) contrast(1.01);
 }
 
 .brand-lockup {
@@ -275,6 +285,62 @@ textarea {
   padding: 1rem;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(45, 106, 79, 0.08), rgba(212, 160, 23, 0.08));
+}
+
+.featured-item-card {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(221, 215, 200, 0.95);
+  background:
+    radial-gradient(circle at top right, rgba(255, 196, 58, 0.16), transparent 38%),
+    linear-gradient(180deg, rgba(93, 160, 78, 0.08), rgba(255, 255, 255, 0.95));
+}
+
+.featured-item-card h3 {
+  margin: 0;
+}
+
+.featured-item-card__eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+
+.hero-card__aside .featured-item-card {
+  height: 100%;
+}
+
+.featured-item-card .ghost-button {
+  justify-self: start;
+}
+
+.supplier-hero {
+  align-items: start;
+}
+
+.supplier-filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) auto auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.supplier-filter-row label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.supplier-filter-row .ghost-button,
+.supplier-filter-row button {
+  min-height: 48px;
+}
+
+.supplier-filter-row .ghost-button {
+  justify-self: start;
 }
 
 .filters-grid,
@@ -528,5 +594,9 @@ textarea {
   .inline-cart-form input,
   .inline-form input {
     width: 100%;
+  }
+
+  .supplier-filter-row {
+    grid-template-columns: 1fr;
   }
 }

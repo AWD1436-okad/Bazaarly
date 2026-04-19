@@ -1,6 +1,9 @@
-import { getCategoryLabel } from "@/lib/catalog";
+import { ProductCategory } from "@prisma/client";
+
+import { DailyFeatureCard } from "@/components/daily-feature-card";
+import { CATEGORY_OPTIONS, getCategoryLabel, getDailyFeaturedProduct } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
-import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
+import { formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 const SUPPLIER_PAGE_SIZE = 18;
@@ -30,14 +33,31 @@ type SupplierProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+function parseCategoryFilter(value: string | string[] | undefined) {
+  if (typeof value !== "string" || value === "ALL") {
+    return null;
+  }
+
+  return CATEGORY_OPTIONS.find((category) => category.value === value)?.value ?? null;
+}
+
 export default async function SupplierPage({ searchParams }: SupplierProps) {
   await requireUser();
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
   const currentPage = Math.max(Number(params.page ?? "1") || 1, 1);
   const skip = (currentPage - 1) * SUPPLIER_PAGE_SIZE;
+  const selectedCategory = parseCategoryFilter(params.category);
+  const featuredProduct = getDailyFeaturedProduct();
 
   const products = await prisma.marketProductState.findMany({
+    where: selectedCategory
+      ? {
+          product: {
+            category: selectedCategory as ProductCategory,
+          },
+        }
+      : undefined,
     select: {
       id: true,
       productId: true,
@@ -66,11 +86,43 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
 
   return (
     <div className="page-grid">
-      <section className="page-header">
-        <h1>Global supplier</h1>
-        <p>
-          Buy stock at current supplier prices, then list it in your shop for a profit.
-        </p>
+      <section className="hero-card supplier-hero">
+        <div className="stack">
+          <div>
+            <span className="tag">Supplier</span>
+            <h1>Global supplier</h1>
+            <p>
+              Buy stock at current supplier prices, then list it in your shop for a profit.
+            </p>
+          </div>
+
+          <form action="/dashboard/supplier" className="supplier-filter-row">
+            <label>
+              Category
+              <select name="category" defaultValue={selectedCategory ?? "ALL"}>
+                <option value="ALL">All categories</option>
+                {CATEGORY_OPTIONS.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit">View category</button>
+            {selectedCategory ? (
+              <a href="/dashboard/supplier" className="ghost-button">
+                Clear filter
+              </a>
+            ) : null}
+          </form>
+        </div>
+
+        <DailyFeatureCard
+          product={featuredProduct}
+          href={`/dashboard/supplier?category=${featuredProduct.category}`}
+          ctaLabel="Browse this category"
+          eyebrow="Today's supplier feature"
+        />
       </section>
 
       {error ? (
@@ -140,6 +192,7 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
             <p className="muted">
               Supplier inventory is loaded in smaller pages to keep Bazaarly lighter on
               the shared free-tier stack.
+              {selectedCategory ? ` Filtering by ${getCategoryLabel(selectedCategory)}.` : ""}
             </p>
           </div>
           <div className="table-row__actions">
