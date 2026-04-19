@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -18,15 +19,18 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const productId = String(formData.get("productId") ?? "");
-  const quantity = Number(formData.get("quantity") ?? 0);
+  const productIdResult = parseRouteId(formData, "productId");
+  const quantityResult = parsePositiveQuantity(formData, "quantity");
 
-  if (!Number.isInteger(quantity) || quantity <= 0) {
+  if (!productIdResult.success || !quantityResult.success) {
     return NextResponse.redirect(
-      new URL("/dashboard/supplier?error=Enter%20a%20valid%20quantity", request.url),
+      new URL("/dashboard/supplier?error=Enter%20a%20valid%20product%20and%20quantity", request.url),
       303,
     );
   }
+
+  const productId = productIdResult.data;
+  const quantity = quantityResult.data;
 
   try {
     await prisma.$transaction(async (tx) => {

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
+import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -15,8 +16,18 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const listingId = String(formData.get("listingId") ?? "");
-  const quantity = clamp(Number(formData.get("quantity") ?? 1), 1, 99);
+  const listingIdResult = parseRouteId(formData, "listingId");
+  const quantityResult = parsePositiveQuantity(formData, "quantity");
+
+  if (!listingIdResult.success || !quantityResult.success) {
+    return NextResponse.redirect(
+      new URL("/marketplace?error=Enter%20a%20valid%20listing%20and%20quantity", request.url),
+      303,
+    );
+  }
+
+  const listingId = listingIdResult.data;
+  const quantity = clamp(quantityResult.data, 1, 99);
 
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },

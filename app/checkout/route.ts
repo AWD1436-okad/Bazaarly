@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSafePositiveQuantity } from "@/lib/route-validation";
 import { clamp } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -43,6 +44,22 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/cart?error=Your%20cart%20is%20empty", request.url), 303);
   }
 
+  const hasInvalidCartState = cart.items.some(
+    (item) =>
+      !item.listingId ||
+      !item.productId ||
+      !isSafePositiveQuantity(item.quantity, 999) ||
+      !isSafePositiveQuantity(item.unitPriceSnapshot) ||
+      item.listing.shopId !== cart.shopId,
+  );
+
+  if (hasInvalidCartState) {
+    return NextResponse.redirect(
+      new URL("/cart?error=Your%20cart%20has%20invalid%20items.%20Please%20refresh%20and%20try%20again", request.url),
+      303,
+    );
+  }
+
   try {
     await prisma.$transaction(async (tx) => {
       const buyer = await tx.user.findUnique({
@@ -70,6 +87,9 @@ export async function POST(request: Request) {
 
         if (!listing || !listing.active || listing.quantity < item.quantity) {
           throw new Error("Listing stock changed");
+        }
+        if (listing.shopId !== cart.shopId || listing.productId !== item.productId) {
+          throw new Error("Cart item no longer matches its listing");
         }
 
         totalPrice += listing.price * item.quantity;

@@ -3,8 +3,8 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
-import { parseCurrencyInput } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { parsePriceInput, parseRouteId } from "@/lib/route-validation";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -20,15 +20,18 @@ export async function POST(request: Request) {
   const shop = user.shop;
 
   const formData = await request.formData();
-  const productId = String(formData.get("productId") ?? "");
-  const priceCents = parseCurrencyInput(String(formData.get("price") ?? ""));
+  const productIdResult = parseRouteId(formData, "productId");
+  const priceResult = parsePriceInput(formData, "price");
 
-  if (!priceCents || priceCents <= 0) {
+  if (!productIdResult.success || !priceResult.success) {
     return NextResponse.redirect(
-      new URL("/dashboard?error=Enter%20a%20valid%20price%20and%20quantity", request.url),
+      new URL("/dashboard?error=Enter%20a%20valid%20product%20and%20price", request.url),
       303,
     );
   }
+
+  const productId = productIdResult.data;
+  const priceCents = priceResult.data;
 
   try {
     await prisma.$transaction(async (tx) => {

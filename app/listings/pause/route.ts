@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseRouteId } from "@/lib/route-validation";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -14,7 +15,13 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const listingId = String(formData.get("listingId") ?? "");
+  const listingIdResult = parseRouteId(formData, "listingId");
+
+  if (!listingIdResult.success) {
+    return NextResponse.redirect(new URL("/dashboard?error=Enter%20a%20valid%20listing", request.url), 303);
+  }
+
+  const listingId = listingIdResult.data;
 
   await prisma.$transaction(async (tx) => {
     const listing = await tx.listing.findFirst({

@@ -59,6 +59,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 2 - Sensitive Route Validation Pass - 2026-04-19
+
+Changes added in this pass:
+
+- added shared route-validation helpers for ids, quantities, and listing-price input
+- hardened sensitive POST routes for listing save, listing pause, supplier buy, cart add, and cart item quantity updates
+- added an early invalid-cart-state guard before checkout enters the main purchase transaction
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Milestone 1 - Performance Pass - 2026-04-19
 
 Checks run after the first implementation pass:

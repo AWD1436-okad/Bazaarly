@@ -58,4 +58,5 @@ Milestone 2 should stay small and free-tier-safe:
 Current Milestone 2 note:
 
 - the first hardening step is now implemented in code using a Prisma-backed session-token model
-- the next small step should be validation tightening on sensitive POST routes
+- the second hardening step is now implemented in code using stricter shared validation on sensitive POST routes
+- the next small step should stay narrow, likely lightweight abuse resistance or remaining request hardening that fits the free-tier stack

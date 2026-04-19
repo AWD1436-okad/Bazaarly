@@ -46,6 +46,11 @@ First hardening step completed:
 - secure random session tokens are now stored as hashed database records with expiry
 - login, register, logout, and shared auth lookup now use session tokens instead of trusting a browser-supplied user id
 
+Second hardening step completed:
+- added shared stricter validation for sensitive POST routes
+- hardened listing save, listing pause, supplier buy, cart add, cart quantity update, and checkout preflight validation
+- malformed or out-of-range ids and numeric inputs are now rejected earlier before database work starts
+
 ## Milestone 1 Closeout
 
 Milestone 1 is effectively complete.

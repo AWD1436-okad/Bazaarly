@@ -11,6 +11,7 @@
 - Treat Milestone 1 as effectively complete except for the already-documented local environment verification blocker
 - Keep Milestone 2 limited to the smallest sensible session and request hardening work
 - Use a Prisma-backed session table rather than introducing a paid or third-party auth product
+- Use lightweight shared route-validation helpers for sensitive POST routes instead of a broad handler rewrite
 
 ## Current Assumptions
 

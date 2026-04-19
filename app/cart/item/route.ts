@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
+import { parseNonNegativeQuantity, parseRouteId } from "@/lib/route-validation";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -15,8 +16,15 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const cartItemId = String(formData.get("cartItemId") ?? "");
-  const quantity = Number(formData.get("quantity") ?? 0);
+  const cartItemIdResult = parseRouteId(formData, "cartItemId");
+  const quantityResult = parseNonNegativeQuantity(formData, "quantity");
+
+  if (!cartItemIdResult.success || !quantityResult.success) {
+    return NextResponse.redirect(new URL("/cart?error=Enter%20a%20valid%20cart%20quantity", request.url), 303);
+  }
+
+  const cartItemId = cartItemIdResult.data;
+  const quantity = quantityResult.data;
 
   const cartItem = await prisma.cartItem.findUnique({
     where: { id: cartItemId },

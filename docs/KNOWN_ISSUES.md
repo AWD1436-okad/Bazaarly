@@ -19,8 +19,9 @@
 - Clean up local temp files when the OS is no longer holding them open
 - Add more explicit server-side validation and rate limiting
 - Add lightweight session and request hardening without introducing paid services or new infrastructure
-- Add observability around slow routes and checkout timing later if still needed
 - Apply the new session-table migration in the target database before relying on the hardening change in a deployed environment
+- Decide whether the next hardening step should be lightweight abuse resistance on sensitive POST routes or validation coverage for any smaller remaining action routes
+- Add observability around slow routes and checkout timing later if still needed
 - Review whether the dashboard create-listing picker eventually needs a dedicated searchable selector if very large inventories become common
 - Review whether shared navigation data can be trimmed further without losing useful badge/count behavior
 - Review whether the default relevance-ranked marketplace search path needs a deeper candidate-pool strategy if search result pools grow much larger in production

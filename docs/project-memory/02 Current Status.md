@@ -63,7 +63,10 @@ Completed Milestone 2 change so far:
 - only the session token is stored in the cookie
 - a hashed token plus `userId` and `expiresAt` are stored in the database
 - logout now invalidates the stored session row
+- sensitive POST routes now share stricter server-side validation for ids, quantities, and listing-price inputs
+- malformed, empty, negative, zero, NaN, and out-of-range numeric inputs are rejected before database work on listing save, supplier buy, cart add/update, and listing pause routes
+- checkout now rejects invalid or inconsistent cart state earlier before entering the expensive transaction path
 
 Immediate Milestone 2 follow-up:
 - apply the new session migration where the app database is managed
-- continue with tighter validation on the most sensitive POST routes
+- continue with the next smallest request-hardening step, likely around lightweight abuse resistance or remaining sensitive POST actions
