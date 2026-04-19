@@ -1,32 +1,9 @@
-import Link from "next/link";
-
 import { DailyFeatureCard } from "@/components/daily-feature-card";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { CATEGORY_OPTIONS, getDailyFeaturedProduct } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
-
-function buildMarketplaceHref(
-  params: Record<string, string | string[] | undefined>,
-  nextPage: number,
-) {
-  const nextParams = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(params)) {
-    if (key === "page") continue;
-    if (typeof value === "string" && value.length > 0) {
-      nextParams.set(key, value);
-    }
-  }
-
-  if (nextPage > 1) {
-    nextParams.set("page", String(nextPage));
-  }
-
-  const queryString = nextParams.toString();
-  return queryString ? `/marketplace?${queryString}` : "/marketplace";
-}
 
 type MarketplacePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -35,6 +12,10 @@ type MarketplacePageProps = {
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const params = (await searchParams) ?? {};
   const featuredProduct = getDailyFeaturedProduct();
+  const selectedCategory =
+    typeof params.category === "string" && params.category !== "ALL" ? params.category : "ALL";
+  const selectedCategoryLabel =
+    CATEGORY_OPTIONS.find((category) => category.value === selectedCategory)?.label ?? "All Products";
   const marketplace = await getMarketplaceData({
     q: typeof params.q === "string" ? params.q : undefined,
     sort: typeof params.sort === "string" ? params.sort : undefined,
@@ -47,62 +28,33 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
   });
 
   return (
-    <div className="page-grid">
+    <div className="page-grid marketplace-page">
       <SimulationHeartbeat intervalMs={180000} initialDelayMs={15000} />
-      <section className="hero-card">
-        <div className="stack">
-          <span className="tag">Marketplace</span>
-          <h1>Browse live listings from the whole Bazaarly world.</h1>
-          <p>
-            Buyers mostly see products first, then compare shops by price, stock, and
-            rating. That keeps the economy competitive and readable.
-          </p>
-
-          {marketplace.activeEvent ? (
-            <StatusBanner
-              tone="warning"
-              title={marketplace.activeEvent.name}
-              body={marketplace.activeEvent.description}
-            />
-          ) : null}
+      <section className="marketplace-showcase">
+        <div className="marketplace-showcase__header">
+          <h1>Daily Featured Item</h1>
         </div>
 
-        <div className="hero-card__aside">
-          <DailyFeatureCard
-            product={featuredProduct}
-            href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
-            ctaLabel="Shop today's pick"
+        {marketplace.activeEvent ? (
+          <StatusBanner
+            tone="warning"
+            title={marketplace.activeEvent.name}
+            body={marketplace.activeEvent.description}
           />
-          <div className="hero-card__panel">
-            <strong>Trending products</strong>
-            <div className="stack-sm">
-              {marketplace.trendingProducts.map((item) => (
-                <div key={item.id} className="section-row">
-                  <span>{item.product.name}</span>
-                  <strong>{item.trendLabel}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="hero-card__panel">
-            <strong>Top shops</strong>
-            <div className="stack-sm">
-              {marketplace.topShops.map((shop) => (
-                <div key={shop.id} className="section-row">
-                  <Link href={`/shop/${shop.id}`}>{shop.name}</Link>
-                  <span>{shop.rating.toFixed(1)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        ) : null}
+
+        <DailyFeatureCard
+          product={featuredProduct}
+          href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
+          ctaLabel="See Offer"
+        />
       </section>
 
-      <section className="card">
-        <form action="/marketplace" className="filters-grid">
+      <section className="card marketplace-filters-card">
+        <form action="/marketplace" className="marketplace-filters">
           <label>
             Category
-            <select name="category" defaultValue={typeof params.category === "string" ? params.category : "ALL"}>
+            <select name="category" defaultValue={selectedCategory}>
               <option value="ALL">All</option>
               {CATEGORY_OPTIONS.map((category) => (
                 <option key={category.value} value={category.value}>
@@ -113,7 +65,10 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
           </label>
           <label>
             Minimum rating
-            <select name="minRating" defaultValue={typeof params.minRating === "string" ? params.minRating : ""}>
+            <select
+              name="minRating"
+              defaultValue={typeof params.minRating === "string" ? params.minRating : ""}
+            >
               <option value="">Any</option>
               <option value="3">3+</option>
               <option value="4">4+</option>
@@ -139,14 +94,9 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         </form>
       </section>
 
-      <section className="page-header">
-        <h1>
-          {marketplace.listings.length} listings on page {marketplace.currentPage}
-        </h1>
-        <p>
-          Search matches product names, shop names, categories, and keywords.
-          Results are then sorted by the control in the top bar.
-        </p>
+      <section className="page-header marketplace-results-header">
+        <h2>{selectedCategoryLabel}</h2>
+        <p>{marketplace.listings.length} matching listings</p>
       </section>
 
       {marketplace.listings.length === 0 ? (
@@ -155,43 +105,39 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         </div>
       ) : (
         <>
-          <section className="listing-grid">
+          <section className="listing-grid listing-grid--list">
             {marketplace.listings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
           </section>
-
-          <section className="card">
-            <div className="section-row">
-              <div>
-                <strong>Page {marketplace.currentPage}</strong>
-                <p className="muted">
-                  Bazaarly now loads marketplace results in smaller pages to keep the
-                  app faster and lighter on the shared server.
-                </p>
-              </div>
-              <div className="table-row__actions">
-                {marketplace.hasPreviousPage ? (
-                  <a
-                    href={buildMarketplaceHref(params, marketplace.currentPage - 1)}
-                    className="ghost-button"
-                  >
-                    Previous
-                  </a>
-                ) : null}
-                {marketplace.hasNextPage ? (
-                  <a
-                    href={buildMarketplaceHref(params, marketplace.currentPage + 1)}
-                    className="ghost-button"
-                  >
-                    Next
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          </section>
         </>
       )}
+
+      <section className="marketplace-insights">
+        <div className="hero-card__panel">
+          <strong>Trending products</strong>
+          <div className="stack-sm">
+            {marketplace.trendingProducts.map((item) => (
+              <div key={item.id} className="section-row">
+                <span>{item.product.name}</span>
+                <strong>{item.trendLabel}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="hero-card__panel">
+          <strong>Top shops</strong>
+          <div className="stack-sm">
+            {marketplace.topShops.map((shop) => (
+              <div key={shop.id} className="section-row">
+                <span>{shop.name}</span>
+                <strong>{shop.rating.toFixed(1)}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

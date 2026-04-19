@@ -3,8 +3,6 @@ import { Prisma, ProductCategory, ShopStatus, type MarketEvent } from "@prisma/c
 import { getCategoryLabel } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 
-const PAGE_SIZE = 24;
-
 export type MarketplaceParams = {
   q?: string;
   sort?: string;
@@ -180,8 +178,6 @@ async function getMarketplaceSupportData() {
 
 export async function getMarketplaceData(params: MarketplaceParams) {
   const query = params.q?.trim() ?? "";
-  const currentPage = Math.max(Number(params.page ?? "1") || 1, 1);
-  const pageStart = (currentPage - 1) * PAGE_SIZE;
   const minPrice = params.minPrice ? Number(params.minPrice) * 100 : null;
   const maxPrice = params.maxPrice ? Number(params.maxPrice) * 100 : null;
   const minRating = params.minRating ? Number(params.minRating) : null;
@@ -250,18 +246,12 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       where,
       select: listingCardSelect,
       orderBy: browseOrderBy,
-      skip: pageStart,
-      take: PAGE_SIZE + 1,
     });
 
     const [activeEvent, productStates, topShops] = await getMarketplaceSupportData();
 
     return {
-      listings: browseListings.slice(0, PAGE_SIZE),
-      currentPage,
-      hasNextPage: browseListings.length > PAGE_SIZE,
-      hasPreviousPage: currentPage > 1,
-      pageSize: PAGE_SIZE,
+      listings: browseListings,
       activeEvent,
       topShops,
       trendingProducts: productStates,
@@ -273,18 +263,12 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       where,
       select: listingCardSelect,
       orderBy: browseOrderBy,
-      skip: pageStart,
-      take: PAGE_SIZE + 1,
     });
 
     const [activeEvent, productStates, topShops] = await getMarketplaceSupportData();
 
     return {
-      listings: sortedSearchListings.slice(0, PAGE_SIZE),
-      currentPage,
-      hasNextPage: sortedSearchListings.length > PAGE_SIZE,
-      hasPreviousPage: currentPage > 1,
-      pageSize: PAGE_SIZE,
+      listings: sortedSearchListings,
       activeEvent,
       topShops,
       trendingProducts: productStates,
@@ -295,7 +279,6 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     where,
     select: listingCardSelect,
     orderBy: browseOrderBy,
-    take: pageStart + PAGE_SIZE + 1,
   });
 
   const filtered = searchListings
@@ -306,16 +289,11 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     .filter((listing) => listing.relevanceScore > 0);
 
   filtered.sort((a, b) => b.relevanceScore - a.relevanceScore);
-  const pageEnd = currentPage * PAGE_SIZE;
 
   const [activeEvent, productStates, topShops] = await getMarketplaceSupportData();
 
   return {
-    listings: filtered.slice(pageStart, pageEnd),
-    currentPage,
-    hasNextPage: filtered.length > pageEnd,
-    hasPreviousPage: currentPage > 1,
-    pageSize: PAGE_SIZE,
+    listings: filtered,
     activeEvent,
     topShops,
     trendingProducts: productStates,
