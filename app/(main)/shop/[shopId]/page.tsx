@@ -6,12 +6,24 @@ import { getShopPageData } from "@/lib/marketplace";
 
 type ShopPageProps = {
   params: Promise<{ shopId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function ShopPage({ params }: ShopPageProps) {
+function parsePositivePage(value: string | string[] | undefined) {
+  const parsed = Number(typeof value === "string" ? value : "1");
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+}
+
+function buildShopHref(shopId: string, page: number) {
+  return page <= 1 ? `/shop/${shopId}` : `/shop/${shopId}?page=${page}`;
+}
+
+export default async function ShopPage({ params, searchParams }: ShopPageProps) {
   await requireUser();
   const { shopId } = await params;
-  const shop = await getShopPageData(shopId);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const page = parsePositivePage(resolvedSearchParams?.page);
+  const shop = await getShopPageData(shopId, page);
 
   if (!shop) {
     notFound();
@@ -84,6 +96,28 @@ export default async function ShopPage({ params }: ShopPageProps) {
           </article>
         ))}
       </section>
+      {(shop.hasPreviousPage || shop.hasNextPage) && (
+        <section className="card">
+          <div className="section-row">
+            <p className="muted">
+              Showing shop page {shop.currentPage}
+              {shop.hasNextPage ? " with more listings available." : "."}
+            </p>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              {shop.hasPreviousPage ? (
+                <a href={buildShopHref(shopId, shop.currentPage - 1)}>Previous</a>
+              ) : (
+                <span />
+              )}
+              {shop.hasNextPage ? (
+                <a href={buildShopHref(shopId, shop.currentPage + 1)}>Next</a>
+              ) : (
+                <span />
+              )}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

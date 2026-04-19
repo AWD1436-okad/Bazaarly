@@ -162,6 +162,26 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Milestone 1 - Shop Listings Reduction Pass - 2026-04-19
+
+Changes added in this pass:
+
+- paged shop listing grids so a shop page no longer loads every listing by default
+- tightened the shop-page data path to fetch only the shop fields and listing fields used in the UI
+- kept sold-out and add-to-cart behavior unchanged while reducing listing-grid growth cost
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
+
 ## Focused Local Verification Blocker Pass - 2026-04-19
 
 Plain-English theory:

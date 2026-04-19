@@ -28,6 +28,7 @@
 - Reduced shared notification badge cost with a capped unread-badge query in the authenticated layout
 - Reduced notifications-page cost with paged history loading instead of an unbounded inbox query
 - Reduced orders-page cost with bounded buyer and seller history sections instead of loading full order history at once
+- Reduced shop-page cost with bounded listing grids instead of loading every listing for a shop at once
 
 ## Current Focus
 

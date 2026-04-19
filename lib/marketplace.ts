@@ -15,6 +15,8 @@ export type MarketplaceParams = {
   page?: string;
 };
 
+const SHOP_LISTINGS_PAGE_SIZE = 12;
+
 type ListingWithRelations = Listing & {
   product: {
     id: string;
@@ -277,19 +279,63 @@ export async function getMarketplaceData(params: MarketplaceParams) {
   };
 }
 
-export async function getShopPageData(shopId: string) {
-  return prisma.shop.findUnique({
+export async function getShopPageData(shopId: string, page = 1) {
+  const currentPage = Math.max(page, 1);
+  const skip = (currentPage - 1) * SHOP_LISTINGS_PAGE_SIZE;
+
+  const shop = await prisma.shop.findUnique({
     where: { id: shopId },
-    include: {
-      owner: true,
-      listings: {
-        include: {
-          product: true,
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      categoryFocus: true,
+      accentColor: true,
+      rating: true,
+      totalSales: true,
+      totalRevenue: true,
+      owner: {
+        select: {
+          displayName: true,
         },
-        orderBy: [{ active: "desc" }, { quantity: "desc" }, { updatedAt: "desc" }],
       },
     },
   });
+
+  if (!shop) {
+    return null;
+  }
+
+  const listings = await prisma.listing.findMany({
+    where: {
+      shopId,
+    },
+    select: {
+      id: true,
+      price: true,
+      quantity: true,
+      active: true,
+      product: {
+        select: {
+          name: true,
+          category: true,
+          description: true,
+        },
+      },
+    },
+    orderBy: [{ active: "desc" }, { quantity: "desc" }, { updatedAt: "desc" }],
+    skip,
+    take: SHOP_LISTINGS_PAGE_SIZE + 1,
+  });
+
+  return {
+    ...shop,
+    listings: listings.slice(0, SHOP_LISTINGS_PAGE_SIZE),
+    currentPage,
+    hasNextPage: listings.length > SHOP_LISTINGS_PAGE_SIZE,
+    hasPreviousPage: currentPage > 1,
+    pageSize: SHOP_LISTINGS_PAGE_SIZE,
+  };
 }
 
 export async function getActiveEvent(): Promise<MarketEvent | null> {

@@ -41,3 +41,4 @@ Changes now in progress:
 - shared notification badge work is now capped and lighter, avoiding exact unread-count scans on every authenticated page
 - notifications history now loads in bounded pages instead of pulling the full notification backlog by default
 - buyer and seller order history now load in bounded sections instead of fetching full history for both sides of the economy by default
+- shop listing grids now load in bounded pages instead of fetching every listing for a shop by default
