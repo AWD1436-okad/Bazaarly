@@ -21,28 +21,23 @@ function getProductVisualTokens(name: string, category: ProductCategory): Produc
   const normalizedName = name.toLowerCase();
 
   switch (category) {
-    case "PRODUCE":
+    case "FRUIT_AND_VEGETABLES":
       if (/apple/.test(normalizedName)) return { emoji: "\u{1F34E}", badge: "\u{1F343}", accent: "#78b23b", glow: "rgba(120,178,59,0.35)", surface: "#eff9df" };
       if (/banana/.test(normalizedName)) return { emoji: "\u{1F34C}", badge: "\u2728", accent: "#e2c43a", glow: "rgba(226,196,58,0.35)", surface: "#fff7d6" };
-      if (/strawberr|raspberr|blueberr|blackberr/.test(normalizedName)) return { emoji: "\u{1FAD0}", badge: "\u{1F353}", accent: "#d44f6f", glow: "rgba(212,79,111,0.35)", surface: "#fff0f5" };
-      if (/avocado/.test(normalizedName)) return { emoji: "\u{1F951}", badge: "\u{1F33F}", accent: "#6fa14d", glow: "rgba(111,161,77,0.35)", surface: "#eef8e6" };
-      if (/broccoli|lettuce|spinach|kale|bok choy|cabbage/.test(normalizedName)) return { emoji: "\u{1F96C}", badge: "\u{1F331}", accent: "#5b9b48", glow: "rgba(91,155,72,0.35)", surface: "#eaf8e3" };
+      if (/broccoli|lettuce|spinach/.test(normalizedName)) return { emoji: "\u{1F96C}", badge: "\u{1F331}", accent: "#5b9b48", glow: "rgba(91,155,72,0.35)", surface: "#eaf8e3" };
       return { emoji: "\u{1F955}", badge: "\u{1F9FA}", accent: "#f09a36", glow: "rgba(240,154,54,0.35)", surface: "#fff1df" };
-    case "MEAT_AND_SEAFOOD":
-      if (/salmon|fish|barramundi|basa|flathead/.test(normalizedName)) return { emoji: "\u{1F41F}", badge: "\u2744\uFE0F", accent: "#4e87b8", glow: "rgba(78,135,184,0.35)", surface: "#e9f4ff" };
-      if (/prawn|mussel|squid|seafood/.test(normalizedName)) return { emoji: "\u{1F364}", badge: "\u{1F9CA}", accent: "#d46a54", glow: "rgba(212,106,84,0.35)", surface: "#fff0ec" };
-      return { emoji: "\u{1F969}", badge: "\u{1F525}", accent: "#bb5a48", glow: "rgba(187,90,72,0.35)", surface: "#fff0eb" };
-    case "DAIRY_AND_EGGS":
+    case "MEAT_DAIRY_AND_PROTEIN":
+      if (/fish/.test(normalizedName)) return { emoji: "\u{1F41F}", badge: "\u2744\uFE0F", accent: "#4e87b8", glow: "rgba(78,135,184,0.35)", surface: "#e9f4ff" };
+      if (/milk|yogurt|butter|cheese/.test(normalizedName)) return { emoji: "\u{1F95B}", badge: "\u2728", accent: "#77a8d8", glow: "rgba(119,168,216,0.35)", surface: "#eef6ff" };
       if (/egg/.test(normalizedName)) return { emoji: "\u{1F95A}", badge: "\u{1F423}", accent: "#e1b15d", glow: "rgba(225,177,93,0.35)", surface: "#fff6e4" };
-      if (/cheese/.test(normalizedName)) return { emoji: "\u{1F9C0}", badge: "\u{1F95B}", accent: "#f0c253", glow: "rgba(240,194,83,0.35)", surface: "#fff8df" };
-      return { emoji: "\u{1F95B}", badge: "\u2728", accent: "#77a8d8", glow: "rgba(119,168,216,0.35)", surface: "#eef6ff" };
-    case "BAKERY":
-      if (/croissant/.test(normalizedName)) return { emoji: "\u{1F950}", badge: "\u2600\uFE0F", accent: "#cf9a42", glow: "rgba(207,154,66,0.35)", surface: "#fff2df" };
-      if (/cake|cupcake|muffin/.test(normalizedName)) return { emoji: "\u{1F9C1}", badge: "\u{1F370}", accent: "#cf7f8f", glow: "rgba(207,127,143,0.35)", surface: "#fff0f5" };
-      return { emoji: "\u{1F35E}", badge: "\u{1F9C8}", accent: "#c88d4d", glow: "rgba(200,141,77,0.35)", surface: "#fff2e3" };
-    case "PANTRY":
+      return { emoji: "\u{1F969}", badge: "\u{1F525}", accent: "#bb5a48", glow: "rgba(187,90,72,0.35)", surface: "#fff0eb" };
+    case "BAKERY_AND_GRAINS":
+      if (/cake|muffin/.test(normalizedName)) return { emoji: "\u{1F9C1}", badge: "\u{1F370}", accent: "#cf7f8f", glow: "rgba(207,127,143,0.35)", surface: "#fff0f5" };
       if (/rice|oats/.test(normalizedName)) return { emoji: "\u{1F35A}", badge: "\u{1F963}", accent: "#bfa05f", glow: "rgba(191,160,95,0.35)", surface: "#f8f1df" };
-      if (/pasta|spaghetti|lasagne/.test(normalizedName)) return { emoji: "\u{1F35D}", badge: "\u{1FAD9}", accent: "#d78f3f", glow: "rgba(215,143,63,0.35)", surface: "#fff1de" };
+      return { emoji: "\u{1F35E}", badge: "\u{1F9C8}", accent: "#c88d4d", glow: "rgba(200,141,77,0.35)", surface: "#fff2e3" };
+    case "PANTRY_AND_COOKING":
+      if (/oil/.test(normalizedName)) return { emoji: "\u{1FAD9}", badge: "\u{1F372}", accent: "#d78f3f", glow: "rgba(215,143,63,0.35)", surface: "#fff1de" };
+      if (/honey|jam|peanut butter/.test(normalizedName)) return { emoji: "\u{1F36F}", badge: "\u2728", accent: "#bb684d", glow: "rgba(187,104,77,0.35)", surface: "#fff0ea" };
       return { emoji: "\u{1F96B}", badge: "\u{1F36F}", accent: "#bb684d", glow: "rgba(187,104,77,0.35)", surface: "#fff0ea" };
     case "SNACKS_AND_SWEETS":
       if (/chocolate|cookies|biscuits/.test(normalizedName)) return { emoji: "\u{1F36B}", badge: "\u{1F36A}", accent: "#9d6a52", glow: "rgba(157,106,82,0.35)", surface: "#f8eee8" };
@@ -53,32 +48,24 @@ function getProductVisualTokens(name: string, category: ProductCategory): Produc
       if (/tea/.test(normalizedName)) return { emoji: "\u{1FAD6}", badge: "\u{1F343}", accent: "#5a9464", glow: "rgba(90,148,100,0.35)", surface: "#eef8ec" };
       if (/juice|mango nectar/.test(normalizedName)) return { emoji: "\u{1F9C3}", badge: "\u{1F34A}", accent: "#f19736", glow: "rgba(241,151,54,0.35)", surface: "#fff1df" };
       return { emoji: "\u{1F964}", badge: "\u{1F4A7}", accent: "#4a8cd3", glow: "rgba(74,140,211,0.35)", surface: "#edf5ff" };
-    case "CLOTHING_AND_FOOTWEAR":
-      if (/shoe|sneaker|boot|slipper|flip flop|slides/.test(normalizedName)) return { emoji: "\u{1F45F}", badge: "\u2728", accent: "#5a7bb0", glow: "rgba(90,123,176,0.35)", surface: "#eef3fb" };
-      if (/jacket|hoodie|sweatshirt|shirt/.test(normalizedName)) return { emoji: "\u{1F9E5}", badge: "\u{1FAA1}", accent: "#6d76ad", glow: "rgba(109,118,173,0.35)", surface: "#f0f1fb" };
+    case "CLOTHING":
+      if (/jacket|hoodie|sweater/.test(normalizedName)) return { emoji: "\u{1F9E5}", badge: "\u{1FAA1}", accent: "#6d76ad", glow: "rgba(109,118,173,0.35)", surface: "#f0f1fb" };
       return { emoji: "\u{1F455}", badge: "\u{1F9E2}", accent: "#c56d59", glow: "rgba(197,109,89,0.35)", surface: "#fff0eb" };
-    case "SCHOOL_STATIONERY_AND_TOYS":
-      if (/backpack|pencil case|lunch box|drink bottle/.test(normalizedName)) return { emoji: "\u{1F392}", badge: "\u270F\uFE0F", accent: "#5b92ca", glow: "rgba(91,146,202,0.35)", surface: "#edf5ff" };
-      if (/toy|doll|lego|blocks|puzzle|board game|soccer|basketball/.test(normalizedName)) return { emoji: "\u{1F9F8}", badge: "\u{1F3B2}", accent: "#db8c57", glow: "rgba(219,140,87,0.35)", surface: "#fff2e8" };
+    case "SCHOOL_AND_MISC":
+      if (/backpack|lunch box|bottle|umbrella|shopping bag/.test(normalizedName)) return { emoji: "\u{1F392}", badge: "\u270F\uFE0F", accent: "#5b92ca", glow: "rgba(91,146,202,0.35)", surface: "#edf5ff" };
       return { emoji: "\u{1F4D3}", badge: "\u270F\uFE0F", accent: "#5d90c7", glow: "rgba(93,144,199,0.35)", surface: "#eef5ff" };
-    case "PERSONAL_CARE_AND_HEALTH":
-      if (/tablets|bandage|thermometer|first aid|cream|drops|syrup/.test(normalizedName)) return { emoji: "\u{1F48A}", badge: "\u{1FA79}", accent: "#7d89d1", glow: "rgba(125,137,209,0.35)", surface: "#f1f2ff" };
+    case "CLEANING_AND_PERSONAL_CARE":
+      if (/detergent|dishwashing|tissues/.test(normalizedName)) return { emoji: "\u{1F9FD}", badge: "\u{1F9FC}", accent: "#5aa3a9", glow: "rgba(90,163,169,0.35)", surface: "#ebfbfb" };
       return { emoji: "\u{1F9F4}", badge: "\u{1FAA5}", accent: "#5ea8a1", glow: "rgba(94,168,161,0.35)", surface: "#ebfbf7" };
-    case "CLEANING_AND_HOUSEHOLD":
-      if (/battery|light bulb|extension cord|power board/.test(normalizedName)) return { emoji: "\u{1F50B}", badge: "\u{1F4A1}", accent: "#b78449", glow: "rgba(183,132,73,0.35)", surface: "#fff3e5" };
-      return { emoji: "\u{1F9FD}", badge: "\u{1F9FC}", accent: "#5aa3a9", glow: "rgba(90,163,169,0.35)", surface: "#ebfbfb" };
-    case "KITCHEN_AND_DINING":
+    case "KITCHEN_AND_COOKWARE":
       if (/knife|cutlery/.test(normalizedName)) return { emoji: "\u{1F52A}", badge: "\u{1F37D}\uFE0F", accent: "#74839b", glow: "rgba(116,131,155,0.35)", surface: "#eef2f7" };
       if (/pan|pot|oven|tray|colander/.test(normalizedName)) return { emoji: "\u{1F373}", badge: "\u{1F525}", accent: "#bb744a", glow: "rgba(187,116,74,0.35)", surface: "#fff1e7" };
       return { emoji: "\u{1F963}", badge: "\u2728", accent: "#7f8fbb", glow: "rgba(127,143,187,0.35)", surface: "#f0f3fb" };
-    case "BABY":
-      return { emoji: "\u{1F37C}", badge: "\u{1F9F8}", accent: "#d8899a", glow: "rgba(216,137,154,0.35)", surface: "#fff0f5" };
-    case "PET":
-      if (/cat/.test(normalizedName)) return { emoji: "\u{1F431}", badge: "\u{1F43E}", accent: "#8f78c8", glow: "rgba(143,120,200,0.35)", surface: "#f3efff" };
-      return { emoji: "\u{1F436}", badge: "\u{1F9B4}", accent: "#c48a55", glow: "rgba(196,138,85,0.35)", surface: "#fff2e6" };
-    case "TECH_ELECTRONICS_AND_APPLIANCES":
-      if (/tv|monitor|camera|speaker|soundbar/.test(normalizedName)) return { emoji: "\u{1F4FA}", badge: "\u{1F3A7}", accent: "#6079c8", glow: "rgba(96,121,200,0.35)", surface: "#eef1ff" };
-      if (/laptop|desktop|tablet|keyboard|mouse|printer|router/.test(normalizedName)) return { emoji: "\u{1F4BB}", badge: "\u26A1", accent: "#5b74c9", glow: "rgba(91,116,201,0.35)", surface: "#eef2ff" };
+    case "HOME_AND_STORAGE":
+      if (/blanket|pillow|towel/.test(normalizedName)) return { emoji: "\u{1F6CF}\uFE0F", badge: "\u2728", accent: "#c48a55", glow: "rgba(196,138,85,0.35)", surface: "#fff2e6" };
+      return { emoji: "\u{1F4E6}", badge: "\u{1F9FA}", accent: "#8f78c8", glow: "rgba(143,120,200,0.35)", surface: "#f3efff" };
+    case "ELECTRONICS":
+      if (/laptop|tablet/.test(normalizedName)) return { emoji: "\u{1F4BB}", badge: "\u26A1", accent: "#5b74c9", glow: "rgba(91,116,201,0.35)", surface: "#eef2ff" };
       return { emoji: "\u{1F4F1}", badge: "\u{1F50C}", accent: "#507fd6", glow: "rgba(80,127,214,0.35)", surface: "#edf4ff" };
     default:
       return { emoji: "\u{1F6CD}\uFE0F", badge: "\u2728", accent: "#6c9872", glow: "rgba(108,152,114,0.35)", surface: "#eef8ef" };

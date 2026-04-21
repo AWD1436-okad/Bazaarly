@@ -2,7 +2,7 @@
 
 ## Current State Summary
 
-Bazaarly is live and functioning as a real shared marketplace app. The core buy/sell loop, onboarding, supplier flow, listing management, checkout, orders, notifications, and simulation systems are already in place.
+Bazaarly is live and functioning as a real shared marketplace app. The core onboarding, listing management, marketplace browsing, checkout, orders, notifications, and simulation systems are already in place. The visible old supplier flow has now been removed from normal app use and replaced with a simple catalog browser.
 
 Release posture:
 
@@ -12,13 +12,13 @@ Release posture:
 ## What Is Confirmed In Code
 
 - Prisma schema defines persistent users, shops, listings, carts, orders, notifications, bots, events, and world state
-- Prisma schema now includes the expanded 15-category product enum and a dedicated `Product.unitLabel` field for unit-aware pricing
+- Prisma schema now includes a compact 12-category product enum and a dedicated `Product.unitLabel` field for unit-aware pricing
 - Authentication is database-backed and now uses a Prisma-backed session token model in [lib/auth.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\auth.ts)
 - Checkout uses a Prisma transaction in [app/checkout/route.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\app\checkout\route.ts)
 - Marketplace search and ranking live in [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\marketplace.ts)
 - Economy simulation lives in [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\simulation.ts)
 - Deployment is pinned to Sydney through [vercel.json](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\vercel.json)
-- The old seeded catalog has been replaced in code with a new 859-item Australian-market catalog sourced from the user-provided master list
+- The old seeded catalog has been replaced in code with a new 107-item Australian-market catalog sourced from the user-provided master list
 
 ## Current Audit Takeaways
 
@@ -33,8 +33,8 @@ Release posture:
 Launch prep only:
 
 - apply the latest Prisma migrations
-- run the catalog replacement migration
-- reseed with reset if the goal is to fully remove all old catalog data from the world
+- run the compact-catalog replacement migration
+- reseed with reset to fully remove all old catalog data from the world
 - redeploy or confirm deployment against the migrated schema
 - run final manual QA on the live app
 
@@ -95,3 +95,10 @@ Immediate Milestone 2 follow-up:
 - the supplier page now supports category filtering from the header area
 - four premium products were added to the catalog in realistic AUD price ranges
 - product cards and the featured section now use clearer product-aware visuals instead of text-like placeholders
+
+## Catalog Cleanup Update
+
+- the old supplier/buying page has been repurposed into a clean catalog browser with no purchase flow, no page numbers, and no next/previous controls
+- the product catalog now contains only the new 12 categories and 107 listed items from the latest user-provided source list
+- category search in the catalog browser now stays inside the selected category
+- onboarding and shop creation now lean on starter stock instead of directing users into the old supplier flow

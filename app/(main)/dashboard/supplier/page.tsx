@@ -7,30 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
-const SUPPLIER_PAGE_SIZE = 18;
-
-function buildSupplierHref(
-  params: Record<string, string | string[] | undefined>,
-  nextPage: number,
-) {
-  const nextParams = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(params)) {
-    if (key === "page") continue;
-    if (typeof value === "string" && value.length > 0) {
-      nextParams.set(key, value);
-    }
-  }
-
-  if (nextPage > 1) {
-    nextParams.set("page", String(nextPage));
-  }
-
-  const queryString = nextParams.toString();
-  return queryString ? `/dashboard/supplier?${queryString}` : "/dashboard/supplier";
-}
-
-type SupplierProps = {
+type CatalogPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
@@ -42,58 +19,46 @@ function parseCategoryFilter(value: string | string[] | undefined) {
   return CATEGORY_OPTIONS.find((category) => category.value === value)?.value ?? null;
 }
 
-export default async function SupplierPage({ searchParams }: SupplierProps) {
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   await requireUser();
   const params = (await searchParams) ?? {};
-  const error = typeof params.error === "string" ? params.error : null;
-  const currentPage = Math.max(Number(params.page ?? "1") || 1, 1);
-  const skip = (currentPage - 1) * SUPPLIER_PAGE_SIZE;
   const selectedCategory = parseCategoryFilter(params.category);
+  const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
   const featuredProduct = getDailyFeaturedProduct();
 
-  const products = await prisma.marketProductState.findMany({
-    where: selectedCategory
-      ? {
-          product: {
-            category: selectedCategory as ProductCategory,
-          },
-        }
-      : undefined,
+  const products = await prisma.product.findMany({
+    where: {
+      ...(selectedCategory ? { category: selectedCategory as ProductCategory } : {}),
+      ...(searchQuery
+        ? {
+            OR: [
+              { name: { contains: searchQuery, mode: "insensitive" } },
+              { description: { contains: searchQuery, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     select: {
       id: true,
-      productId: true,
-      currentSupplierPrice: true,
-      trendLabel: true,
-      supplierStock: true,
-      marketAveragePrice: true,
-        product: {
-          select: {
-            id: true,
-            name: true,
-            category: true,
-            unitLabel: true,
-            description: true,
-            basePrice: true,
-          },
-      },
+      name: true,
+      category: true,
+      unitLabel: true,
+      description: true,
+      basePrice: true,
     },
-    orderBy: [{ product: { category: "asc" } }, { product: { name: "asc" } }],
-    skip,
-    take: SUPPLIER_PAGE_SIZE + 1,
+    orderBy: [{ category: "asc" }, { name: "asc" }],
   });
-
-  const hasNextPage = products.length > SUPPLIER_PAGE_SIZE;
-  const visibleProducts = hasNextPage ? products.slice(0, SUPPLIER_PAGE_SIZE) : products;
 
   return (
     <div className="page-grid">
       <section className="hero-card supplier-hero">
         <div className="stack">
           <div>
-            <span className="tag">Supplier</span>
-            <h1>Global supplier</h1>
+            <span className="tag">Catalog</span>
+            <h1>Browse the Bazaarly catalog</h1>
             <p>
-              Buy stock at current supplier prices, then list it in your shop for a profit.
+              Explore the full product range by category, check unit pricing clearly,
+              and use search inside the category you have selected.
             </p>
           </div>
 
@@ -109,10 +74,23 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
                 ))}
               </select>
             </label>
-            <button type="submit">View category</button>
-            {selectedCategory ? (
+            <label>
+              Search
+              <input
+                type="search"
+                name="q"
+                defaultValue={searchQuery}
+                placeholder={
+                  selectedCategory
+                    ? `Search inside ${getCategoryLabel(selectedCategory)}`
+                    : "Search the full catalog"
+                }
+              />
+            </label>
+            <button type="submit">Apply</button>
+            {(selectedCategory || searchQuery) ? (
               <a href="/dashboard/supplier" className="ghost-button">
-                Clear filter
+                Clear
               </a>
             ) : null}
           </form>
@@ -120,108 +98,51 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
 
         <DailyFeatureCard
           product={featuredProduct}
-          href={`/dashboard/supplier?category=${featuredProduct.category}`}
-          ctaLabel="Browse this category"
-          eyebrow="Today's supplier feature"
+          href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
+          ctaLabel="View in marketplace"
+          eyebrow="Today's catalog feature"
         />
       </section>
 
-      {error ? (
-        <div className="status-banner status-banner--error">
-          <div>
-            <h3>Purchase needs attention</h3>
-            <p>{error}</p>
-          </div>
-        </div>
-      ) : null}
-
-      <section className="supplier-grid">
-        {visibleProducts.map((item) => (
-          <article key={item.id} className="card">
-            <ProductVisual
-              name={item.product.name}
-              category={item.product.category}
-              tone="card"
-              className="supplier-card__visual"
-            />
-            <div className="section-row">
-              <div>
-                <span className="category-chip">{getCategoryLabel(item.product.category)}</span>
-                <h2>{item.product.name}</h2>
-              </div>
-              <strong>{formatPriceWithUnit(item.currentSupplierPrice, item.product.unitLabel)}</strong>
-            </div>
-            <p>{item.product.description}</p>
-            <div className="stack-sm">
-              <div className="section-row">
-                <span className="muted">Market average</span>
-                <strong>
-                  {formatPriceWithUnit(
-                    item.marketAveragePrice || item.product.basePrice,
-                    item.product.unitLabel,
-                  )}
-                </strong>
-              </div>
-              <div className="section-row">
-                <span className="muted">Demand trend</span>
-                <strong>{item.trendLabel}</strong>
-              </div>
-              <div className="section-row">
-                <span className="muted">Supplier stock</span>
-                <strong>{item.supplierStock}</strong>
-              </div>
-              <div className="section-row">
-                <span className="muted">Potential gross margin</span>
-                <strong>
-                  {formatPriceWithUnit(
-                    (item.marketAveragePrice || item.product.basePrice) - item.currentSupplierPrice,
-                    item.product.unitLabel,
-                  )}
-                </strong>
-              </div>
-            </div>
-
-            <form action="/supplier/buy" method="post" className="inline-form" style={{ marginTop: "1rem" }}>
-              <input type="hidden" name="productId" value={item.productId} />
-              <input type="number" name="quantity" min={1} defaultValue={1} max={item.supplierStock} />
-              <button type="submit">
-                Buy for {formatPriceWithUnit(item.currentSupplierPrice, item.product.unitLabel)}
-              </button>
-            </form>
-          </article>
-        ))}
+      <section className="page-header">
+        <h2>{selectedCategory ? getCategoryLabel(selectedCategory) : "All catalog items"}</h2>
+        <p>
+          {products.length} item{products.length === 1 ? "" : "s"} shown
+          {selectedCategory ? ` in ${getCategoryLabel(selectedCategory)}` : ""}.
+          {searchQuery ? ` Search: "${searchQuery}".` : ""}
+        </p>
       </section>
 
-      <section className="card">
-        <div className="section-row">
-          <div>
-            <strong>Page {currentPage}</strong>
-            <p className="muted">
-              Supplier inventory is loaded in smaller pages to keep Bazaarly lighter on
-              the shared free-tier stack.
-              {selectedCategory ? ` Filtering by ${getCategoryLabel(selectedCategory)}.` : ""}
-            </p>
-          </div>
-          <div className="table-row__actions">
-            {currentPage > 1 ? (
-              <a
-                href={buildSupplierHref(params, currentPage - 1)}
-                className="ghost-button"
-              >
-                Previous
-              </a>
-            ) : null}
-            {hasNextPage ? (
-              <a
-                href={buildSupplierHref(params, currentPage + 1)}
-                className="ghost-button"
-              >
-                Next
-              </a>
-            ) : null}
-          </div>
+      {products.length === 0 ? (
+        <div className="empty-state">
+          No catalog items match that search inside the current category.
         </div>
-      </section>
+      ) : (
+        <section className="supplier-grid">
+          {products.map((item) => (
+            <article key={item.id} className="card">
+              <ProductVisual
+                name={item.name}
+                category={item.category}
+                tone="card"
+                className="supplier-card__visual"
+              />
+              <div className="section-row">
+                <div>
+                  <span className="category-chip">{getCategoryLabel(item.category)}</span>
+                  <h2>{item.name}</h2>
+                </div>
+                <strong>{formatPriceWithUnit(item.basePrice, item.unitLabel)}</strong>
+              </div>
+              <p>{item.description}</p>
+              <div className="section-row">
+                <span className="muted">Unit basis</span>
+                <strong>{item.unitLabel}</strong>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

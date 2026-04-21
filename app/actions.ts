@@ -11,9 +11,9 @@ import { clamp, slugify } from "@/lib/utils";
 
 const DEFAULT_STARTING_BALANCE = 22000;
 const STARTER_STOCK = [
-  { sku: "produce-green-apples", quantity: 8, cost: 320 },
-  { sku: "bakery-white-bread-loaf", quantity: 4, cost: 280 },
-  { sku: "drinks-bottled-water-small", quantity: 6, cost: 90 },
+  { name: "Apples", quantity: 8, cost: 330 },
+  { name: "Bread", quantity: 4, cost: 150 },
+  { name: "Milk", quantity: 6, cost: 110 },
 ] as const;
 
 export async function loginAction(formData: FormData) {
@@ -151,7 +151,7 @@ export async function createShopAction(formData: FormData) {
 
     for (const starterItem of STARTER_STOCK) {
       const product = await tx.product.findUnique({
-        where: { sku: starterItem.sku },
+        where: { name: starterItem.name },
       });
 
       if (!product) continue;
@@ -170,7 +170,7 @@ export async function createShopAction(formData: FormData) {
       data: {
         userId: user.id,
         type: NotificationType.SYSTEM,
-        message: `Welcome to Bazaarly. ${shop.name} is ready. Start by buying stock from the supplier.`,
+        message: `Welcome to Bazaarly. ${shop.name} is ready. Review your starter stock and publish your first listing.`,
       },
     });
   });
@@ -178,110 +178,8 @@ export async function createShopAction(formData: FormData) {
   redirect("/dashboard?welcome=1");
 }
 
-export async function buyFromSupplierAction(formData: FormData) {
-  const user = await requireUser();
-  const productId = String(formData.get("productId") ?? "");
-  const quantity = Number(formData.get("quantity") ?? 0);
-
-  if (!user.shop) {
-    redirect("/onboarding/shop");
-  }
-
-  if (!Number.isInteger(quantity) || quantity <= 0) {
-    redirect("/dashboard/supplier?error=Enter%20a%20valid%20quantity");
-  }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      const state = await tx.marketProductState.findUnique({
-        where: { productId },
-        include: { product: true },
-      });
-
-      if (!state) {
-        throw new Error("Supplier item not found");
-      }
-
-      const totalCost = state.currentSupplierPrice * quantity;
-      const currentUser = await tx.user.findUnique({ where: { id: user.id } });
-
-      if (!currentUser || currentUser.balance < totalCost) {
-        throw new Error("Not enough balance");
-      }
-
-      if (state.supplierStock < quantity) {
-        throw new Error("Supplier stock is too low for that purchase");
-      }
-
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          userId_productId: {
-            userId: user.id,
-            productId,
-          },
-        },
-      });
-
-      const newQuantity = (inventory?.quantity ?? 0) + quantity;
-      const combinedCost =
-        (inventory?.averageUnitCost ?? 0) * (inventory?.quantity ?? 0) +
-        state.currentSupplierPrice * quantity;
-
-      await tx.user.update({
-        where: { id: user.id },
-        data: {
-          balance: {
-            decrement: totalCost,
-          },
-        },
-      });
-
-      await tx.marketProductState.update({
-        where: { productId },
-        data: {
-          supplierStock: {
-            decrement: quantity,
-          },
-        },
-      });
-
-      if (inventory) {
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: {
-            quantity: {
-              increment: quantity,
-            },
-            averageUnitCost: Math.round(combinedCost / newQuantity),
-          },
-        });
-      } else {
-        await tx.inventory.create({
-          data: {
-            userId: user.id,
-            productId,
-            quantity,
-            averageUnitCost: state.currentSupplierPrice,
-          },
-        });
-      }
-
-      await tx.notification.create({
-        data: {
-          userId: user.id,
-          type: NotificationType.SYSTEM,
-          message: `Supplier purchase complete: ${quantity}x ${state.product.name} added to your inventory.`,
-        },
-      });
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Supplier purchase failed";
-    redirect(`/dashboard/supplier?error=${encodeURIComponent(message)}`);
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/supplier");
-  redirect("/dashboard?supplierSuccess=1");
+export async function buyFromSupplierAction() {
+  redirect("/dashboard/supplier");
 }
 
 export async function createOrUpdateListingAction(formData: FormData) {

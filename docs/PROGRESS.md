@@ -14,6 +14,11 @@
 
 ## Recent Changes
 
+- Removed the visible old supplier/buying flow from normal app use and turned that area into a simple catalog browser
+- Replaced the previous large mixed catalog with a compact 12-category, 107-item catalog based only on the user-provided list
+- Updated product/category handling to the new category set and kept unit-aware AUD pricing visible across catalog, dashboard, marketplace, cart, and listings
+- Removed pagination from the catalog browsing area and made search apply only inside the currently selected category there
+- Updated onboarding and shop creation so new shops start with starter stock instead of being sent into the old supplier flow
 - Replaced the placeholder `B` branding with the provided Bazaarly logo asset in the main app brand areas
 - Replaced the old mixed catalog with a single 859-item source-of-truth catalog across 15 exact categories
 - Added a dedicated product `unitLabel` field so prices are stored and shown by basis like `/kg`, `each`, `per punnet`, `per 100g`, `per pair`, and `per set`

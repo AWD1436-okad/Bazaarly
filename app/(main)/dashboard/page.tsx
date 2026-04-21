@@ -64,7 +64,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const params = (await searchParams) ?? {};
   const welcome = params.welcome === "1";
-  const supplierSuccess = params.supplierSuccess === "1";
   const listingSuccess = params.listingSuccess === "1";
   const error = typeof params.error === "string" ? params.error : null;
   const inventoryPage = Math.max(Number(params.inventoryPage ?? "1") || 1, 1);
@@ -272,20 +271,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         <StatusBanner
           tone="success"
           title="Your shop is ready."
-          body="Step 1: Buy your first stock from the supplier so you can create live listings."
+          body="Step 1: Review your starter stock. Step 2: Create your first listing so shoppers can find you."
           action={
             <Link href="/dashboard/supplier" className="ghost-button">
-              Go to Supplier
+              Open Catalog
             </Link>
           }
-        />
-      ) : null}
-
-      {supplierSuccess && !hasListings ? (
-        <StatusBanner
-          tone="info"
-          title="Stock purchased successfully."
-          body="Step 2: Turn your inventory into live marketplace listings so shoppers can find you."
         />
       ) : null}
 
@@ -302,11 +293,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       {!hasInventory ? (
         <StatusBanner
           tone="warning"
-          title="Buy your first stock from the supplier"
-          body="Your shop is set up, but you need inventory before you can list anything for sale."
+          title="Your inventory is empty"
+          body="This shop needs stocked inventory before you can publish more listings."
           action={
             <Link href="/dashboard/supplier" className="ghost-button">
-              Go to Supplier
+              Open Catalog
             </Link>
           }
         />
@@ -346,7 +337,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 </p>
               </div>
               <Link href="/dashboard/supplier" className="ghost-button">
-                Buy from supplier
+                Open catalog
               </Link>
             </div>
             {listingOptions.length > 0 ? (
@@ -379,9 +370,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               </form>
             ) : (
               <div className="empty-state">
-                All of your current stock is already live in listings, or you need more stock first.
-              </div>
-            )}
+                  All of your current stock is already live in listings, or your inventory is empty.
+                </div>
+              )}
           </section>
 
           <section className="card">

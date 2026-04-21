@@ -11,9 +11,9 @@ export const preferredRegion = "syd1";
 
 const DEFAULT_STARTING_BALANCE = 22000;
 const STARTER_STOCK = [
-  { sku: "produce-green-apples", quantity: 8, cost: 320 },
-  { sku: "bakery-white-bread-loaf", quantity: 4, cost: 280 },
-  { sku: "drinks-bottled-water-small", quantity: 6, cost: 90 },
+  { name: "Apples", quantity: 8, cost: 330 },
+  { name: "Bread", quantity: 4, cost: 150 },
+  { name: "Milk", quantity: 6, cost: 110 },
 ] as const;
 
 export async function POST(request: Request) {
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
     for (const starterItem of STARTER_STOCK) {
       const product = await tx.product.findUnique({
-        where: { sku: starterItem.sku },
+        where: { name: starterItem.name },
       });
 
       if (!product) continue;
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         type: NotificationType.SYSTEM,
-        message: `Welcome to Bazaarly. ${shop.name} is ready. Start by buying stock from the supplier.`,
+        message: `Welcome to Bazaarly. ${shop.name} is ready. Review your starter stock and publish your first listing.`,
       },
     });
   });

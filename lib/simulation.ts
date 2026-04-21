@@ -38,9 +38,9 @@ function pickWeighted<T>(options: Array<{ value: T; score: number }>) {
 
 function getTimeBoost(category: ProductCategory, phase: MarketTimePhase) {
   const breakfastOrFresh =
-    category === ProductCategory.PRODUCE ||
-    category === ProductCategory.BAKERY ||
-    category === ProductCategory.DAIRY_AND_EGGS ||
+    category === ProductCategory.FRUIT_AND_VEGETABLES ||
+    category === ProductCategory.BAKERY_AND_GRAINS ||
+    category === ProductCategory.MEAT_DAIRY_AND_PROTEIN ||
     category === ProductCategory.DRINKS;
 
   if (phase === MarketTimePhase.MORNING && breakfastOrFresh) {
@@ -49,8 +49,8 @@ function getTimeBoost(category: ProductCategory, phase: MarketTimePhase) {
 
   if (
     phase === MarketTimePhase.EVENING &&
-    (category === ProductCategory.MEAT_AND_SEAFOOD ||
-      category === ProductCategory.PANTRY ||
+    (category === ProductCategory.MEAT_DAIRY_AND_PROTEIN ||
+      category === ProductCategory.PANTRY_AND_COOKING ||
       category === ProductCategory.SNACKS_AND_SWEETS ||
       category === ProductCategory.DRINKS)
   ) {
@@ -59,9 +59,10 @@ function getTimeBoost(category: ProductCategory, phase: MarketTimePhase) {
 
   if (
     phase === MarketTimePhase.AFTERNOON &&
-    (category === ProductCategory.CLOTHING_AND_FOOTWEAR ||
-      category === ProductCategory.SCHOOL_STATIONERY_AND_TOYS ||
-      category === ProductCategory.TECH_ELECTRONICS_AND_APPLIANCES)
+    (category === ProductCategory.CLOTHING ||
+      category === ProductCategory.SCHOOL_AND_MISC ||
+      category === ProductCategory.HOME_AND_STORAGE ||
+      category === ProductCategory.ELECTRONICS)
   ) {
     return 0.07;
   }

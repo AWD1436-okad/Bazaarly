@@ -33,7 +33,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
           <StatusBanner
             tone="warning"
             title="First steps after setup"
-            body="1. Buy your first stock from the supplier. 2. Create your first listing. 3. Your shop goes live for the whole server."
+            body="1. Review your starter stock. 2. Create your first listing. 3. Your shop goes live for the whole server."
           />
         </div>
 
@@ -48,8 +48,8 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
           <div className="hero-card__panel">
             <strong>Allowed categories</strong>
             <p className="muted">
-              Pick from any of Bazaarly&apos;s 15 catalog categories, from fresh produce to
-              tech, electronics, and appliances.
+              Pick from Bazaarly&apos;s 12 catalog categories, from fruit and vegetables to
+              electronics and school essentials.
             </p>
           </div>
         </div>
@@ -102,9 +102,9 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
 
           <div className="section-row">
             <div>
-              <strong>After this, you’ll land on your seller dashboard.</strong>
+              <strong>After this, you&apos;ll land on your seller dashboard.</strong>
               <p className="muted">
-                We’ll guide you to the supplier first so you never wonder what to do next.
+                We&apos;ll start you with inventory so you can list straight away.
               </p>
             </div>
             <button type="submit">Create my shop</button>
