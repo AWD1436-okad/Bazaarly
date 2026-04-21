@@ -94,3 +94,4 @@ Immediate Milestone 2 follow-up:
 - marketplace and supplier pages now show a deterministic daily featured product
 - the supplier page now supports category filtering from the header area
 - four premium products were added to the catalog in realistic AUD price ranges
+- product cards and the featured section now use clearer product-aware visuals instead of text-like placeholders

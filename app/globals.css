@@ -300,15 +300,14 @@ textarea {
 
 .featured-item-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.9fr);
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
+  grid-template-columns: minmax(240px, 0.95fr) minmax(0, 1.15fr);
+  gap: 1.25rem;
+  padding: 1.15rem;
   border-radius: 28px;
   border: 1px solid rgba(221, 215, 200, 0.95);
   background:
-    radial-gradient(circle at top left, rgba(255, 214, 79, 0.35), transparent 38%),
-    linear-gradient(90deg, rgba(255, 244, 170, 0.72), rgba(255, 255, 255, 0.98) 56%);
+    radial-gradient(circle at top left, rgba(255, 214, 79, 0.2), transparent 38%),
+    linear-gradient(135deg, rgba(255, 248, 208, 0.92), rgba(255, 255, 255, 0.98) 62%);
 }
 
 .featured-item-card h3 {
@@ -320,18 +319,17 @@ textarea {
 .featured-item-card__content {
   display: grid;
   gap: 0.95rem;
-  padding: 1.3rem 1.45rem;
   align-content: center;
 }
 
 .featured-item-card__eyebrow {
   justify-self: start;
-  padding: 0.75rem 1rem;
-  border-radius: 0 0 18px;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
   background: linear-gradient(180deg, #deb534, #c79a0e);
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: white;
 }
@@ -342,7 +340,19 @@ textarea {
   font-size: clamp(1.5rem, 2.4vw, 2rem);
 }
 
-.featured-item-card__category {
+.featured-item-card__meta {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.featured-item-card__category,
+.featured-item-card__cycle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(31, 41, 51, 0.06);
   color: var(--muted);
   font-weight: 600;
 }
@@ -361,77 +371,9 @@ textarea {
   box-shadow: 0 10px 24px rgba(45, 106, 79, 0.18);
 }
 
-.featured-item-card__pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-}
-
-.featured-item-card__dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  background: rgba(31, 41, 51, 0.16);
-}
-
-.featured-item-card__dot--active {
-  background: rgba(31, 41, 51, 0.5);
-}
-
 .featured-item-card__visual {
-  position: relative;
-  min-height: 250px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 10% 45%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.08) 46%, transparent 62%),
-    linear-gradient(135deg, rgba(203, 227, 178, 0.46), rgba(255, 206, 94, 0.7));
-}
-
-.featured-item-card__sun,
-.featured-item-card__produce,
-.featured-item-card__counter {
-  position: absolute;
-}
-
-.featured-item-card__sun {
-  width: 220px;
-  height: 220px;
-  top: 22px;
-  left: 4px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0));
-}
-
-.featured-item-card__produce {
-  border-radius: 999px;
-  background: linear-gradient(180deg, #ff7a3f, #cd2a1f);
-  box-shadow:
-    inset -10px -16px 24px rgba(123, 16, 12, 0.18),
-    inset 8px 10px 14px rgba(255, 190, 164, 0.32);
-}
-
-.featured-item-card__produce--large {
-  right: 88px;
-  bottom: 40px;
-  width: 150px;
-  height: 176px;
-}
-
-.featured-item-card__produce--small {
-  right: 20px;
-  bottom: 34px;
-  width: 118px;
-  height: 146px;
-}
-
-.featured-item-card__counter {
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 62px;
-  border-radius: 26px 0 0 0;
-  background: linear-gradient(180deg, rgba(184, 140, 88, 0.7), rgba(145, 103, 62, 0.92));
+  display: grid;
+  align-items: stretch;
 }
 
 .supplier-hero {
@@ -457,6 +399,10 @@ textarea {
 
 .supplier-filter-row .ghost-button {
   justify-self: start;
+}
+
+.supplier-card__visual {
+  margin-bottom: 1rem;
 }
 
 .filters-grid,
@@ -604,19 +550,97 @@ textarea {
 }
 
 .listing-card__media {
+  flex: 0 0 auto;
+}
+
+.product-visual {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 72px;
-  min-width: 72px;
-  height: 72px;
-  border-radius: 20px;
+  overflow: hidden;
+  border-radius: 26px;
+  border: 1px solid rgba(221, 215, 200, 0.9);
   background:
-    radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.8), transparent 35%),
-    linear-gradient(135deg, rgba(149, 201, 96, 0.88), rgba(255, 216, 105, 0.88));
-  color: rgba(31, 41, 51, 0.72);
+    linear-gradient(155deg, var(--product-visual-surface), #ffffff 72%),
+    radial-gradient(circle at top left, var(--product-visual-glow), transparent 45%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 12px 28px rgba(31, 41, 51, 0.08);
+}
+
+.product-visual--card {
+  width: 96px;
+  min-width: 96px;
+  height: 96px;
+}
+
+.product-visual--featured {
+  min-height: 300px;
+  height: 100%;
+}
+
+.product-visual__backdrop,
+.product-visual__halo,
+.product-visual__shine {
+  position: absolute;
+}
+
+.product-visual__backdrop {
+  inset: auto -10% -34% auto;
+  width: 78%;
+  height: 58%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--product-visual-accent) 62%, white), var(--product-visual-accent));
+  opacity: 0.24;
+}
+
+.product-visual__halo {
+  width: 70%;
+  height: 70%;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--product-visual-glow), transparent 70%);
+  top: 8%;
+  left: 12%;
+}
+
+.product-visual__emoji {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  filter: drop-shadow(0 14px 22px rgba(31, 41, 51, 0.18));
+}
+
+.product-visual--featured .product-visual__emoji {
+  font-size: clamp(4.6rem, 8vw, 7.4rem);
+}
+
+.product-visual__badge {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 22px rgba(31, 41, 51, 0.12);
   font-size: 1.2rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+}
+
+.product-visual--featured .product-visual__badge {
+  width: 58px;
+  height: 58px;
+  font-size: 1.5rem;
+}
+
+.product-visual__shine {
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 38%);
+  pointer-events: none;
 }
 
 .listing-card__price {

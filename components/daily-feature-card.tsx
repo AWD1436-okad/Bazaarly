@@ -1,5 +1,6 @@
 import { type CatalogProduct, getCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
+import { ProductVisual } from "@/components/product-visual";
 
 type DailyFeatureCardProps = {
   product: CatalogProduct;
@@ -12,14 +13,22 @@ export function DailyFeatureCard({
   product,
   href,
   ctaLabel,
-  eyebrow = "NEW",
+  eyebrow = "Today's featured item",
 }: DailyFeatureCardProps) {
   return (
     <section className="featured-item-card">
+      <div className="featured-item-card__visual">
+        <ProductVisual
+          name={product.name}
+          category={product.category}
+          tone="featured"
+        />
+      </div>
       <div className="featured-item-card__content">
         <div className="featured-item-card__eyebrow">{eyebrow}</div>
         <div>
           <h3>{product.name}</h3>
+          <p>{product.description}</p>
           <strong className="featured-item-card__price">
             {formatPriceWithUnit(product.basePrice, product.unitLabel)}
           </strong>
@@ -27,21 +36,12 @@ export function DailyFeatureCard({
         <a href={href} className="featured-item-card__cta">
           {ctaLabel}
         </a>
-        <div className="featured-item-card__pager" aria-hidden="true">
-          <span className="featured-item-card__dot featured-item-card__dot--active" />
-          <span className="featured-item-card__dot" />
-          <span className="featured-item-card__dot" />
-          <span className="featured-item-card__dot" />
+        <div className="featured-item-card__meta">
+          <span className="featured-item-card__category">
+            {getCategoryLabel(product.category)}
+          </span>
+          <span className="featured-item-card__cycle">Changes daily</span>
         </div>
-        <span className="featured-item-card__category">
-          {getCategoryLabel(product.category)}
-        </span>
-      </div>
-      <div className="featured-item-card__visual" aria-hidden="true">
-        <span className="featured-item-card__sun" />
-        <span className="featured-item-card__produce featured-item-card__produce--large" />
-        <span className="featured-item-card__produce featured-item-card__produce--small" />
-        <span className="featured-item-card__counter" />
       </div>
     </section>
   );

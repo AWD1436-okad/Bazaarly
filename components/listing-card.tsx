@@ -1,7 +1,9 @@
 import type { ProductCategory } from "@prisma/client";
 import Link from "next/link";
+
 import { getCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
+import { ProductVisual } from "@/components/product-visual";
 
 type ListingCardProps = {
   listing: {
@@ -27,11 +29,11 @@ export function ListingCard({ listing }: ListingCardProps) {
     <article className="listing-card">
       <div className="listing-card__summary">
         <div className="listing-card__media" aria-hidden="true">
-          {listing.product.name
-            .split(" ")
-            .slice(0, 2)
-            .map((part) => part[0])
-            .join("")}
+          <ProductVisual
+            name={listing.product.name}
+            category={listing.product.category}
+            tone="card"
+          />
         </div>
 
         <div className="listing-card__copy">

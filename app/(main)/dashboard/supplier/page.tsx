@@ -1,6 +1,7 @@
 import { ProductCategory } from "@prisma/client";
 
 import { DailyFeatureCard } from "@/components/daily-feature-card";
+import { ProductVisual } from "@/components/product-visual";
 import { CATEGORY_OPTIONS, getCategoryLabel, getDailyFeaturedProduct } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { formatPriceWithUnit } from "@/lib/money";
@@ -137,6 +138,12 @@ export default async function SupplierPage({ searchParams }: SupplierProps) {
       <section className="supplier-grid">
         {visibleProducts.map((item) => (
           <article key={item.id} className="card">
+            <ProductVisual
+              name={item.product.name}
+              category={item.product.category}
+              tone="card"
+              className="supplier-card__visual"
+            />
             <div className="section-row">
               <div>
                 <span className="category-chip">{getCategoryLabel(item.product.category)}</span>

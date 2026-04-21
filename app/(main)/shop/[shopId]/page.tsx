@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { ProductVisual } from "@/components/product-visual";
 import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { formatPriceWithUnit } from "@/lib/money";
@@ -61,6 +62,11 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       <section className="listing-grid">
         {shop.listings.map((listing) => (
           <article key={listing.id} className="listing-card">
+            <ProductVisual
+              name={listing.product.name}
+              category={listing.product.category}
+              tone="card"
+            />
             <div className="listing-card__header">
               <span className="category-chip">{getCategoryLabel(listing.product.category)}</span>
               <span className={`stock-chip ${listing.quantity <= 0 ? "stock-chip--soldout" : ""}`}>

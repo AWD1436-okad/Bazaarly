@@ -91,3 +91,4 @@ Small leftover items only:
 - added a deterministic daily featured item panel on marketplace and supplier pages using the existing catalog only
 - added a category selector to the supplier header for quick category browsing
 - added a few premium catalog items in realistic AUD price bands without changing the stack or adding infrastructure
+- replaced text-style product placeholders with shared product-aware visuals on cards and in the featured area
