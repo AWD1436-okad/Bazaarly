@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
-type CatalogPageProps = {
+type SupplierPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
@@ -19,7 +19,7 @@ function parseCategoryFilter(value: string | string[] | undefined) {
   return CATEGORY_OPTIONS.find((category) => category.value === value)?.value ?? null;
 }
 
-function buildCatalogHref(
+function buildSupplierHref(
   category: ProductCategory | null,
   searchQuery: string,
 ) {
@@ -38,7 +38,7 @@ function buildCatalogHref(
   return query ? `/dashboard/supplier?${query}` : "/dashboard/supplier";
 }
 
-export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+export default async function SupplierPage({ searchParams }: SupplierPageProps) {
   await requireUser();
   const params = (await searchParams) ?? {};
   const selectedCategory = parseCategoryFilter(params.category);
@@ -71,13 +71,13 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   return (
     <div className="page-grid">
       <div className="catalog-layout">
-        <aside className="category-sidebar card">
+        <aside className="category-sidebar">
           <div className="stack-sm">
             <span className="tag">Categories</span>
             <CategoryFilterList
               categories={CATEGORY_OPTIONS}
               selectedCategory={selectedCategory}
-              buildHref={(category) => buildCatalogHref(category as ProductCategory | null, searchQuery)}
+              buildHref={(category) => buildSupplierHref(category as ProductCategory | null, searchQuery)}
             />
           </div>
         </aside>
@@ -86,8 +86,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           <section className="hero-card supplier-hero">
             <div className="stack">
               <div>
-                <span className="tag">Catalog</span>
-                <h1>Browse the Bazaarly catalog</h1>
+                <span className="tag">Supplier</span>
+                <h1>Browse the Bazaarly supplier range</h1>
                 <p>
                   Explore the full product range by category, check unit pricing clearly,
                   and use search inside the category you have selected.
@@ -107,7 +107,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     placeholder={
                       selectedCategory
                         ? `Search inside ${getCategoryLabel(selectedCategory)}`
-                        : "Search the full catalog"
+                        : "Search the full supplier range"
                     }
                   />
                 </label>
@@ -124,12 +124,12 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
               product={featuredProduct}
               href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
               ctaLabel="View in marketplace"
-              eyebrow="Today's catalog feature"
+              eyebrow="Today's supplier feature"
             />
           </section>
 
           <section className="page-header">
-            <h2>{selectedCategory ? getCategoryLabel(selectedCategory) : "All catalog items"}</h2>
+            <h2>{selectedCategory ? getCategoryLabel(selectedCategory) : "All supplier items"}</h2>
             <p>
               {products.length} item{products.length === 1 ? "" : "s"} shown
               {selectedCategory ? ` in ${getCategoryLabel(selectedCategory)}` : ""}.
@@ -139,7 +139,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
           {products.length === 0 ? (
             <div className="empty-state">
-              No catalog items match that search inside the current category.
+              No supplier items match that search inside the current category.
             </div>
           ) : (
             <section className="supplier-grid">

@@ -48,7 +48,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
           <div className="hero-card__panel">
             <strong>Allowed categories</strong>
             <p className="muted">
-              Pick from Bazaarly&apos;s 12 catalog categories, from fruit and vegetables to
+              Pick from Bazaarly&apos;s 12 supplier categories, from fruit and vegetables to
               electronics and school essentials.
             </p>
           </div>

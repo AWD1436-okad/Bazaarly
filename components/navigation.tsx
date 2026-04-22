@@ -59,7 +59,7 @@ export function Navigation({
           Dashboard
         </Link>
         <Link href="/dashboard/supplier" className="topbar-link">
-          Catalog
+          Supplier
         </Link>
         <Link href="/orders" className="topbar-link">
           Orders

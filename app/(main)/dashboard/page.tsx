@@ -274,7 +274,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           body="Step 1: Review your starter stock. Step 2: Create your first listing so shoppers can find you."
           action={
             <Link href="/dashboard/supplier" className="ghost-button">
-              Open Catalog
+              Open Supplier
             </Link>
           }
         />
@@ -297,7 +297,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           body="This shop needs stocked inventory before you can publish more listings."
           action={
             <Link href="/dashboard/supplier" className="ghost-button">
-              Open Catalog
+              Open Supplier
             </Link>
           }
         />
@@ -337,7 +337,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 </p>
               </div>
               <Link href="/dashboard/supplier" className="ghost-button">
-                Open catalog
+                Open supplier
               </Link>
             </div>
             {listingOptions.length > 0 ? (
