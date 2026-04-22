@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
 const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
-const BOT_MIN_PURCHASE_INTERVAL_MS = 55 * 1000;
+const BOT_MIN_PURCHASE_INTERVAL_MS = 30 * 1000;
 const BOT_INTERVAL_VARIANCE_MS = 60 * 1000;
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
 
@@ -56,6 +56,55 @@ function hashString(value: string) {
 
 function getBotIntervalMs(botId: string) {
   return BOT_MIN_PURCHASE_INTERVAL_MS + (hashString(botId) % BOT_INTERVAL_VARIANCE_MS);
+}
+
+function getBotMarketTempoFactor(
+  bot: {
+    budget: number;
+    preferenceCategory: ProductCategory;
+    activityLevel: number;
+  },
+  listings: Array<{
+    price: number;
+    quantity: number;
+    product: {
+      category: ProductCategory;
+    };
+  }>,
+) {
+  const affordable = listings.filter((listing) => listing.price <= bot.budget);
+
+  if (affordable.length === 0) {
+    return 1.12;
+  }
+
+  const preferredListings = affordable.filter(
+    (listing) =>
+      getCategoryAffinityScore(bot.preferenceCategory, listing.product.category) >= 1.05,
+  );
+
+  const cheapestRatio = Math.min(
+    ...affordable.map((listing) => listing.price / Math.max(bot.budget, 100)),
+  );
+  const bestCategoryAffinity = Math.max(
+    ...affordable.map((listing) =>
+      getCategoryAffinityScore(bot.preferenceCategory, listing.product.category),
+    ),
+  );
+  const averageVisibleStock =
+    affordable.reduce((sum, listing) => sum + Math.min(listing.quantity, 12), 0) / affordable.length;
+
+  const affordabilityBoost = clamp(0.55 - cheapestRatio, 0, 0.3);
+  const preferenceBoost = clamp((bestCategoryAffinity - 1) * 0.32, 0, 0.14);
+  const preferenceDepthBoost = clamp(preferredListings.length / 18, 0, 0.12);
+  const stockBoost = clamp((averageVisibleStock - 2) / 40, 0, 0.08);
+  const activityBoost = clamp((bot.activityLevel - 50) / 250, -0.04, 0.12);
+
+  return clamp(
+    1 - affordabilityBoost - preferenceBoost - preferenceDepthBoost - stockBoost - activityBoost,
+    0.68,
+    1.12,
+  );
 }
 
 function getBotRecencyScore(lastPurchasedAt: Date | null, now: Date, intervalMs: number) {
@@ -261,6 +310,23 @@ export async function runMarketSimulation(force = false) {
     where: { active: true },
   });
 
+  const marketTempoListings = await prisma.listing.findMany({
+    where: {
+      active: true,
+      quantity: { gt: 0 },
+      shop: { status: "ACTIVE" },
+    },
+    select: {
+      price: true,
+      quantity: true,
+      product: {
+        select: {
+          category: true,
+        },
+      },
+    },
+  });
+
   const recentBotSales = await prisma.order.groupBy({
     by: ["shopId"],
     where: {
@@ -280,7 +346,13 @@ export async function runMarketSimulation(force = false) {
 
   const eligibleBots = bots
     .map((bot) => {
-      const intervalMs = getBotIntervalMs(bot.id);
+      const baseIntervalMs = getBotIntervalMs(bot.id);
+      const marketTempoFactor = getBotMarketTempoFactor(bot, marketTempoListings);
+      const intervalMs = clamp(
+        Math.round(baseIntervalMs * marketTempoFactor),
+        BOT_MIN_PURCHASE_INTERVAL_MS,
+        BOT_MIN_PURCHASE_INTERVAL_MS + BOT_INTERVAL_VARIANCE_MS,
+      );
       const recencyScore = getBotRecencyScore(bot.lastPurchasedAt, now, intervalMs);
       const activityScore = bot.activityLevel / 100;
       const shouldAct = recencyScore >= 1 || Math.random() < recencyScore * activityScore;
@@ -288,6 +360,7 @@ export async function runMarketSimulation(force = false) {
       return {
         bot,
         intervalMs,
+        marketTempoFactor,
         recencyScore,
         shouldAct,
       };
