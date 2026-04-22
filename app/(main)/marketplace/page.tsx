@@ -3,6 +3,7 @@ import { DailyFeatureCard } from "@/components/daily-feature-card";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
+import { requireUser } from "@/lib/auth";
 import { CATEGORY_OPTIONS, getDailyFeaturedProduct } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
 
@@ -32,8 +33,16 @@ function buildMarketplaceHref(
 }
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
+  const user = await requireUser();
   const params = (await searchParams) ?? {};
   const featuredProduct = getDailyFeaturedProduct();
+  const hasActiveMarketplaceSearch =
+    (typeof params.q === "string" && params.q.trim().length > 0) ||
+    (typeof params.category === "string" && params.category !== "ALL") ||
+    (typeof params.stock === "string" && params.stock.length > 0) ||
+    (typeof params.minRating === "string" && params.minRating.length > 0) ||
+    (typeof params.minPrice === "string" && params.minPrice.length > 0) ||
+    (typeof params.maxPrice === "string" && params.maxPrice.length > 0);
   const selectedCategory =
     typeof params.category === "string" && params.category !== "ALL" ? params.category : "ALL";
   const selectedCategoryLabel =
@@ -47,30 +56,40 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     minPrice: typeof params.minPrice === "string" ? params.minPrice : undefined,
     maxPrice: typeof params.maxPrice === "string" ? params.maxPrice : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
+    excludeOwnerId: user.id,
   });
 
   return (
-    <div className="page-grid marketplace-page">
+    <div
+      className={[
+        "page-grid marketplace-page",
+        hasActiveMarketplaceSearch ? "marketplace-page--focused" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
-      <section className="marketplace-showcase">
-        <div className="marketplace-showcase__header">
-          <h1>Daily Featured Item</h1>
-        </div>
+      {!hasActiveMarketplaceSearch ? (
+        <section className="marketplace-showcase">
+          <div className="marketplace-showcase__header">
+            <h1>Daily Featured Item</h1>
+          </div>
 
-        {marketplace.activeEvent ? (
-          <StatusBanner
-            tone="warning"
-            title={marketplace.activeEvent.name}
-            body={marketplace.activeEvent.description}
+          {marketplace.activeEvent ? (
+            <StatusBanner
+              tone="warning"
+              title={marketplace.activeEvent.name}
+              body={marketplace.activeEvent.description}
+            />
+          ) : null}
+
+          <DailyFeatureCard
+            product={featuredProduct}
+            href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
+            ctaLabel="See Offer"
           />
-        ) : null}
-
-        <DailyFeatureCard
-          product={featuredProduct}
-          href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
-          ctaLabel="See Offer"
-        />
-      </section>
+        </section>
+      ) : null}
 
       <section className="card marketplace-filters-card">
         <div className="marketplace-filter-layout">
@@ -120,7 +139,12 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
       <section className="page-header marketplace-results-header">
         <h2>{selectedCategoryLabel}</h2>
-        <p>{marketplace.listings.length} matching listings</p>
+        <p>
+          {marketplace.listings.length} matching listings
+          {typeof params.q === "string" && params.q.trim().length > 0
+            ? ` for "${params.q.trim()}"`
+            : ""}
+        </p>
       </section>
 
       {marketplace.listings.length === 0 ? (
@@ -137,31 +161,33 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         </>
       )}
 
-      <section className="marketplace-insights">
-        <div className="hero-card__panel">
-          <strong>Trending products</strong>
-          <div className="stack-sm">
-            {marketplace.trendingProducts.map((item) => (
-              <div key={item.id} className="section-row">
-                <span>{item.product.name}</span>
-                <strong>{item.trendLabel}</strong>
-              </div>
-            ))}
+      {!hasActiveMarketplaceSearch ? (
+        <section className="marketplace-insights">
+          <div className="hero-card__panel">
+            <strong>Trending products</strong>
+            <div className="stack-sm">
+              {marketplace.trendingProducts.map((item) => (
+                <div key={item.id} className="section-row">
+                  <span>{item.product.name}</span>
+                  <strong>{item.trendLabel}</strong>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="hero-card__panel">
-          <strong>Top shops</strong>
-          <div className="stack-sm">
-            {marketplace.topShops.map((shop) => (
-              <div key={shop.id} className="section-row">
-                <span>{shop.name}</span>
-                <strong>{shop.rating.toFixed(1)}</strong>
-              </div>
-            ))}
+          <div className="hero-card__panel">
+            <strong>Top shops</strong>
+            <div className="stack-sm">
+              {marketplace.topShops.map((shop) => (
+                <div key={shop.id} className="section-row">
+                  <span>{shop.name}</span>
+                  <strong>{shop.rating.toFixed(1)}</strong>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }

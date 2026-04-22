@@ -226,6 +226,48 @@ export async function POST(request: Request) {
           },
         });
 
+        const buyerInventory = await tx.inventory.findUnique({
+          where: {
+            userId_productId: {
+              userId: buyer.id,
+              productId: item.listing.productId,
+            },
+          },
+          select: {
+            id: true,
+            quantity: true,
+            averageUnitCost: true,
+          },
+        });
+
+        const nextBuyerQuantity = (buyerInventory?.quantity ?? 0) + item.quantity;
+        const buyerCostTotal =
+          (buyerInventory?.averageUnitCost ?? 0) * (buyerInventory?.quantity ?? 0) +
+          item.unitPrice * item.quantity;
+        const nextBuyerAverageCost =
+          nextBuyerQuantity > 0 ? Math.round(buyerCostTotal / nextBuyerQuantity) : item.unitPrice;
+
+        if (buyerInventory) {
+          await tx.inventory.update({
+            where: { id: buyerInventory.id },
+            data: {
+              quantity: {
+                increment: item.quantity,
+              },
+              averageUnitCost: nextBuyerAverageCost,
+            },
+          });
+        } else {
+          await tx.inventory.create({
+            data: {
+              userId: buyer.id,
+              productId: item.listing.productId,
+              quantity: item.quantity,
+              averageUnitCost: nextBuyerAverageCost,
+            },
+          });
+        }
+
         await tx.orderLineItem.create({
           data: {
             orderId: order.id,
@@ -293,6 +335,7 @@ export async function POST(request: Request) {
   revalidatePath("/cart");
   revalidatePath("/orders");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/supplier");
   revalidatePath("/notifications");
   return NextResponse.redirect(new URL("/orders?checkout=1", request.url), 303);
 }

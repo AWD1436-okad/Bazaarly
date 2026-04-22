@@ -20,6 +20,9 @@
 - Added sold-out listing deletion with long-press, right-click, or overflow access plus confirmation so sellers can remove exhausted listings safely
 - Removed the old placeholder-style product visual component and aligned marketplace and shop listings to the same compact card layout
 - Tightened listing and supplier spacing so more products fit on screen with less scrolling
+- Fixed checkout so completed purchases from other shops now credit the buyer's inventory immediately using weighted average cost updates
+- Excluded the signed-in user's own shop listings from marketplace browsing, search results, and the main shopping feed
+- Reduced post-search scrolling by collapsing the large featured/insights area whenever marketplace search or filters are active
 - Fixed the known cart and checkout race conditions so only one active cart is allowed per user and checkout now locks and revalidates the active cart before processing
 - Fixed order-total drift by making checkout use the stored cart snapshot price consistently and reject stale listing-price changes until the cart is refreshed
 - Fixed zero-stock cart update behavior so cart items are removed instead of being left behind with invalid quantities

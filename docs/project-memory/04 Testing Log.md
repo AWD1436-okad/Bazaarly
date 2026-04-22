@@ -142,6 +142,25 @@ Results:
 - `lint`: passed
 - `typecheck`: passed
 
+## Marketplace Inventory And Search Cleanup Pass - 2026-04-22
+
+Changes added in this pass:
+
+- fixed checkout so successful purchases now credit buyer inventory immediately instead of only decrementing seller stock
+- excluded the signed-in user's own listings from marketplace browse and search queries
+- reduced search scrolling by hiding the large featured/insights sections whenever marketplace search or filters are active
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- direct DB smoke-test attempt from this workstation was blocked by a local TLS credential error while opening the Neon connection
+
 ## Milestone 2 - Auth Cooldown Pass - 2026-04-19
 
 Changes added in this pass:

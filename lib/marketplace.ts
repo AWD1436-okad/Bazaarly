@@ -12,6 +12,7 @@ export type MarketplaceParams = {
   minPrice?: string;
   maxPrice?: string;
   page?: string;
+  excludeOwnerId?: string;
 };
 
 const SHOP_LISTINGS_PAGE_SIZE = 12;
@@ -191,6 +192,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     active: true,
     shop: {
       status: ShopStatus.ACTIVE,
+      ...(params.excludeOwnerId ? { ownerId: { not: params.excludeOwnerId } } : {}),
       ...(minRating ? { rating: { gte: minRating } } : {}),
     },
     ...(inStockOnly ? { quantity: { gt: 0 } } : {}),

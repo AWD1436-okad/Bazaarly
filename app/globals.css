@@ -275,6 +275,10 @@ textarea {
   gap: 1.15rem;
 }
 
+.marketplace-page--focused {
+  gap: 0.8rem;
+}
+
 .page-header h1,
 .page-header h2,
 .page-header p {
@@ -547,7 +551,7 @@ textarea {
 .marketplace-results-header {
   display: grid;
   gap: 0.25rem;
-  padding: 0.35rem 0.4rem 0;
+  padding: 0 0.4rem 0;
   border: 0;
   background: transparent;
   box-shadow: none;
