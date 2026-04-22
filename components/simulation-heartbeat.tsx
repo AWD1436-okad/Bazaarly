@@ -8,13 +8,26 @@ type SimulationHeartbeatProps = {
 };
 
 export function SimulationHeartbeat({
-  intervalMs = 180000,
-  initialDelayMs = 10000,
+  intervalMs = 70000,
+  initialDelayMs = 12000,
 }: SimulationHeartbeatProps) {
   useEffect(() => {
     let active = true;
     let timeout: number | undefined;
     const cooldownKey = "bazaarly:last-simulation-heartbeat";
+    const jitterKey = "bazaarly:simulation-heartbeat-jitter";
+
+    const getJitterMs = () => {
+      const existing = Number(window.localStorage.getItem(jitterKey) ?? "0");
+
+      if (existing > 0) {
+        return existing;
+      }
+
+      const next = Math.floor(Math.random() * 18000);
+      window.localStorage.setItem(jitterKey, String(next));
+      return next;
+    };
 
     const tick = async () => {
       if (!active) return;
@@ -23,8 +36,9 @@ export function SimulationHeartbeat({
 
       const now = Date.now();
       const lastRun = Number(window.localStorage.getItem(cooldownKey) ?? "0");
+      const jitterMs = getJitterMs();
 
-      if (now - lastRun < intervalMs - 5000) {
+      if (now - lastRun < intervalMs + jitterMs - 5000) {
         return;
       }
 
@@ -41,7 +55,7 @@ export function SimulationHeartbeat({
 
     timeout = window.setTimeout(() => {
       void tick();
-    }, initialDelayMs);
+    }, initialDelayMs + Math.floor(Math.random() * 6000));
     const interval = window.setInterval(() => {
       void tick();
     }, intervalMs);

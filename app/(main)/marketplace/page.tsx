@@ -51,7 +51,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
   return (
     <div className="page-grid marketplace-page">
-      <SimulationHeartbeat intervalMs={180000} initialDelayMs={15000} />
+      <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       <section className="marketplace-showcase">
         <div className="marketplace-showcase__header">
           <h1>Daily Featured Item</h1>

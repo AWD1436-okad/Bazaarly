@@ -8,7 +8,32 @@ import {
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
-const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 45);
+const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
+const BOT_MIN_PURCHASE_INTERVAL_MS = 55 * 1000;
+const BOT_INTERVAL_VARIANCE_MS = 60 * 1000;
+
+function hashString(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function getBotIntervalMs(botId: string) {
+  return BOT_MIN_PURCHASE_INTERVAL_MS + (hashString(botId) % BOT_INTERVAL_VARIANCE_MS);
+}
+
+function getBotRecencyScore(lastPurchasedAt: Date | null, now: Date, intervalMs: number) {
+  if (!lastPurchasedAt) {
+    return 1.25;
+  }
+
+  const elapsed = now.getTime() - lastPurchasedAt.getTime();
+  return clamp(elapsed / intervalMs, 0, 1.5);
+}
 
 function getCurrentPhase(date: Date) {
   const hour = date.getHours();
@@ -192,11 +217,35 @@ export async function runMarketSimulation(force = false) {
     where: { active: true },
   });
 
+  const eligibleBots = bots
+    .map((bot) => {
+      const intervalMs = getBotIntervalMs(bot.id);
+      const recencyScore = getBotRecencyScore(bot.lastPurchasedAt, now, intervalMs);
+      const activityScore = bot.activityLevel / 100;
+      const shouldAct = recencyScore >= 1 || Math.random() < recencyScore * activityScore;
+
+      return {
+        bot,
+        intervalMs,
+        recencyScore,
+        shouldAct,
+      };
+    })
+    .filter((entry) => entry.shouldAct)
+    .sort((left, right) => {
+      if (right.recencyScore !== left.recencyScore) {
+        return right.recencyScore - left.recencyScore;
+      }
+
+      return left.bot.displayName.localeCompare(right.bot.displayName);
+    });
+
+  const maxPurchasesThisTick =
+    eligibleBots.length === 0 ? 0 : Math.min(2, Math.max(1, Math.round(Math.random() * 2)));
+
   let botPurchases = 0;
 
-  for (const bot of bots) {
-    const shouldAct = Math.random() < bot.activityLevel / 100;
-    if (!shouldAct) continue;
+  for (const { bot } of eligibleBots.slice(0, maxPurchasesThisTick)) {
 
     const candidates = await prisma.listing.findMany({
       where: {
@@ -231,6 +280,8 @@ export async function runMarketSimulation(force = false) {
     const quantity =
       desiredQuantity > 1 ? clamp(Math.ceil(Math.random() * desiredQuantity), 1, desiredQuantity) : 1;
     const totalPrice = selection.price * quantity;
+
+    let completedPurchase = false;
 
     await prisma.$transaction(async (tx) => {
       const freshListing = await tx.listing.findUnique({
@@ -372,9 +423,13 @@ export async function runMarketSimulation(force = false) {
               : bot.loyaltyShopId,
         },
       });
+
+      completedPurchase = true;
     });
 
-    botPurchases += 1;
+    if (completedPurchase) {
+      botPurchases += 1;
+    }
   }
 
   await prisma.worldState.update({

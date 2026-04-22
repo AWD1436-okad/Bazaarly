@@ -1,6 +1,7 @@
 import { ProductCategory } from "@prisma/client";
 
 import { CategoryFilterList } from "@/components/category-filter-list";
+import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
 import { CATEGORY_OPTIONS, getCategoryLabel } from "@/lib/catalog";
@@ -29,15 +30,11 @@ function parseCategoryFilter(value: string | string[] | undefined) {
   return CATEGORY_OPTIONS.find((category) => category.value === value)?.value ?? null;
 }
 
-function buildSupplierHref(category: ProductCategory | null, searchQuery: string) {
+function buildSupplierHref(category: ProductCategory | null) {
   const params = new URLSearchParams();
 
   if (category) {
     params.set("category", category);
-  }
-
-  if (searchQuery) {
-    params.set("q", searchQuery);
   }
 
   const query = params.toString();
@@ -171,6 +168,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
 
   return (
     <div className="page-grid">
+      <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       {purchaseSuccess ? (
         <StatusBanner
           tone="success"
@@ -194,40 +192,33 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
             <CategoryFilterList
               categories={CATEGORY_OPTIONS}
               selectedCategory={selectedCategory}
-              buildHref={(category) =>
-                buildSupplierHref(category as ProductCategory | null, searchQuery)
-              }
+              buildHref={(category) => buildSupplierHref(category as ProductCategory | null)}
             />
           </div>
         </aside>
 
         <div className="stack">
-          <section className="card supplier-toolbar">
-            <form action="/dashboard/supplier" className="supplier-filter-row">
-              {selectedCategory ? (
-                <input type="hidden" name="category" value={selectedCategory} />
-              ) : null}
-              <label>
-                Search
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={searchQuery}
-                  placeholder={
-                    selectedCategory
-                      ? `Search inside ${getCategoryLabel(selectedCategory)}`
-                      : "Search supplier products"
-                  }
-                />
-              </label>
-              <button type="submit">Search</button>
-              {selectedCategory || searchQuery ? (
-                <a href="/dashboard/supplier" className="ghost-button">
-                  Clear
-                </a>
-              ) : null}
-            </form>
-          </section>
+          {!selectedCategory ? (
+            <section className="card supplier-toolbar">
+              <form action="/dashboard/supplier" className="supplier-filter-row">
+                <label>
+                  Search
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={searchQuery}
+                    placeholder="Search supplier products"
+                  />
+                </label>
+                <button type="submit">Search</button>
+                {searchQuery ? (
+                  <a href="/dashboard/supplier" className="ghost-button">
+                    Clear
+                  </a>
+                ) : null}
+              </form>
+            </section>
+          ) : null}
 
           <section className="page-header">
             <h2>{selectedCategory ? getCategoryLabel(selectedCategory) : "All supplier items"}</h2>

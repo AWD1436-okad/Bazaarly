@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
@@ -267,6 +268,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   return (
     <div className="page-grid">
+      <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       {welcome ? (
         <StatusBanner
           tone="success"
