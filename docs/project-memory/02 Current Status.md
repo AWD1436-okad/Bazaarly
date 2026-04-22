@@ -82,6 +82,13 @@ Completed Milestone 2 change so far:
 - login now uses a small Prisma-backed cooldown guard keyed to request fingerprint plus username/email input after repeated failed attempts
 - register now uses a small Prisma-backed cooldown guard keyed to the request fingerprint to slow burst sign-up attempts
 - no external rate-limiting service or paid infrastructure was introduced
+- cart creation is now protected by a database-level single-active-cart rule plus transactional get-or-create handling
+- checkout now locks and revalidates the active cart, listings, and seller inventory before completing payment
+- cart totals and order line items now stay aligned by using the stored cart price snapshot consistently and rejecting stale price changes
+- bot purchases now re-check wallet balance and seller inventory allocation before creating an order
+- `Bacon` has been removed from the live catalog definition and replaced with `Lamb` in Meat, Dairy & Protein with a base price of AUD $11.00 per kg
+- Lamb now participates in the same market-state and supplier-price logic as the rest of the meat section because it is seeded through the normal product and market-state pipeline
+- the live database has been migrated and reseeded for this pass, and the catalog audit now reports 107 expected / 107 actual with old products fully removed
 
 Immediate Milestone 2 follow-up:
 - apply the new session migration where the app database is managed

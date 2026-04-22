@@ -78,6 +78,32 @@ Results:
 - `lint`: passed
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
+- `npm run db:deploy`: passed against the production Neon database after loading the production env file
+- `npm run db:seed`: passed against the production Neon database and removed 1 stale product while restoring the expected 107-item compact catalog
+
+## Bug-Fix And Catalog Swap Pass - 2026-04-22
+
+Changes added in this pass:
+
+- fixed the known duplicate-checkout risk by locking and revalidating the active cart inside checkout
+- fixed order-total drift by making checkout use cart price snapshots consistently and reject stale listing-price changes
+- fixed zero-stock cart update behavior so invalid cart rows are removed instead of being left behind
+- added a database migration that collapses duplicate active carts and enforces one active cart per user
+- hardened bot purchases with fresh wallet-balance and seller-inventory checks inside the transaction
+- removed `Bacon` from the compact catalog and replaced it with `Lamb`
+- added Lamb to seeded inventory/listing data so it appears naturally after reseed
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+- `build`: still blocked by the same local `.next` file-lock environment issue
 
 ## Milestone 2 - Auth Cooldown Pass - 2026-04-19
 

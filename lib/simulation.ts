@@ -296,15 +296,41 @@ export async function runMarketSimulation(force = false) {
         return;
       }
 
+      const botBuyer = await tx.user.findUnique({
+        where: { id: botWallet.id },
+        select: {
+          id: true,
+          balance: true,
+        },
+      });
+
       const seller = await tx.user.findUnique({
         where: { id: freshListing.shop.ownerId },
       });
 
-      if (!seller) return;
+      if (!botBuyer || botBuyer.balance < totalPrice || !seller) return;
+
+      const inventory = await tx.inventory.findUnique({
+        where: {
+          userId_productId: {
+            userId: seller.id,
+            productId: freshListing.productId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+          allocatedQuantity: true,
+        },
+      });
+
+      if (!inventory || inventory.quantity < quantity || inventory.allocatedQuantity < quantity) {
+        return;
+      }
 
       const order = await tx.order.create({
         data: {
-          buyerId: botWallet.id,
+          buyerId: botBuyer.id,
           sellerId: seller.id,
           shopId: freshListing.shopId,
           totalPrice,
@@ -332,7 +358,7 @@ export async function runMarketSimulation(force = false) {
       });
 
       await tx.user.update({
-        where: { id: botWallet.id },
+        where: { id: botBuyer.id },
         data: {
           balance: {
             decrement: totalPrice,
@@ -367,28 +393,17 @@ export async function runMarketSimulation(force = false) {
         },
       });
 
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          userId_productId: {
-            userId: seller.id,
-            productId: freshListing.productId,
+      await tx.inventory.update({
+        where: { id: inventory.id },
+        data: {
+          quantity: {
+            decrement: quantity,
+          },
+          allocatedQuantity: {
+            decrement: quantity,
           },
         },
       });
-
-      if (inventory) {
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: {
-            quantity: {
-              decrement: quantity,
-            },
-            allocatedQuantity: {
-              decrement: quantity,
-            },
-          },
-        });
-      }
 
       await tx.notification.create({
         data: {

@@ -87,7 +87,7 @@ export const CATALOG_SOURCE: CatalogSourceSection[] = [
       { name: "Yogurt", basePrice: dollars(4.8), unitLabel: "per tub" },
       { name: "Butter", basePrice: dollars(4.9), unitLabel: "per pack" },
       { name: "Sausages", basePrice: dollars(8.2), unitLabel: "per kg" },
-      { name: "Bacon", basePrice: dollars(6.9), unitLabel: "per pack" },
+      { name: "Lamb", basePrice: dollars(11), unitLabel: "per kg" },
       { name: "Tofu", basePrice: dollars(4.2), unitLabel: "per pack" },
     ],
   },

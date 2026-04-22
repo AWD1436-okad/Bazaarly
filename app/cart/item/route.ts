@@ -38,19 +38,30 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/cart", request.url), 303);
   }
 
-  if (quantity <= 0) {
+  const shouldRemove =
+    quantity <= 0 ||
+    !cartItem.listing.active ||
+    cartItem.listing.quantity <= 0;
+
+  if (shouldRemove) {
     await prisma.cartItem.delete({
       where: { id: cartItemId },
     });
   } else {
     const safeQuantity = clamp(quantity, 1, cartItem.listing.quantity);
-    await prisma.cartItem.update({
-      where: { id: cartItemId },
-      data: {
-        quantity: safeQuantity,
-        unitPriceSnapshot: cartItem.listing.price,
-      },
-    });
+    if (safeQuantity <= 0) {
+      await prisma.cartItem.delete({
+        where: { id: cartItemId },
+      });
+    } else {
+      await prisma.cartItem.update({
+        where: { id: cartItemId },
+        data: {
+          quantity: safeQuantity,
+          unitPriceSnapshot: cartItem.listing.price,
+        },
+      });
+    }
   }
 
   revalidatePath("/cart");

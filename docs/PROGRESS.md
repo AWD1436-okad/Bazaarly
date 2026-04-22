@@ -14,6 +14,12 @@
 
 ## Recent Changes
 
+- Fixed the known cart and checkout race conditions so only one active cart is allowed per user and checkout now locks and revalidates the active cart before processing
+- Fixed order-total drift by making checkout use the stored cart snapshot price consistently and reject stale listing-price changes until the cart is refreshed
+- Fixed zero-stock cart update behavior so cart items are removed instead of being left behind with invalid quantities
+- Hardened bot purchases so they only complete when wallet balance, listing stock, and seller inventory allocation all still validate inside the transaction
+- Removed `Bacon` from the catalog and replaced it with `Lamb` at a base price of AUD $11.00 per kg while keeping the existing meat-category dynamic pricing flow
+- Added Lamb into demo seed inventory and demo listings so it appears naturally in supplier and marketplace flows after reseed
 - Removed the visible old supplier/buying flow from normal app use and turned that area into a simple catalog browser
 - Replaced the previous large mixed catalog with a compact 12-category, 107-item catalog based only on the user-provided list
 - Updated product/category handling to the new category set and kept unit-aware AUD pricing visible across catalog, dashboard, marketplace, cart, and listings

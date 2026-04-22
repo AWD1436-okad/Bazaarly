@@ -16,58 +16,81 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
-  const cart = await prisma.cart.findFirst({
+  const activeCart = await prisma.cart.findFirst({
     where: {
       userId: user.id,
       status: "ACTIVE",
     },
-    include: {
-      shop: {
-        include: {
-          owner: true,
-        },
-      },
-      items: {
-        include: {
-          listing: {
-            include: {
-              product: true,
-              shop: true,
-            },
-          },
-        },
-      },
+    select: {
+      id: true,
     },
   });
 
-  if (!cart || cart.items.length === 0 || !cart.shop) {
+  if (!activeCart) {
     return NextResponse.redirect(new URL("/cart?error=Your%20cart%20is%20empty", request.url), 303);
-  }
-
-  const hasInvalidCartState = cart.items.some(
-    (item) =>
-      !item.listingId ||
-      !item.productId ||
-      !isSafePositiveQuantity(item.quantity, 999) ||
-      !isSafePositiveQuantity(item.unitPriceSnapshot) ||
-      item.listing.shopId !== cart.shopId,
-  );
-
-  if (hasInvalidCartState) {
-    return NextResponse.redirect(
-      new URL("/cart?error=Your%20cart%20has%20invalid%20items.%20Please%20refresh%20and%20try%20again", request.url),
-      303,
-    );
   }
 
   try {
     await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Cart" WHERE "id" = ${activeCart.id} FOR UPDATE`;
+
+      const cart = await tx.cart.findFirst({
+        where: {
+          id: activeCart.id,
+          userId: user.id,
+          status: "ACTIVE",
+        },
+        include: {
+          shop: {
+            include: {
+              owner: true,
+            },
+          },
+          items: {
+            include: {
+              listing: {
+                include: {
+                  product: true,
+                  shop: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!cart || cart.items.length === 0 || !cart.shop) {
+        throw new Error("Your cart is empty");
+      }
+
+      const hasInvalidCartState = cart.items.some(
+        (item) =>
+          !item.listingId ||
+          !item.productId ||
+          !isSafePositiveQuantity(item.quantity, 999) ||
+          !isSafePositiveQuantity(item.unitPriceSnapshot) ||
+          item.listing.shopId !== cart.shopId,
+      );
+
+      if (hasInvalidCartState) {
+        throw new Error("Your cart has invalid items. Please refresh and try again");
+      }
+
       const buyer = await tx.user.findUnique({
         where: { id: user.id },
+        select: {
+          id: true,
+          displayName: true,
+          balance: true,
+        },
       });
 
       const seller = await tx.user.findUnique({
         where: { id: cart.shop!.ownerId },
+        select: {
+          id: true,
+          balance: true,
+        },
       });
 
       if (!buyer || !seller) {
@@ -76,8 +99,31 @@ export async function POST(request: Request) {
 
       let totalPrice = 0;
       const saleSummary: string[] = [];
+      const preparedItems: Array<{
+        quantity: number;
+        unitPrice: number;
+        lineTotal: number;
+        listing: {
+          id: string;
+          shopId: string;
+          productId: string;
+          price: number;
+          quantity: number;
+          active: boolean;
+          product: {
+            name: string;
+          };
+        };
+        inventory: {
+          id: string;
+          quantity: number;
+          allocatedQuantity: number;
+        };
+      }> = [];
 
       for (const item of cart.items) {
+        await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${item.listingId} FOR UPDATE`;
+
         const listing = await tx.listing.findUnique({
           where: { id: item.listingId },
           include: {
@@ -91,9 +137,39 @@ export async function POST(request: Request) {
         if (listing.shopId !== cart.shopId || listing.productId !== item.productId) {
           throw new Error("Cart item no longer matches its listing");
         }
+        if (listing.price !== item.unitPriceSnapshot) {
+          throw new Error(`${listing.product.name} changed price. Please review your cart and try again`);
+        }
 
-        totalPrice += listing.price * item.quantity;
+        const inventory = await tx.inventory.findUnique({
+          where: {
+            userId_productId: {
+              userId: seller.id,
+              productId: item.productId,
+            },
+          },
+          select: {
+            id: true,
+            quantity: true,
+            allocatedQuantity: true,
+          },
+        });
+
+        if (!inventory || inventory.quantity < item.quantity || inventory.allocatedQuantity < item.quantity) {
+          throw new Error(`${listing.product.name} no longer has enough seller stock`);
+        }
+
+        const lineTotal = item.unitPriceSnapshot * item.quantity;
+
+        totalPrice += lineTotal;
         saleSummary.push(`${item.quantity}x ${listing.product.name}`);
+        preparedItems.push({
+          quantity: item.quantity,
+          unitPrice: item.unitPriceSnapshot,
+          lineTotal,
+          listing,
+          inventory,
+        });
       }
 
       if (buyer.balance < totalPrice) {
@@ -127,64 +203,47 @@ export async function POST(request: Request) {
         },
       });
 
-      for (const item of cart.items) {
-        const listing = await tx.listing.findUnique({
-          where: { id: item.listingId },
-        });
-
-        if (!listing) continue;
-
+      for (const item of preparedItems) {
         await tx.listing.update({
-          where: { id: listing.id },
+          where: { id: item.listing.id },
           data: {
             quantity: {
               decrement: item.quantity,
             },
-            active: listing.quantity - item.quantity > 0,
+            active: item.listing.quantity - item.quantity > 0,
           },
         });
 
-        const inventory = await tx.inventory.findUnique({
-          where: {
-            userId_productId: {
-              userId: seller.id,
-              productId: item.productId,
+        await tx.inventory.update({
+          where: { id: item.inventory.id },
+          data: {
+            quantity: {
+              decrement: item.quantity,
+            },
+            allocatedQuantity: {
+              decrement: item.quantity,
             },
           },
         });
-
-        if (inventory) {
-          await tx.inventory.update({
-            where: { id: inventory.id },
-            data: {
-              quantity: {
-                decrement: item.quantity,
-              },
-              allocatedQuantity: {
-                decrement: item.quantity,
-              },
-            },
-          });
-        }
 
         await tx.orderLineItem.create({
           data: {
             orderId: order.id,
-            productId: item.productId,
-            listingId: item.listingId,
+            productId: item.listing.productId,
+            listingId: item.listing.id,
             quantity: item.quantity,
-            unitPrice: item.unitPriceSnapshot,
-            lineTotal: item.unitPriceSnapshot * item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
           },
         });
 
-        if (listing.quantity - item.quantity <= 3) {
+        if (item.listing.quantity - item.quantity <= 3) {
           await tx.notification.create({
             data: {
               userId: seller.id,
               type: NotificationType.LOW_STOCK,
               message: `${item.listing.product.name} is running low. Only ${Math.max(
-                listing.quantity - item.quantity,
+                item.listing.quantity - item.quantity,
                 0,
               )} left in your live listing.`,
             },
@@ -234,5 +293,6 @@ export async function POST(request: Request) {
   revalidatePath("/cart");
   revalidatePath("/orders");
   revalidatePath("/dashboard");
+  revalidatePath("/notifications");
   return NextResponse.redirect(new URL("/orders?checkout=1", request.url), 303);
 }

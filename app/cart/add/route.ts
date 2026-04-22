@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -28,88 +29,118 @@ export async function POST(request: Request) {
 
   const listingId = listingIdResult.data;
   const quantity = clamp(quantityResult.data, 1, 99);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.findUnique({
+        where: { id: listingId },
+        include: {
+          shop: true,
+          product: true,
+        },
+      });
 
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    include: {
-      shop: true,
-      product: true,
-    },
-  });
+      if (!listing || !listing.active || listing.quantity < quantity) {
+        throw new Error("Listing is not available");
+      }
 
-  if (!listing || !listing.active || listing.quantity < quantity) {
-    return NextResponse.redirect(
-      new URL("/marketplace?error=Listing%20is%20not%20available", request.url),
-      303,
-    );
-  }
+      if (listing.shop.ownerId === user.id) {
+        throw new Error("You cannot buy from your own shop");
+      }
 
-  if (listing.shop.ownerId === user.id) {
-    return NextResponse.redirect(
-      new URL("/marketplace?error=You%20cannot%20buy%20from%20your%20own%20shop", request.url),
-      303,
-    );
-  }
+      let cart = await tx.cart.findFirst({
+        where: {
+          userId: user.id,
+          status: "ACTIVE",
+        },
+        orderBy: [{ updatedAt: "desc" }],
+      });
 
-  const existingCart = await prisma.cart.findFirst({
-    where: {
-      userId: user.id,
-      status: "ACTIVE",
-    },
-  });
+      if (!cart) {
+        try {
+          cart = await tx.cart.create({
+            data: {
+              userId: user.id,
+              shopId: listing.shopId,
+            },
+          });
+        } catch (error) {
+          if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+            throw error;
+          }
 
-  if (existingCart && existingCart.shopId && existingCart.shopId !== listing.shopId) {
-    return NextResponse.redirect(
-      new URL("/cart?error=Checkout%20is%20single-seller%20for%20this%20version", request.url),
-      303,
-    );
-  }
+          cart = await tx.cart.findFirst({
+            where: {
+              userId: user.id,
+              status: "ACTIVE",
+            },
+            orderBy: [{ updatedAt: "desc" }],
+          });
+        }
+      }
 
-  const cart =
-    existingCart ??
-    (await prisma.cart.create({
-      data: {
-        userId: user.id,
-        shopId: listing.shopId,
-      },
-    }));
+      if (!cart) {
+        throw new Error("Unable to open your cart right now");
+      }
 
-  const cartItem = await prisma.cartItem.findUnique({
-    where: {
-      cartId_listingId: {
-        cartId: cart.id,
-        listingId: listing.id,
-      },
-    },
-  });
+      if (cart.shopId && cart.shopId !== listing.shopId) {
+        throw new Error("Checkout is single-seller for this version");
+      }
 
-  const nextQuantity = (cartItem?.quantity ?? 0) + quantity;
+      if (!cart.shopId) {
+        cart = await tx.cart.update({
+          where: { id: cart.id },
+          data: {
+            shopId: listing.shopId,
+          },
+        });
+      }
 
-  if (nextQuantity > listing.quantity) {
-    return NextResponse.redirect(
-      new URL("/cart?error=Not%20enough%20stock%20for%20that%20quantity", request.url),
-      303,
-    );
-  }
+      const cartItem = await tx.cartItem.findUnique({
+        where: {
+          cartId_listingId: {
+            cartId: cart.id,
+            listingId: listing.id,
+          },
+        },
+      });
 
-  if (cartItem) {
-    await prisma.cartItem.update({
-      where: { id: cartItem.id },
-      data: {
-        quantity: nextQuantity,
-        unitPriceSnapshot: listing.price,
-      },
+      const nextQuantity = (cartItem?.quantity ?? 0) + quantity;
+
+      if (nextQuantity > listing.quantity) {
+        throw new Error("Not enough stock for that quantity");
+      }
+
+      if (cartItem) {
+        await tx.cartItem.update({
+          where: { id: cartItem.id },
+          data: {
+            quantity: nextQuantity,
+            unitPriceSnapshot: listing.price,
+          },
+        });
+      } else {
+        await tx.cartItem.create({
+          data: {
+            cartId: cart.id,
+            listingId: listing.id,
+            productId: listing.productId,
+            quantity,
+            unitPriceSnapshot: listing.price,
+          },
+        });
+      }
     });
-  } else {
-    await prisma.cartItem.create({
-      data: {
-        cartId: cart.id,
-        listingId: listing.id,
-        productId: listing.productId,
-        quantity,
-        unitPriceSnapshot: listing.price,
-      },
-    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to add item to cart";
+    const redirectPath =
+      message === "Checkout is single-seller for this version" || message === "Not enough stock for that quantity"
+        ? "/cart"
+        : "/marketplace";
+
+    return NextResponse.redirect(
+      new URL(`${redirectPath}?error=${encodeURIComponent(message)}`, request.url),
+      303,
+    );
   }
 
   revalidatePath("/cart");
