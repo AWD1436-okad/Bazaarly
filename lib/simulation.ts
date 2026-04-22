@@ -199,6 +199,7 @@ function scoreBotCandidate(
   loyaltyShopId: string | null,
   preferenceCategory: ProductCategory,
   recentBotSalesForShop: number,
+  shopBreadthScore: number,
 ) {
   const affordability = 2200 / Math.max(listing.price, 120);
   const ratingFactor = listing.shop.rating * 4;
@@ -208,18 +209,19 @@ function scoreBotCandidate(
   const demandFactor = listing.product.marketState?.demandScore ?? 1;
   const demandBoost = clamp(demandFactor, 0.82, 1.35) * 10;
   const recentSalesPenalty = clamp(1 - recentBotSalesForShop * 0.12, 0.58, 1);
+  const assortmentBoost = shopBreadthScore * 9;
 
   switch (personality) {
     case BotPersonality.BUDGET:
-      return (affordability * 18 + stockFactor + demandBoost + loyaltyFactor * 0.4) * categoryAffinity * recentSalesPenalty;
+      return (affordability * 18 + stockFactor + demandBoost + assortmentBoost + loyaltyFactor * 0.4) * categoryAffinity * recentSalesPenalty;
     case BotPersonality.QUALITY:
-      return (ratingFactor * 4 + stockFactor * 0.5 + affordability * 5 + demandBoost + loyaltyFactor * 0.8) * categoryAffinity * recentSalesPenalty;
+      return (ratingFactor * 4 + stockFactor * 0.5 + affordability * 5 + demandBoost + assortmentBoost + loyaltyFactor * 0.8) * categoryAffinity * recentSalesPenalty;
     case BotPersonality.LOYAL:
-      return (loyaltyFactor + ratingFactor * 2 + stockFactor + demandBoost * 0.6) * categoryAffinity * recentSalesPenalty;
+      return (loyaltyFactor + ratingFactor * 2 + stockFactor + demandBoost * 0.6 + assortmentBoost) * categoryAffinity * recentSalesPenalty;
     case BotPersonality.BULK:
-      return (stockFactor * 3 + affordability * 10 + demandBoost * 0.7 + loyaltyFactor) * categoryAffinity * recentSalesPenalty;
+      return (stockFactor * 3 + affordability * 10 + demandBoost * 0.7 + assortmentBoost * 1.2 + loyaltyFactor) * categoryAffinity * recentSalesPenalty;
     default:
-      return (affordability * 10 + ratingFactor * 1.5 + stockFactor + demandBoost + Math.random() * 12) * categoryAffinity * recentSalesPenalty;
+      return (affordability * 10 + ratingFactor * 1.5 + stockFactor + demandBoost + assortmentBoost + Math.random() * 12) * categoryAffinity * recentSalesPenalty;
   }
 }
 
@@ -344,6 +346,29 @@ export async function runMarketSimulation(force = false) {
     recentBotSales.map((entry) => [entry.shopId, entry._count._all]),
   );
 
+  const shopListingDepth = await prisma.listing.groupBy({
+    by: ["shopId"],
+    where: {
+      active: true,
+      quantity: { gt: 0 },
+      shop: { status: "ACTIVE" },
+    },
+    _count: {
+      _all: true,
+    },
+    _sum: {
+      quantity: true,
+    },
+  });
+
+  const shopBreadthByShop = new Map(
+    shopListingDepth.map((entry) => {
+      const listingCountBoost = clamp(entry._count._all / 12, 0, 1);
+      const stockDepthBoost = clamp((entry._sum.quantity ?? 0) / 80, 0, 1);
+      return [entry.shopId, clamp(listingCountBoost * 0.65 + stockDepthBoost * 0.35, 0, 1)];
+    }),
+  );
+
   const eligibleBots = bots
     .map((bot) => {
       const baseIntervalMs = getBotIntervalMs(bot.id);
@@ -415,6 +440,7 @@ export async function runMarketSimulation(force = false) {
             bot.loyaltyShopId ?? null,
             bot.preferenceCategory,
             recentBotSalesByShop.get(listing.shopId) ?? 0,
+            shopBreadthByShop.get(listing.shopId) ?? 0,
           ),
         ),
       })),
