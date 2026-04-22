@@ -447,6 +447,10 @@ textarea {
   align-items: end;
 }
 
+.supplier-toolbar {
+  padding: 1rem 1.15rem;
+}
+
 .supplier-filter-row label {
   display: grid;
   gap: 0.35rem;
@@ -528,6 +532,49 @@ textarea {
 
 .supplier-grid {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.supplier-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.supplier-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.supplier-card__title {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.supplier-card__title h2 {
+  margin: 0;
+  font-size: 1.14rem;
+}
+
+.supplier-card__meta {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.45rem 1rem;
+  align-items: center;
+}
+
+.supplier-buy-form {
+  display: grid;
+  grid-template-columns: minmax(92px, 120px) auto;
+  gap: 0.8rem;
+  align-items: end;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(221, 215, 200, 0.8);
+}
+
+.supplier-buy-form__quantity {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .orders-grid {
