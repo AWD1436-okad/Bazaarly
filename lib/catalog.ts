@@ -31,6 +31,12 @@ type CategoryDefinition = {
   keywords: string[];
 };
 
+export type CategoryOption = {
+  value: ProductCategory;
+  label: string;
+  emoji: string;
+};
+
 export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> = {
   [ProductCategory.FRUIT_AND_VEGETABLES]: {
     label: "Fruit & Vegetables",
@@ -158,10 +164,68 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
 };
 
-export const CATEGORY_OPTIONS = CATALOG_SOURCE.map((section) => ({
-  value: section.enumValue,
-  label: section.label,
-}));
+export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
+  {
+    value: ProductCategory.FRUIT_AND_VEGETABLES,
+    label: "Fruit & Vegetables",
+    emoji: "🍎",
+  },
+  {
+    value: ProductCategory.BAKERY_AND_GRAINS,
+    label: "Bakery & Grains",
+    emoji: "🍞",
+  },
+  {
+    value: ProductCategory.PANTRY_AND_COOKING,
+    label: "Pantry & Cooking",
+    emoji: "🥫",
+  },
+  {
+    value: ProductCategory.DRINKS,
+    label: "Drinks",
+    emoji: "🥤",
+  },
+  {
+    value: ProductCategory.MEAT_DAIRY_AND_PROTEIN,
+    label: "Meat, Dairy & Protein",
+    emoji: "🥩",
+  },
+  {
+    value: ProductCategory.SNACKS_AND_SWEETS,
+    label: "Snacks & Sweets",
+    emoji: "🍫",
+  },
+  {
+    value: ProductCategory.KITCHEN_AND_COOKWARE,
+    label: "Kitchen & Cookware",
+    emoji: "🍳",
+  },
+  {
+    value: ProductCategory.CLEANING_AND_PERSONAL_CARE,
+    label: "Cleaning & Personal Care",
+    emoji: "🧼",
+  },
+  {
+    value: ProductCategory.CLOTHING,
+    label: "Clothing",
+    emoji: "👕",
+  },
+  {
+    value: ProductCategory.HOME_AND_STORAGE,
+    label: "Home & Storage",
+    emoji: "🏠",
+  },
+  {
+    value: ProductCategory.ELECTRONICS,
+    label: "Electronics",
+    emoji: "📱",
+  },
+  {
+    value: ProductCategory.SCHOOL_AND_MISC,
+    label: "School & Misc",
+    emoji: "🎒",
+  },
+] as const;
 
 export const CATEGORY_COUNT_EXPECTATIONS = Object.fromEntries(
   CATALOG_SOURCE.map((section) => [section.enumValue, section.items.length]),

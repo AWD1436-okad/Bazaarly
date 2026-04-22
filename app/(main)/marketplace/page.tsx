@@ -1,3 +1,4 @@
+import { CategoryFilterList } from "@/components/category-filter-list";
 import { DailyFeatureCard } from "@/components/daily-feature-card";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
@@ -8,6 +9,27 @@ import { getMarketplaceData } from "@/lib/marketplace";
 type MarketplacePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function buildMarketplaceHref(
+  params: Record<string, string | string[] | undefined>,
+  category: string | null,
+) {
+  const nextParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (typeof value === "string" && key !== "category" && key !== "page" && value.trim()) {
+      nextParams.set(key, value);
+    }
+  });
+
+  if (category) {
+    nextParams.set("category", category);
+  }
+
+  const query = nextParams.toString();
+
+  return query ? `/marketplace?${query}` : "/marketplace";
+}
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const params = (await searchParams) ?? {};
@@ -51,47 +73,49 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       </section>
 
       <section className="card marketplace-filters-card">
-        <form action="/marketplace" className="marketplace-filters">
-          <label>
-            Category
-            <select name="category" defaultValue={selectedCategory}>
-              <option value="ALL">All</option>
-              {CATEGORY_OPTIONS.map((category) => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Minimum rating
-            <select
-              name="minRating"
-              defaultValue={typeof params.minRating === "string" ? params.minRating : ""}
-            >
-              <option value="">Any</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-              <option value="4.5">4.5+</option>
-            </select>
-          </label>
-          <label>
-            Min price
-            <input name="minPrice" type="number" step="0.01" defaultValue={typeof params.minPrice === "string" ? params.minPrice : ""} />
-          </label>
-          <label>
-            Max price
-            <input name="maxPrice" type="number" step="0.01" defaultValue={typeof params.maxPrice === "string" ? params.maxPrice : ""} />
-          </label>
-          <label>
-            In stock only
-            <select name="stock" defaultValue={typeof params.stock === "string" ? params.stock : ""}>
-              <option value="">Any</option>
-              <option value="in">In stock</option>
-            </select>
-          </label>
-          <button type="submit">Apply filters</button>
-        </form>
+        <div className="marketplace-filter-layout">
+          <aside className="category-sidebar">
+            <CategoryFilterList
+              categories={CATEGORY_OPTIONS}
+              selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
+              buildHref={(category) => buildMarketplaceHref(params, category)}
+            />
+          </aside>
+
+          <form action="/marketplace" className="marketplace-filters">
+            {selectedCategory !== "ALL" ? (
+              <input type="hidden" name="category" value={selectedCategory} />
+            ) : null}
+            <label>
+              Minimum rating
+              <select
+                name="minRating"
+                defaultValue={typeof params.minRating === "string" ? params.minRating : ""}
+              >
+                <option value="">Any</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="4.5">4.5+</option>
+              </select>
+            </label>
+            <label>
+              Min price
+              <input name="minPrice" type="number" step="0.01" defaultValue={typeof params.minPrice === "string" ? params.minPrice : ""} />
+            </label>
+            <label>
+              Max price
+              <input name="maxPrice" type="number" step="0.01" defaultValue={typeof params.maxPrice === "string" ? params.maxPrice : ""} />
+            </label>
+            <label>
+              In stock only
+              <select name="stock" defaultValue={typeof params.stock === "string" ? params.stock : ""}>
+                <option value="">Any</option>
+                <option value="in">In stock</option>
+              </select>
+            </label>
+            <button type="submit">Apply filters</button>
+          </form>
+        </div>
       </section>
 
       <section className="page-header marketplace-results-header">
