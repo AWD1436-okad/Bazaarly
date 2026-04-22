@@ -4,6 +4,7 @@ import {
   NotificationType,
   ProductCategory,
 } from "@prisma/client";
+import { subMinutes } from "date-fns";
 
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
@@ -11,6 +12,37 @@ import { clamp } from "@/lib/utils";
 const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
 const BOT_MIN_PURCHASE_INTERVAL_MS = 55 * 1000;
 const BOT_INTERVAL_VARIANCE_MS = 60 * 1000;
+const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
+
+function getCategoryAffinityScore(
+  preferenceCategory: ProductCategory,
+  listingCategory: ProductCategory,
+) {
+  if (preferenceCategory === listingCategory) {
+    return 1.35;
+  }
+
+  if (
+    (preferenceCategory === ProductCategory.FRUIT_AND_VEGETABLES &&
+      listingCategory === ProductCategory.BAKERY_AND_GRAINS) ||
+    (preferenceCategory === ProductCategory.BAKERY_AND_GRAINS &&
+      listingCategory === ProductCategory.PANTRY_AND_COOKING) ||
+    (preferenceCategory === ProductCategory.DRINKS &&
+      listingCategory === ProductCategory.SNACKS_AND_SWEETS) ||
+    (preferenceCategory === ProductCategory.MEAT_DAIRY_AND_PROTEIN &&
+      listingCategory === ProductCategory.PANTRY_AND_COOKING) ||
+    (preferenceCategory === ProductCategory.CLEANING_AND_PERSONAL_CARE &&
+      listingCategory === ProductCategory.HOME_AND_STORAGE) ||
+    (preferenceCategory === ProductCategory.CLOTHING &&
+      listingCategory === ProductCategory.SCHOOL_AND_MISC) ||
+    (preferenceCategory === ProductCategory.KITCHEN_AND_COOKWARE &&
+      listingCategory === ProductCategory.HOME_AND_STORAGE)
+  ) {
+    return 1.05;
+  }
+
+  return 0.72;
+}
 
 function hashString(value: string) {
   let hash = 0;
@@ -108,25 +140,37 @@ function scoreBotCandidate(
     price: number;
     quantity: number;
     shop: { id: string; rating: number };
+    product: {
+      category: ProductCategory;
+      marketState: {
+        demandScore: number;
+      } | null;
+    };
   },
   loyaltyShopId: string | null,
+  preferenceCategory: ProductCategory,
+  recentBotSalesForShop: number,
 ) {
   const affordability = 2200 / Math.max(listing.price, 120);
   const ratingFactor = listing.shop.rating * 4;
   const stockFactor = Math.min(listing.quantity, 14);
   const loyaltyFactor = loyaltyShopId && loyaltyShopId === listing.shop.id ? 30 : 0;
+  const categoryAffinity = getCategoryAffinityScore(preferenceCategory, listing.product.category);
+  const demandFactor = listing.product.marketState?.demandScore ?? 1;
+  const demandBoost = clamp(demandFactor, 0.82, 1.35) * 10;
+  const recentSalesPenalty = clamp(1 - recentBotSalesForShop * 0.12, 0.58, 1);
 
   switch (personality) {
     case BotPersonality.BUDGET:
-      return affordability * 18 + stockFactor + loyaltyFactor * 0.4;
+      return (affordability * 18 + stockFactor + demandBoost + loyaltyFactor * 0.4) * categoryAffinity * recentSalesPenalty;
     case BotPersonality.QUALITY:
-      return ratingFactor * 4 + stockFactor * 0.5 + affordability * 5 + loyaltyFactor * 0.8;
+      return (ratingFactor * 4 + stockFactor * 0.5 + affordability * 5 + demandBoost + loyaltyFactor * 0.8) * categoryAffinity * recentSalesPenalty;
     case BotPersonality.LOYAL:
-      return loyaltyFactor + ratingFactor * 2 + stockFactor;
+      return (loyaltyFactor + ratingFactor * 2 + stockFactor + demandBoost * 0.6) * categoryAffinity * recentSalesPenalty;
     case BotPersonality.BULK:
-      return stockFactor * 3 + affordability * 10 + loyaltyFactor;
+      return (stockFactor * 3 + affordability * 10 + demandBoost * 0.7 + loyaltyFactor) * categoryAffinity * recentSalesPenalty;
     default:
-      return affordability * 10 + ratingFactor * 1.5 + stockFactor + Math.random() * 12;
+      return (affordability * 10 + ratingFactor * 1.5 + stockFactor + demandBoost + Math.random() * 12) * categoryAffinity * recentSalesPenalty;
   }
 }
 
@@ -217,6 +261,23 @@ export async function runMarketSimulation(force = false) {
     where: { active: true },
   });
 
+  const recentBotSales = await prisma.order.groupBy({
+    by: ["shopId"],
+    where: {
+      buyerId: botWallet.id,
+      createdAt: {
+        gte: subMinutes(now, BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES),
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  const recentBotSalesByShop = new Map(
+    recentBotSales.map((entry) => [entry.shopId, entry._count._all]),
+  );
+
   const eligibleBots = bots
     .map((bot) => {
       const intervalMs = getBotIntervalMs(bot.id);
@@ -251,11 +312,18 @@ export async function runMarketSimulation(force = false) {
       where: {
         active: true,
         quantity: { gt: 0 },
-        product: { category: bot.preferenceCategory },
         shop: { status: "ACTIVE" },
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            marketState: {
+              select: {
+                demandScore: true,
+              },
+            },
+          },
+        },
         shop: true,
       },
     });
@@ -266,7 +334,16 @@ export async function runMarketSimulation(force = false) {
     const selection = pickWeighted(
       affordable.map((listing) => ({
         value: listing,
-        score: Math.max(1, scoreBotCandidate(bot.type, listing, bot.loyaltyShopId ?? null)),
+        score: Math.max(
+          1,
+          scoreBotCandidate(
+            bot.type,
+            listing,
+            bot.loyaltyShopId ?? null,
+            bot.preferenceCategory,
+            recentBotSalesByShop.get(listing.shopId) ?? 0,
+          ),
+        ),
       })),
     );
 
@@ -444,6 +521,7 @@ export async function runMarketSimulation(force = false) {
 
     if (completedPurchase) {
       botPurchases += 1;
+      recentBotSalesByShop.set(selection.shopId, (recentBotSalesByShop.get(selection.shopId) ?? 0) + 1);
     }
   }
 

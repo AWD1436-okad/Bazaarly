@@ -105,6 +105,43 @@ Results:
 - `typecheck`: passed
 - `build`: still blocked by the same local `.next` file-lock environment issue
 
+## Competitor Bot Activity Pass - 2026-04-22
+
+Changes added in this pass:
+
+- widened bot shopping so bots score listings from all active shops instead of only considering one hard-filtered preference category
+- kept price, rating, stock, category preference, loyalty, and randomness in the decision score
+- added a light recent-bot-sales-per-shop balancing factor so purchases spread more naturally across player and competitor shops
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+
+## Sold-Out Listing Cleanup And Card Consistency Pass - 2026-04-22
+
+Changes added in this pass:
+
+- added a sold-out listing delete route with seller ownership checks, sold-out-only enforcement, confirmation, and revalidation
+- exposed sold-out delete actions through long press, right click, and a small overflow action on sold-out dashboard listings
+- removed the old placeholder visual component from listing cards and aligned marketplace/shop cards to the same compact layout
+- tightened listing and supplier spacing so more items appear per screen
+
+Checks run:
+
+- `npm run lint`
+- `npm run typecheck`
+
+Results:
+
+- `lint`: passed
+- `typecheck`: passed
+
 ## Milestone 2 - Auth Cooldown Pass - 2026-04-19
 
 Changes added in this pass:

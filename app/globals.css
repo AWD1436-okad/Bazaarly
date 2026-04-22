@@ -104,8 +104,8 @@ textarea {
   grid-template-columns: 220px minmax(320px, 1fr) auto;
   gap: 1rem;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.2rem;
+  margin-bottom: 1.1rem;
+  padding: 0.9rem 1rem;
   border: 1px solid rgba(221, 215, 200, 0.8);
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.88);
@@ -210,6 +210,37 @@ textarea {
   cursor: not-allowed;
 }
 
+.sold-out-listing-actions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sold-out-listing-actions__toggle,
+.sold-out-listing-actions__delete {
+  min-height: 34px;
+}
+
+.sold-out-listing-actions__menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 3;
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.sold-out-listing-actions__delete {
+  color: var(--danger);
+  border-color: rgba(180, 35, 24, 0.28);
+}
+
 .topbar-link,
 .notification-pill {
   min-height: 48px;
@@ -237,11 +268,17 @@ textarea {
 
 .page-grid {
   display: grid;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .marketplace-page {
-  gap: 1.5rem;
+  gap: 1.15rem;
+}
+
+.page-header h1,
+.page-header h2,
+.page-header p {
+  margin: 0;
 }
 
 .page-header,
@@ -261,7 +298,7 @@ textarea {
 .hero-card,
 .auth-card,
 .status-banner {
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 .hero-card {
@@ -285,7 +322,7 @@ textarea {
 
 .marketplace-showcase {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.7rem;
 }
 
 .marketplace-showcase__header h1,
@@ -392,7 +429,7 @@ textarea {
 .catalog-layout {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  gap: 1.25rem;
+  gap: 1rem;
   align-items: start;
 }
 
@@ -485,13 +522,13 @@ textarea {
 }
 
 .marketplace-filters-card {
-  padding: 0.9rem 1rem;
+  padding: 0.75rem 0.9rem;
 }
 
 .marketplace-filter-layout {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
-  gap: 1.25rem;
+  gap: 1rem;
   align-items: start;
 }
 
@@ -531,12 +568,17 @@ textarea {
 }
 
 .supplier-grid {
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
 }
 
 .supplier-card {
   display: grid;
-  gap: 1rem;
+  gap: 0.8rem;
+}
+
+.supplier-card p {
+  margin: 0;
 }
 
 .supplier-card__header {
@@ -590,7 +632,7 @@ textarea {
 }
 
 .metric-card {
-  padding: 1rem;
+  padding: 0.85rem;
   border-radius: 18px;
   background: linear-gradient(180deg, #fff, #f7f4ee);
   border: 1px solid var(--border);
@@ -604,17 +646,18 @@ textarea {
 
 .listing-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .listing-grid--list {
   grid-template-columns: 1fr;
+  gap: 0.7rem;
 }
 
 .listing-card {
   display: grid;
-  gap: 0.95rem;
-  padding: 1rem 1.15rem;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(31, 41, 51, 0.06);
 }
@@ -636,19 +679,14 @@ textarea {
   margin: 0;
 }
 
-.listing-card__copy {
-  flex: 1 1 auto;
-  display: grid;
-  gap: 0.9rem;
-}
-
 .listing-card__title-block {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.18rem;
 }
 
 .listing-card__title-block h3 {
-  font-size: 1.18rem;
+  margin: 0;
+  font-size: 1.05rem;
 }
 
 .listing-card__subline,
@@ -663,109 +701,15 @@ textarea {
   line-height: 1.5;
 }
 
-.listing-card__media {
-  flex: 0 0 auto;
-}
-
-.product-visual {
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 26px;
-  border: 1px solid rgba(221, 215, 200, 0.9);
-  background:
-    linear-gradient(155deg, var(--product-visual-surface), #ffffff 72%),
-    radial-gradient(circle at top left, var(--product-visual-glow), transparent 45%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 12px 28px rgba(31, 41, 51, 0.08);
-}
-
-.product-visual--card {
-  width: 96px;
-  min-width: 96px;
-  height: 96px;
-}
-
-.product-visual--featured {
-  min-height: 300px;
-  height: 100%;
-}
-
-.product-visual__backdrop,
-.product-visual__halo,
-.product-visual__shine {
-  position: absolute;
-}
-
-.product-visual__backdrop {
-  inset: auto -10% -34% auto;
-  width: 78%;
-  height: 58%;
-  border-radius: 999px 999px 0 0;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--product-visual-accent) 62%, white), var(--product-visual-accent));
-  opacity: 0.24;
-}
-
-.product-visual__halo {
-  width: 70%;
-  height: 70%;
-  border-radius: 999px;
-  background: radial-gradient(circle, var(--product-visual-glow), transparent 70%);
-  top: 8%;
-  left: 12%;
-}
-
-.product-visual__emoji {
-  position: relative;
-  z-index: 2;
-  font-size: clamp(2.2rem, 5vw, 4rem);
-  filter: drop-shadow(0 14px 22px rgba(31, 41, 51, 0.18));
-}
-
-.product-visual--featured .product-visual__emoji {
-  font-size: clamp(4.6rem, 8vw, 7.4rem);
-}
-
-.product-visual__badge {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 10px 22px rgba(31, 41, 51, 0.12);
-  font-size: 1.2rem;
-}
-
-.product-visual--featured .product-visual__badge {
-  width: 58px;
-  height: 58px;
-  font-size: 1.5rem;
-}
-
-.product-visual__shine {
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 38%);
-  pointer-events: none;
-}
-
 .listing-card__price {
   display: grid;
   justify-items: end;
-  gap: 0.25rem;
+  gap: 0.15rem;
   text-align: right;
 }
 
 .listing-card__price strong {
-  font-size: 1.28rem;
+  font-size: 1.12rem;
 }
 
 .listing-card__price span {
@@ -779,8 +723,12 @@ textarea {
 }
 
 .listing-card__actions {
-  padding-top: 0.35rem;
+  padding-top: 0.2rem;
   border-top: 1px solid rgba(221, 215, 200, 0.8);
+}
+
+.listing-card__actions .inline-cart-form {
+  margin-left: auto;
 }
 
 .inline-cart-form {
@@ -790,26 +738,26 @@ textarea {
 }
 
 .inline-cart-form input {
-  width: 84px;
+  width: 72px;
 }
 
 .stack {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .stack-sm {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .table-list {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .table-row {
-  padding: 0.9rem 1rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface-alt);

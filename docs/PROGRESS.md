@@ -14,6 +14,12 @@
 
 ## Recent Changes
 
+- Updated marketplace bots so they now score and buy from all active shops instead of only shopping inside a single hard-filtered category
+- Added light recent-bot-sales balancing so competitor shops and player shops both receive traffic while better-priced or higher-rated shops still win more often
+- Kept bot purchases wired into normal stock, revenue, and order updates so competitor listings visibly move over time without exposing competitor notifications to the player
+- Added sold-out listing deletion with long-press, right-click, or overflow access plus confirmation so sellers can remove exhausted listings safely
+- Removed the old placeholder-style product visual component and aligned marketplace and shop listings to the same compact card layout
+- Tightened listing and supplier spacing so more products fit on screen with less scrolling
 - Fixed the known cart and checkout race conditions so only one active cart is allowed per user and checkout now locks and revalidates the active cart before processing
 - Fixed order-total drift by making checkout use the stored cart snapshot price consistently and reject stale listing-price changes until the cart is refreshed
 - Fixed zero-stock cart update behavior so cart items are removed instead of being left behind with invalid quantities

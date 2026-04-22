@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SoldOutListingActions } from "@/components/sold-out-listing-actions";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getCategoryLabel } from "@/lib/catalog";
@@ -469,7 +470,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                           </form>
                         </>
                       ) : (
-                        <span className="stock-chip stock-chip--soldout">Sold out</span>
+                        <SoldOutListingActions
+                          listingId={listing.id}
+                          productName={listing.product.name}
+                        />
                       )}
                     </div>
                   </div>

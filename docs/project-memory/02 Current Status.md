@@ -86,6 +86,10 @@ Completed Milestone 2 change so far:
 - checkout now locks and revalidates the active cart, listings, and seller inventory before completing payment
 - cart totals and order line items now stay aligned by using the stored cart price snapshot consistently and rejecting stale price changes
 - bot purchases now re-check wallet balance and seller inventory allocation before creating an order
+- bot purchases now evaluate listings from all active shops, with category preference acting as a weighted boost instead of a hard restriction
+- recent bot sales per shop now lightly reduce repeated immediate follow-up purchases so competitor shops and player shops both stay active over time
+- sold-out listings can now be deleted safely from the seller dashboard with confirmation while past orders keep their history through the nullable listing reference
+- marketplace and shop listings now use the same compact no-placeholder card layout, and product browsing spacing has been tightened to reduce scrolling
 - `Bacon` has been removed from the live catalog definition and replaced with `Lamb` in Meat, Dairy & Protein with a base price of AUD $11.00 per kg
 - Lamb now participates in the same market-state and supplier-price logic as the rest of the meat section because it is seeded through the normal product and market-state pipeline
 - the live database has been migrated and reseeded for this pass, and the catalog audit now reports 107 expected / 107 actual with old products fully removed
