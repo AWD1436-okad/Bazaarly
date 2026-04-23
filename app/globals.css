@@ -660,8 +660,8 @@ textarea {
 
 .listing-card {
   display: grid;
-  gap: 0.75rem;
-  padding: 0.9rem 1rem;
+  gap: 0.7rem;
+  padding: 0.85rem 0.95rem;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(31, 41, 51, 0.06);
 }
@@ -693,6 +693,12 @@ textarea {
   font-size: 1.05rem;
 }
 
+.listing-card__description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .listing-card__subline,
 .listing-card__shop,
 .status-banner p,
@@ -720,6 +726,14 @@ textarea {
   color: var(--muted);
 }
 
+.listing-card__meta-grid {
+  gap: 0.4rem 0.9rem;
+}
+
+.listing-card__inline-note {
+  align-self: center;
+}
+
 .listing-card__tags {
   display: flex;
   flex-wrap: wrap;
@@ -727,7 +741,7 @@ textarea {
 }
 
 .listing-card__actions {
-  padding-top: 0.2rem;
+  padding-top: 0.55rem;
   border-top: 1px solid rgba(221, 215, 200, 0.8);
 }
 

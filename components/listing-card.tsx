@@ -21,17 +21,25 @@ type ListingCardProps = {
       rating: number;
     };
   };
+  showShopLink?: boolean;
+  shopNameOverride?: string;
 };
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({
+  listing,
+  showShopLink = true,
+  shopNameOverride,
+}: ListingCardProps) {
+  const shopLabel = shopNameOverride ?? listing.shop.name;
+
   return (
-    <article className="card listing-card listing-card--compact">
+    <article className="card supplier-card listing-card">
       <div className="listing-card__header">
-        <div className="listing-card__title-block">
+        <div className="supplier-card__title">
           <span className="category-chip">{getCategoryLabel(listing.product.category)}</span>
           <h3>{listing.product.name}</h3>
           <span className="listing-card__shop">
-            {listing.shop.name} {" - "}Rated {listing.shop.rating.toFixed(1)}
+            {shopLabel} {" - "}Rated {listing.shop.rating.toFixed(1)}
           </span>
         </div>
 
@@ -41,10 +49,23 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </div>
 
+      <p className="listing-card__description">{listing.product.description}</p>
+
+      <div className="supplier-card__meta listing-card__meta-grid">
+        <span className="muted">Unit basis</span>
+        <strong>{listing.product.unitLabel}</strong>
+        <span className="muted">Shop stock</span>
+        <strong>{listing.quantity}</strong>
+      </div>
+
       <div className="listing-card__actions">
-        <Link href={`/shop/${listing.shopId}`} className="ghost-button">
-          View Shop
-        </Link>
+        {showShopLink ? (
+          <Link href={`/shop/${listing.shopId}`} className="ghost-button">
+            View Shop
+          </Link>
+        ) : (
+          <span className="muted listing-card__inline-note">Buying from this shop</span>
+        )}
         <form action="/cart/add" method="post" className="inline-cart-form">
           <input type="hidden" name="listingId" value={listing.id} />
           <input type="number" name="quantity" min={1} max={listing.quantity} defaultValue={1} />

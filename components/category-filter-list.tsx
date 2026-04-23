@@ -7,6 +7,21 @@ type CategoryFilterListProps = {
   allLabel?: string;
 };
 
+const CATEGORY_EMOJI_OVERRIDES: Record<string, string> = {
+  FRUIT_AND_VEGETABLES: "🍎",
+  BAKERY_AND_GRAINS: "🍞",
+  PANTRY_AND_COOKING: "🥫",
+  DRINKS: "🥤",
+  MEAT_DAIRY_AND_PROTEIN: "🥩",
+  SNACKS_AND_SWEETS: "🍫",
+  KITCHEN_AND_COOKWARE: "🍳",
+  CLEANING_AND_PERSONAL_CARE: "🧼",
+  CLOTHING: "👕",
+  HOME_AND_STORAGE: "🏠",
+  ELECTRONICS: "📱",
+  SCHOOL_AND_MISC: "🎒",
+};
+
 export function CategoryFilterList({
   categories,
   selectedCategory,
@@ -18,6 +33,7 @@ export function CategoryFilterList({
       <div className="category-filter-list">
         {categories.map((category) => {
           const isActive = selectedCategory === category.value;
+          const emoji = CATEGORY_EMOJI_OVERRIDES[category.value] ?? category.emoji;
 
           return (
             <a
@@ -32,7 +48,7 @@ export function CategoryFilterList({
               aria-current={isActive ? "page" : undefined}
             >
               <span className="category-filter-link__emoji" aria-hidden="true">
-                {category.emoji}
+                {emoji}
               </span>
               <span>{category.label}</span>
             </a>

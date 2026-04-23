@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { ListingCard } from "@/components/listing-card";
 import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
-import { formatPriceWithUnit } from "@/lib/money";
 import { getShopPageData } from "@/lib/marketplace";
 
 type ShopPageProps = {
@@ -60,40 +60,22 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
       <section className="listing-grid">
         {shop.listings.map((listing) => (
-          <article key={listing.id} className="card listing-card listing-card--compact">
-            <div className="listing-card__header">
-              <div className="listing-card__title-block">
-                <span className="category-chip">{getCategoryLabel(listing.product.category)}</span>
-                <h3>{listing.product.name}</h3>
-                <span className="listing-card__shop">{shop.name}</span>
-              </div>
-              <div className="listing-card__price">
-                <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel)}</strong>
-                <span>{listing.quantity <= 0 ? "Sold out" : `${listing.quantity} available`}</span>
-              </div>
-            </div>
-            <div className="listing-card__actions">
-              {listing.quantity > 0 ? (
-                <form action="/cart/add" method="post" className="inline-cart-form">
-                  <input type="hidden" name="listingId" value={listing.id} />
-                  <input
-                    type="number"
-                    name="quantity"
-                    min={1}
-                    max={listing.quantity}
-                    defaultValue={1}
-                  />
-                  <button type="submit">Add to cart</button>
-                </form>
-              ) : (
-                <div className="inline-cart-form">
-                  <button type="button" disabled className="sold-out-button">
-                    Sold out
-                  </button>
-                </div>
-              )}
-            </div>
-          </article>
+          <ListingCard
+            key={listing.id}
+            listing={{
+              id: listing.id,
+              price: listing.price,
+              quantity: listing.quantity,
+              shopId: shop.id,
+              product: listing.product,
+              shop: {
+                name: shop.name,
+                rating: shop.rating,
+              },
+            }}
+            showShopLink={false}
+            shopNameOverride={shop.name}
+          />
         ))}
       </section>
       {(shop.hasPreviousPage || shop.hasNextPage) && (
