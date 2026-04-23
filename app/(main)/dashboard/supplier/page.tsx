@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { CATEGORY_OPTIONS, getCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { sanitizeStockCount } from "@/lib/stock";
 
 type SupplierPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -257,7 +258,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                     <span className="muted">Unit basis</span>
                     <strong>{item.unitLabel}</strong>
                     <span className="muted">Supplier stock</span>
-                    <strong>{item.supplierStock}</strong>
+                    <strong>{sanitizeStockCount(item.supplierStock)}</strong>
                   </div>
 
                   <SupplierPurchaseForm

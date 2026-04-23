@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { getPostLoginRedirect, requireUser, setSession, clearSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseCurrencyInput } from "@/lib/money";
+import { getLiveStockStatusMessage, sanitizeStockCount } from "@/lib/stock";
 import { clamp, slugify } from "@/lib/utils";
 
 const DEFAULT_STARTING_BALANCE = 22000;
@@ -223,8 +224,10 @@ export async function createOrUpdateListingAction(formData: FormData) {
         },
       });
 
-      const currentlyAllocated = inventory.allocatedQuantity - (listing?.quantity ?? 0);
-      const maxListable = inventory.quantity - currentlyAllocated;
+      const currentlyAllocated = sanitizeStockCount(
+        inventory.allocatedQuantity - (listing?.quantity ?? 0),
+      );
+      const maxListable = sanitizeStockCount(inventory.quantity - currentlyAllocated);
 
       if (quantity > maxListable) {
         throw new Error("Listing quantity exceeds available inventory");
@@ -254,7 +257,7 @@ export async function createOrUpdateListingAction(formData: FormData) {
       await tx.inventory.update({
         where: { id: inventory.id },
         data: {
-          allocatedQuantity: currentlyAllocated + quantity,
+          allocatedQuantity: sanitizeStockCount(currentlyAllocated + quantity),
         },
       });
 
@@ -512,14 +515,13 @@ export async function checkoutAction() {
       });
 
       if (!listing) continue;
+      const remainingListingQuantity = sanitizeStockCount(listing.quantity - item.quantity);
 
       await tx.listing.update({
         where: { id: listing.id },
         data: {
-          quantity: {
-            decrement: item.quantity,
-          },
-          active: listing.quantity - item.quantity > 0,
+          quantity: remainingListingQuantity,
+          active: remainingListingQuantity > 0,
         },
       });
 
@@ -533,15 +535,15 @@ export async function checkoutAction() {
       });
 
       if (inventory) {
+        const remainingInventoryQuantity = sanitizeStockCount(inventory.quantity - item.quantity);
+        const remainingAllocatedQuantity = sanitizeStockCount(
+          inventory.allocatedQuantity - item.quantity,
+        );
         await tx.inventory.update({
           where: { id: inventory.id },
           data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-            allocatedQuantity: {
-              decrement: item.quantity,
-            },
+            quantity: remainingInventoryQuantity,
+            allocatedQuantity: remainingAllocatedQuantity,
           },
         });
       }
@@ -557,15 +559,14 @@ export async function checkoutAction() {
         },
       });
 
-      if (listing.quantity - item.quantity <= 3) {
+      if (remainingListingQuantity <= 3) {
         await tx.notification.create({
           data: {
             userId: seller.id,
             type: NotificationType.LOW_STOCK,
-            message: `${item.listing.product.name} is running low. Only ${Math.max(
-              listing.quantity - item.quantity,
-              0,
-            )} left in your live listing.`,
+            message: `${item.listing.product.name}: ${getLiveStockStatusMessage(
+              remainingListingQuantity,
+            )}.`,
           },
         });
       }

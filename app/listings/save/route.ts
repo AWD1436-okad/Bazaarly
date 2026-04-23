@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePriceInput, parseRouteId } from "@/lib/route-validation";
+import { sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -77,8 +78,10 @@ export async function POST(request: Request) {
         },
       });
 
-      const currentlyAllocated = inventory.allocatedQuantity - (listing?.quantity ?? 0);
-      const quantity = inventory.quantity - currentlyAllocated;
+      const currentlyAllocated = sanitizeStockCount(
+        inventory.allocatedQuantity - (listing?.quantity ?? 0),
+      );
+      const quantity = sanitizeStockCount(inventory.quantity - currentlyAllocated);
 
       if (quantity <= 0) {
         throw new Error("No free inventory is available to list");
@@ -108,7 +111,7 @@ export async function POST(request: Request) {
       await tx.inventory.update({
         where: { id: inventory.id },
         data: {
-          allocatedQuantity: currentlyAllocated + quantity,
+          allocatedQuantity: sanitizeStockCount(currentlyAllocated + quantity),
         },
       });
 

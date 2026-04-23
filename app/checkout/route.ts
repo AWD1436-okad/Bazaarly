@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSafePositiveQuantity } from "@/lib/route-validation";
+import { getLiveStockStatusMessage, sanitizeStockCount } from "@/lib/stock";
 import { clamp } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -159,6 +160,8 @@ export async function POST(request: Request) {
           throw new Error(`${listing.product.name} no longer has enough seller stock`);
         }
 
+        await tx.$queryRaw`SELECT "id" FROM "Inventory" WHERE "id" = ${inventory.id} FOR UPDATE`;
+
         const lineTotal = item.unitPriceSnapshot * item.quantity;
 
         totalPrice += lineTotal;
@@ -204,25 +207,25 @@ export async function POST(request: Request) {
       });
 
       for (const item of preparedItems) {
+        const remainingListingQuantity = sanitizeStockCount(item.listing.quantity - item.quantity);
+        const remainingInventoryQuantity = sanitizeStockCount(item.inventory.quantity - item.quantity);
+        const remainingAllocatedQuantity = sanitizeStockCount(
+          item.inventory.allocatedQuantity - item.quantity,
+        );
+
         await tx.listing.update({
           where: { id: item.listing.id },
           data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-            active: item.listing.quantity - item.quantity > 0,
+            quantity: remainingListingQuantity,
+            active: remainingListingQuantity > 0,
           },
         });
 
         await tx.inventory.update({
           where: { id: item.inventory.id },
           data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-            allocatedQuantity: {
-              decrement: item.quantity,
-            },
+            quantity: remainingInventoryQuantity,
+            allocatedQuantity: remainingAllocatedQuantity,
           },
         });
 
@@ -312,15 +315,14 @@ export async function POST(request: Request) {
           },
         });
 
-        if (item.listing.quantity - item.quantity <= 3) {
+        if (remainingListingQuantity <= 3) {
           await tx.notification.create({
             data: {
               userId: seller.id,
               type: NotificationType.LOW_STOCK,
-              message: `${item.listing.product.name} is running low. Only ${Math.max(
-                item.listing.quantity - item.quantity,
-                0,
-              )} left in your live listing.`,
+              message: `${item.listing.product.name}: ${getLiveStockStatusMessage(
+                remainingListingQuantity,
+              )}.`,
             },
           });
         }

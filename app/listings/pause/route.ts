@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/route-validation";
+import { sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -70,9 +71,7 @@ export async function POST(request: Request) {
         await tx.inventory.update({
           where: { id: inventory.id },
           data: {
-            allocatedQuantity: {
-              decrement: listing.quantity,
-            },
+            allocatedQuantity: sanitizeStockCount(inventory.allocatedQuantity - listing.quantity),
           },
         });
       }

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
+import { sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -95,14 +96,15 @@ export async function POST(request: Request) {
         },
       });
 
-      const combinedQuantity = (inventory?.quantity ?? 0) + quantity;
+      const combinedQuantity = sanitizeStockCount((inventory?.quantity ?? 0) + quantity);
       const weightedCostTotal =
         (inventory?.averageUnitCost ?? 0) * (inventory?.quantity ?? 0) + unitCost * quantity;
       const nextAverageCost =
         combinedQuantity > 0 ? Math.round(weightedCostTotal / combinedQuantity) : unitCost;
       const shouldRestockExistingListing = Boolean(user.shop?.id) && Boolean(existingListing);
-      const nextAllocatedQuantity =
-        (inventory?.allocatedQuantity ?? 0) + (shouldRestockExistingListing ? quantity : 0);
+      const nextAllocatedQuantity = sanitizeStockCount(
+        (inventory?.allocatedQuantity ?? 0) + (shouldRestockExistingListing ? quantity : 0),
+      );
 
       await tx.user.update({
         where: { id: buyer.id },

@@ -11,6 +11,7 @@ import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { getLiveStockStatusMessage } from "@/lib/stock";
 
 const INVENTORY_PAGE_SIZE = 12;
 const LISTING_PAGE_SIZE = 12;
@@ -107,7 +108,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           i."productId" AS "productId",
           p."name" AS "productName",
           p."unitLabel" AS "unitLabel",
-          (i."quantity" - i."allocatedQuantity")::int AS "availableToList",
+          GREATEST(i."quantity" - i."allocatedQuantity", 0)::int AS "availableToList",
           COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
         ${freeInventoryBaseQuery}
         ORDER BY p."name" ASC
@@ -119,7 +120,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           i."productId" AS "productId",
           p."name" AS "productName",
           p."unitLabel" AS "unitLabel",
-          (i."quantity" - i."allocatedQuantity")::int AS "availableToList",
+          GREATEST(i."quantity" - i."allocatedQuantity", 0)::int AS "availableToList",
           COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
         ${freeInventoryBaseQuery}
         ORDER BY p."name" ASC
@@ -188,7 +189,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         where: {
           shopId: user.shop.id,
           quantity: { lte: 5 },
-          active: true,
         },
         select: {
           id: true,
@@ -427,7 +427,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       <span className="muted">
                         {getCategoryLabel(listing.product.category)} -{" "}
                         {formatPriceWithUnit(listing.price, listing.product.unitLabel)} -{" "}
-                        {listing.quantity > 0 ? `${listing.quantity} units live` : "Sold out"}
+                        {getLiveStockStatusMessage(listing.quantity)}
                       </span>
                     </div>
                     <div className="table-row__actions">
@@ -529,7 +529,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   <div key={listing.id} className="table-row">
                     <div className="table-row__meta">
                       <strong>{listing.product.name}</strong>
-                      <span className="muted">Only {listing.quantity} left live in your shop</span>
+                      <span className="muted">
+                        {getLiveStockStatusMessage(listing.quantity)}
+                      </span>
                     </div>
                   </div>
                 ))}

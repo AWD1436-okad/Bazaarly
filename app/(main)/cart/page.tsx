@@ -2,6 +2,7 @@ import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { sanitizeStockCount } from "@/lib/stock";
 
 type CartProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -79,14 +80,14 @@ export default async function CartPage({ searchParams }: CartProps) {
                     <strong>{item.product.name}</strong>
                     <span className="muted">
                       {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel)} ·{" "}
-                      {item.listing.quantity} available
+                      {sanitizeStockCount(item.listing.quantity)} available
                     </span>
                   </div>
                   <div className="table-row__actions">
                     <CartItemQuantityForm
                       cartItemId={item.id}
                       quantity={item.quantity}
-                      maxQuantity={item.listing.quantity}
+                      maxQuantity={sanitizeStockCount(item.listing.quantity)}
                     />
                     <strong>{formatCurrency(item.quantity * item.unitPriceSnapshot)}</strong>
                   </div>

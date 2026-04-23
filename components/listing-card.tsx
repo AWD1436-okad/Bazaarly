@@ -4,6 +4,7 @@ import Link from "next/link";
 import { InlineCartActions } from "@/components/inline-cart-actions";
 import { getCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
+import { getStockAvailabilityLabel, sanitizeStockCount } from "@/lib/stock";
 
 type ListingCardProps = {
   listing: {
@@ -46,7 +47,7 @@ export function ListingCard({
 
         <div className="listing-card__price">
           <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel)}</strong>
-          <span>{listing.quantity} in stock</span>
+          <span>{getStockAvailabilityLabel(listing.quantity)}</span>
         </div>
       </div>
 
@@ -56,7 +57,7 @@ export function ListingCard({
         <span className="muted">Unit basis</span>
         <strong>{listing.product.unitLabel}</strong>
         <span className="muted">Shop stock</span>
-        <strong>{listing.quantity}</strong>
+        <strong>{sanitizeStockCount(listing.quantity)}</strong>
       </div>
 
       <div className="listing-card__actions">

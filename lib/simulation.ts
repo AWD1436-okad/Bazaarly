@@ -11,8 +11,6 @@ import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
 const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
-const BOT_MIN_PURCHASE_INTERVAL_SECONDS = 30;
-const BOT_MAX_PURCHASE_INTERVAL_SECONDS = 90;
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
@@ -88,101 +86,19 @@ function getCategoryAffinityScore(
   return 0.72;
 }
 
-function toSecondStamp(date: Date) {
-  return Math.floor(date.getTime() / 1000);
-}
-
-function fromSecondStamp(secondStamp: number) {
-  return new Date(secondStamp * 1000);
-}
-
 function randomIntInclusive(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function claimUniqueFutureSecond(
-  anchorDate: Date,
-  occupiedSeconds: Set<number>,
-  minimumDelaySeconds: number,
-  maximumDelaySeconds: number,
-  preferredDelaySeconds?: number,
-) {
-  const anchorSecond = toSecondStamp(anchorDate);
-
-  if (preferredDelaySeconds !== undefined) {
-    const preferredSecond = anchorSecond + preferredDelaySeconds;
-    if (!occupiedSeconds.has(preferredSecond)) {
-      occupiedSeconds.add(preferredSecond);
-      return preferredSecond;
-    }
-  }
-
-  for (let attempt = 0; attempt < 128; attempt += 1) {
-    const candidateSecond =
-      anchorSecond + randomIntInclusive(minimumDelaySeconds, maximumDelaySeconds);
-
-    if (!occupiedSeconds.has(candidateSecond)) {
-      occupiedSeconds.add(candidateSecond);
-      return candidateSecond;
-    }
-  }
-
-  for (let delaySeconds = minimumDelaySeconds; delaySeconds <= maximumDelaySeconds; delaySeconds += 1) {
-    const candidateSecond = anchorSecond + delaySeconds;
-
-    if (!occupiedSeconds.has(candidateSecond)) {
-      occupiedSeconds.add(candidateSecond);
-      return candidateSecond;
-    }
-  }
-
-  let candidateSecond = anchorSecond + minimumDelaySeconds;
-  while (occupiedSeconds.has(candidateSecond)) {
-    candidateSecond += 1;
-  }
-
-  occupiedSeconds.add(candidateSecond);
-  return candidateSecond;
-}
-
 function claimUniqueAttemptSecond(attemptDate: Date, occupiedSeconds: Set<number>) {
-  let candidateSecond = toSecondStamp(attemptDate);
+  let candidateSecond = Math.floor(attemptDate.getTime() / 1000);
 
   while (occupiedSeconds.has(candidateSecond)) {
     candidateSecond += 1;
   }
 
   occupiedSeconds.add(candidateSecond);
-  return fromSecondStamp(candidateSecond);
-}
-
-function scheduleInitialPurchaseAt(
-  now: Date,
-  occupiedSeconds: Set<number>,
-  index: number,
-) {
-  const preferredDelaySeconds = 35 + index * 13;
-
-  return fromSecondStamp(
-    claimUniqueFutureSecond(
-      now,
-      occupiedSeconds,
-      BOT_MIN_PURCHASE_INTERVAL_SECONDS,
-      BOT_MAX_PURCHASE_INTERVAL_SECONDS,
-      preferredDelaySeconds,
-    ),
-  );
-}
-
-function scheduleNextPurchaseAt(now: Date, occupiedSeconds: Set<number>) {
-  return fromSecondStamp(
-    claimUniqueFutureSecond(
-      now,
-      occupiedSeconds,
-      BOT_MIN_PURCHASE_INTERVAL_SECONDS,
-      BOT_MAX_PURCHASE_INTERVAL_SECONDS,
-    ),
-  );
+  return new Date(candidateSecond * 1000);
 }
 
 async function ensureActiveBotPool(now: Date) {
@@ -208,22 +124,9 @@ async function ensureActiveBotPool(now: Date) {
   });
 
   const botsByName = new Map(existingBots.map((bot) => [bot.displayName, bot]));
-  const occupiedSeconds = new Set<number>();
   const syncedBots: ActiveBotRecord[] = [];
 
-  for (const [index, botSeed] of INITIAL_BOTS.entries()) {
-    const existingBot = botsByName.get(botSeed.displayName);
-    const existingSecond =
-      existingBot?.nextPurchaseAt ? toSecondStamp(existingBot.nextPurchaseAt) : null;
-    const hasUsableSchedule = existingSecond !== null && !occupiedSeconds.has(existingSecond);
-    const nextPurchaseAt = hasUsableSchedule
-      ? existingBot!.nextPurchaseAt!
-      : scheduleInitialPurchaseAt(now, occupiedSeconds, index);
-
-    if (hasUsableSchedule && existingSecond !== null) {
-      occupiedSeconds.add(existingSecond);
-    }
-
+  for (const botSeed of INITIAL_BOTS) {
     const syncedBot = await prisma.botCustomer.upsert({
       where: { displayName: botSeed.displayName },
       update: {
@@ -232,7 +135,7 @@ async function ensureActiveBotPool(now: Date) {
         preferenceCategory: botSeed.preferenceCategory,
         activityLevel: botSeed.activityLevel,
         active: true,
-        nextPurchaseAt,
+        nextPurchaseAt: null,
       },
       create: {
         displayName: botSeed.displayName,
@@ -242,7 +145,7 @@ async function ensureActiveBotPool(now: Date) {
         loyaltyShopId: null,
         activityLevel: botSeed.activityLevel,
         active: true,
-        nextPurchaseAt,
+        nextPurchaseAt: null,
       },
     });
 
@@ -250,6 +153,70 @@ async function ensureActiveBotPool(now: Date) {
   }
 
   return syncedBots;
+}
+
+function getBotAttemptProbability({
+  bot,
+  now,
+  elapsedSinceLastAttemptMs,
+  affordableListingCount,
+  distinctShopCount,
+  recentMarketSalesCount,
+  averageDemand,
+  averageCandidateScore,
+  hasLoyaltyOption,
+}: {
+  bot: ActiveBotRecord;
+  now: Date;
+  elapsedSinceLastAttemptMs: number;
+  affordableListingCount: number;
+  distinctShopCount: number;
+  recentMarketSalesCount: number;
+  averageDemand: number;
+  averageCandidateScore: number;
+  hasLoyaltyOption: boolean;
+}) {
+  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (4.5 * 60 * 1000), 0.08, 1.2);
+  const activityFactor = clamp(bot.activityLevel / 100, 0.4, 1.2);
+  const assortmentFactor = clamp(affordableListingCount / 18, 0.05, 1.05);
+  const shopExposureFactor = clamp(distinctShopCount / 6, 0.05, 1);
+  const marketHeatFactor = clamp(recentMarketSalesCount / 8, 0, 0.55);
+  const demandFactor = clamp((averageDemand - 0.82) / 0.58, 0, 1);
+  const candidateStrengthFactor = clamp(averageCandidateScore / 52, 0, 1.25);
+  const timeOfDayBoost =
+    getCurrentPhase(now) === MarketTimePhase.EVENING
+      ? 0.08
+      : getCurrentPhase(now) === MarketTimePhase.MORNING
+        ? 0.05
+        : 0.03;
+
+  const personalityBias =
+    bot.type === BotPersonality.BUDGET
+      ? 0.05
+      : bot.type === BotPersonality.QUALITY
+        ? 0.04
+        : bot.type === BotPersonality.LOYAL
+          ? hasLoyaltyOption
+            ? 0.08
+            : 0.01
+          : bot.type === BotPersonality.BULK
+            ? 0.06
+            : 0.1;
+
+  return clamp(
+    0.06 +
+      elapsedFactor * 0.24 +
+      activityFactor * 0.12 +
+      assortmentFactor * 0.14 +
+      shopExposureFactor * 0.08 +
+      marketHeatFactor * 0.1 +
+      demandFactor * 0.1 +
+      candidateStrengthFactor * 0.12 +
+      timeOfDayBoost +
+      personalityBias,
+    0.05,
+    0.94,
+  );
 }
 
 function getEffectiveLoyaltyShopId(
@@ -640,31 +607,13 @@ export async function runMarketSimulation(force = false, debug = false) {
     },
   })) satisfies BotCandidateListing[];
 
-  const occupiedFutureSeconds = new Set<number>();
-  for (const bot of bots) {
-    if (bot.nextPurchaseAt) {
-      occupiedFutureSeconds.add(toSecondStamp(bot.nextPurchaseAt));
-    }
-  }
-
-  const dueBots = bots
-    .filter((bot) => !bot.nextPurchaseAt || bot.nextPurchaseAt <= now)
-    .sort((left, right) => {
-      const leftStamp = left.nextPurchaseAt ? left.nextPurchaseAt.getTime() : 0;
-      const rightStamp = right.nextPurchaseAt ? right.nextPurchaseAt.getTime() : 0;
-
-      if (leftStamp !== rightStamp) {
-        return leftStamp - rightStamp;
-      }
-
-      return left.displayName.localeCompare(right.displayName);
-    });
-
   const occupiedAttemptSeconds = new Set<number>();
+  const recentMarketSalesCount = recentBotSales.reduce((sum, entry) => sum + entry._count._all, 0);
+  const candidateShopIds = new Set(candidateListings.map((listing) => listing.shopId));
   const debugSnapshots: Array<{
     bot: string;
     attemptedAt: string;
-    nextPurchaseAt: string;
+    attemptProbability: number;
     budget: number;
     candidateShopIds: string[];
     affordableListingCount: number;
@@ -676,29 +625,80 @@ export async function runMarketSimulation(force = false, debug = false) {
 
   let botPurchases = 0;
 
-  for (const bot of dueBots) {
-    if (bot.nextPurchaseAt) {
-      occupiedFutureSeconds.delete(toSecondStamp(bot.nextPurchaseAt));
-    }
-
-    const attemptedAt = claimUniqueAttemptSecond(bot.nextPurchaseAt ?? now, occupiedAttemptSeconds);
-    const nextPurchaseAt = scheduleNextPurchaseAt(attemptedAt, occupiedFutureSeconds);
-    const effectiveLoyaltyShopId = getEffectiveLoyaltyShopId(bot);
-    const affordableListings = candidateListings.filter((listing) => listing.price <= bot.budget);
-    const weightedSelection = affordableListings.map((listing) => ({
-      value: listing,
-      score: Math.max(
-        1,
-        scoreBotCandidate(
-          bot.type,
-          listing,
-          effectiveLoyaltyShopId,
-          bot.preferenceCategory,
-          recentBotSalesByShop.get(listing.shopId) ?? 0,
-          shopBreadthByShop.get(listing.shopId) ?? 0,
+  const botPlans = bots
+    .map((bot) => {
+      const effectiveLoyaltyShopId = getEffectiveLoyaltyShopId(bot);
+      const affordableListings = candidateListings.filter((listing) => listing.price <= bot.budget);
+      const weightedSelection = affordableListings.map((listing) => ({
+        value: listing,
+        score: Math.max(
+          1,
+          scoreBotCandidate(
+            bot.type,
+            listing,
+            effectiveLoyaltyShopId,
+            bot.preferenceCategory,
+            recentBotSalesByShop.get(listing.shopId) ?? 0,
+            shopBreadthByShop.get(listing.shopId) ?? 0,
+          ),
         ),
-      ),
-    }));
+      }));
+      const averageCandidateScore =
+        weightedSelection.length > 0
+          ? weightedSelection.reduce((sum, option) => sum + option.score, 0) / weightedSelection.length
+          : 0;
+      const averageDemand =
+        affordableListings.length > 0
+          ? affordableListings.reduce(
+              (sum, listing) => sum + (listing.product.marketState?.demandScore ?? 1),
+              0,
+            ) / affordableListings.length
+          : 1;
+      const elapsedSinceLastAttemptMs = Math.max(
+        15_000,
+        now.getTime() - (bot.lastAttemptedAt ?? bot.createdAt).getTime(),
+      );
+      const attemptProbability =
+        affordableListings.length > 0
+          ? getBotAttemptProbability({
+              bot,
+              now,
+              elapsedSinceLastAttemptMs,
+              affordableListingCount: affordableListings.length,
+              distinctShopCount: new Set(affordableListings.map((listing) => listing.shopId)).size,
+              recentMarketSalesCount,
+              averageDemand,
+              averageCandidateScore,
+              hasLoyaltyOption: affordableListings.some(
+                (listing) => listing.shopId === effectiveLoyaltyShopId,
+              ),
+            })
+          : 0;
+
+      return {
+        bot,
+        effectiveLoyaltyShopId,
+        affordableListings,
+        weightedSelection,
+        attemptProbability,
+      };
+    })
+    .sort((left, right) => right.attemptProbability - left.attemptProbability);
+
+  const selectedBotPlans = botPlans.filter(
+    (plan) => plan.affordableListings.length > 0 && Math.random() < plan.attemptProbability,
+  );
+
+  if (selectedBotPlans.length === 0 && botPlans.some((plan) => plan.affordableListings.length > 0)) {
+    const fallbackPlan = botPlans.find((plan) => plan.affordableListings.length > 0);
+    if (fallbackPlan) {
+      selectedBotPlans.push(fallbackPlan);
+    }
+  }
+
+  for (const plan of selectedBotPlans) {
+    const { bot, effectiveLoyaltyShopId, affordableListings, weightedSelection, attemptProbability } = plan;
+    const attemptedAt = claimUniqueAttemptSecond(now, occupiedAttemptSeconds);
     const selection = pickWeighted(weightedSelection);
 
     let completedPurchase = false;
@@ -726,6 +726,8 @@ export async function runMarketSimulation(force = false, debug = false) {
         if (!freshListing || !freshListing.active || freshListing.quantity < selectedQuantity) {
           return;
         }
+
+        await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${freshListing.id} FOR UPDATE`;
 
         const botBuyer = await tx.user.findUnique({
           where: { id: botWallet.id },
@@ -767,6 +769,15 @@ export async function runMarketSimulation(force = false, debug = false) {
         ) {
           return;
         }
+
+        await tx.$queryRaw`SELECT "id" FROM "Inventory" WHERE "id" = ${inventory.id} FOR UPDATE`;
+
+        const remainingListingQuantity = Math.max(0, freshListing.quantity - selectedQuantity);
+        const remainingInventoryQuantity = Math.max(0, inventory.quantity - selectedQuantity);
+        const remainingAllocatedQuantity = Math.max(
+          0,
+          inventory.allocatedQuantity - selectedQuantity,
+        );
 
         const order = await tx.order.create({
           data: {
@@ -828,22 +839,16 @@ export async function runMarketSimulation(force = false, debug = false) {
         await tx.listing.update({
           where: { id: freshListing.id },
           data: {
-            quantity: {
-              decrement: selectedQuantity,
-            },
-            active: freshListing.quantity - selectedQuantity > 0,
+            quantity: remainingListingQuantity,
+            active: remainingListingQuantity > 0,
           },
         });
 
         await tx.inventory.update({
           where: { id: inventory.id },
           data: {
-            quantity: {
-              decrement: selectedQuantity,
-            },
-            allocatedQuantity: {
-              decrement: selectedQuantity,
-            },
+            quantity: remainingInventoryQuantity,
+            allocatedQuantity: remainingAllocatedQuantity,
           },
         });
 
@@ -858,15 +863,15 @@ export async function runMarketSimulation(force = false, debug = false) {
           },
         });
 
-        if (freshListing.quantity - selectedQuantity <= 3) {
+        if (remainingListingQuantity <= 3) {
           await tx.notification.create({
             data: {
               userId: seller.id,
               type: NotificationType.LOW_STOCK,
-              message: `${freshListing.product.name} is running low. Only ${Math.max(
-                freshListing.quantity - selectedQuantity,
-                0,
-              )} left in your live listing.`,
+              message:
+                remainingListingQuantity <= 0
+                  ? `${freshListing.product.name}: You don't have any of this item left.`
+                  : `${freshListing.product.name}: Low stock remaining: ${remainingListingQuantity} left.`,
               createdAt: attemptedAt,
             },
           });
@@ -877,7 +882,7 @@ export async function runMarketSimulation(force = false, debug = false) {
           data: {
             lastAttemptedAt: attemptedAt,
             lastPurchasedAt: attemptedAt,
-            nextPurchaseAt,
+            nextPurchaseAt: null,
             loyaltyShopId:
               bot.type === BotPersonality.LOYAL || bot.type === BotPersonality.QUALITY
                 ? freshListing.shopId
@@ -894,7 +899,7 @@ export async function runMarketSimulation(force = false, debug = false) {
         where: { id: bot.id },
         data: {
           lastAttemptedAt: attemptedAt,
-          nextPurchaseAt,
+          nextPurchaseAt: null,
         },
       });
     } else {
@@ -908,7 +913,7 @@ export async function runMarketSimulation(force = false, debug = false) {
       debugSnapshots.push({
         bot: bot.displayName,
         attemptedAt: attemptedAt.toISOString(),
-        nextPurchaseAt: nextPurchaseAt.toISOString(),
+        attemptProbability,
         budget: bot.budget,
         candidateShopIds: Array.from(new Set(affordableListings.map((listing) => listing.shopId))).sort(),
         affordableListingCount: affordableListings.length,
@@ -952,18 +957,21 @@ export async function runMarketSimulation(force = false, debug = false) {
                   lastAttemptedAt: true,
                   lastPurchasedAt: true,
                   loyaltyShopId: true,
+                  type: true,
                 },
               })
               .then((botStates) =>
                 botStates.map((botState) => ({
                   bot: botState.displayName,
+                  type: botState.type,
                   nextPurchaseAt: botState.nextPurchaseAt?.toISOString() ?? null,
                   lastAttemptedAt: botState.lastAttemptedAt?.toISOString() ?? null,
                   lastPurchasedAt: botState.lastPurchasedAt?.toISOString() ?? null,
                   loyaltyShopId: botState.loyaltyShopId,
                 })),
               ),
-            dueBotsProcessed: dueBots.length,
+            candidateShopCount: candidateShopIds.size,
+            attemptedBots: selectedBotPlans.length,
             snapshots: debugSnapshots,
           },
         }
