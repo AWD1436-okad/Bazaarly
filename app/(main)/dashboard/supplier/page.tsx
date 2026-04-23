@@ -117,6 +117,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
   const selectedCategory = parseCategoryFilter(params.category);
   const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
   const purchaseSuccess = params.purchase === "1";
+  const restockedListing = params.restocked === "1";
   const error = typeof params.error === "string" ? params.error : null;
 
   const products = await prisma.product.findMany({
@@ -172,8 +173,12 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       {purchaseSuccess ? (
         <StatusBanner
           tone="success"
-          title="Supplier purchase complete"
-          body="Your stock was added to inventory and is ready to list in your shop."
+          title={restockedListing ? "Supplier restock complete" : "Supplier purchase complete"}
+          body={
+            restockedListing
+              ? "Your sold-out listing was restocked immediately and is live again."
+              : "Your stock was added to inventory and is ready to list in your shop."
+          }
         />
       ) : null}
 

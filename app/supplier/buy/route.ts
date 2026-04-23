@@ -30,6 +30,8 @@ export async function POST(request: Request) {
   const quantity = quantityResult.data;
 
   try {
+    let restockedListing = false;
+
     await prisma.$transaction(async (tx) => {
       const buyer = await tx.user.findUnique({
         where: { id: user.id },
@@ -66,11 +68,26 @@ export async function POST(request: Request) {
         },
       });
 
+      const existingListing = await tx.listing.findUnique({
+        where: {
+          shopId_productId: {
+            shopId: user.shop?.id ?? "",
+            productId: product.id,
+          },
+        },
+      });
+
       const combinedQuantity = (inventory?.quantity ?? 0) + quantity;
       const weightedCostTotal =
         (inventory?.averageUnitCost ?? 0) * (inventory?.quantity ?? 0) + unitCost * quantity;
       const nextAverageCost =
         combinedQuantity > 0 ? Math.round(weightedCostTotal / combinedQuantity) : unitCost;
+      const shouldRestockExistingListing =
+        Boolean(user.shop?.id) &&
+        Boolean(existingListing) &&
+        (existingListing?.quantity ?? 0) <= 0;
+      const nextAllocatedQuantity =
+        (inventory?.allocatedQuantity ?? 0) + (shouldRestockExistingListing ? quantity : 0);
 
       await tx.user.update({
         where: { id: buyer.id },
@@ -97,6 +114,7 @@ export async function POST(request: Request) {
             quantity: {
               increment: quantity,
             },
+            allocatedQuantity: nextAllocatedQuantity,
             averageUnitCost: nextAverageCost,
           },
         });
@@ -106,19 +124,46 @@ export async function POST(request: Request) {
             userId: buyer.id,
             productId: product.id,
             quantity,
+            allocatedQuantity: shouldRestockExistingListing ? quantity : 0,
             averageUnitCost: nextAverageCost,
           },
         });
+      }
+
+      if (shouldRestockExistingListing && existingListing) {
+        await tx.listing.update({
+          where: { id: existingListing.id },
+          data: {
+            quantity: {
+              increment: quantity,
+            },
+            active: true,
+          },
+        });
+
+        restockedListing = true;
       }
 
       await tx.notification.create({
         data: {
           userId: buyer.id,
           type: NotificationType.SYSTEM,
-          message: `Bought ${quantity}x ${product.name} from Supplier for $${(totalCost / 100).toFixed(2)}.`,
+          message: restockedListing
+            ? `Bought ${quantity}x ${product.name} from Supplier for $${(totalCost / 100).toFixed(2)} and restocked your sold-out listing.`
+            : `Bought ${quantity}x ${product.name} from Supplier for $${(totalCost / 100).toFixed(2)}.`,
         },
       });
     });
+
+    const redirectUrl = new URL("/dashboard/supplier?purchase=1", request.url);
+    if (restockedListing) {
+      redirectUrl.searchParams.set("restocked", "1");
+    }
+
+    revalidatePath("/dashboard/supplier");
+    revalidatePath("/dashboard");
+    revalidatePath("/marketplace");
+    return NextResponse.redirect(redirectUrl, 303);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Supplier purchase failed";
     return NextResponse.redirect(
@@ -126,8 +171,4 @@ export async function POST(request: Request) {
       303,
     );
   }
-
-  revalidatePath("/dashboard/supplier");
-  revalidatePath("/dashboard");
-  return NextResponse.redirect(new URL("/dashboard/supplier?purchase=1", request.url), 303);
 }
