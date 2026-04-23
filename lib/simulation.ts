@@ -13,6 +13,7 @@ const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
 const BOT_MIN_PURCHASE_INTERVAL_MS = 30 * 1000;
 const BOT_INTERVAL_VARIANCE_MS = 60 * 1000;
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
+const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 
 function getCategoryAffinityScore(
   preferenceCategory: ProductCategory,
@@ -230,11 +231,14 @@ export async function runMarketSimulation(force = false) {
   const worldState =
     (await prisma.worldState.findUnique({ where: { id: "global" } })) ??
     (await prisma.worldState.create({ data: { id: "global" } }));
+  const elapsedSinceLastSimulationMs = worldState.lastSimulatedAt
+    ? now.getTime() - worldState.lastSimulatedAt.getTime()
+    : DEFAULT_SIMULATION_ELAPSED_MS;
 
   if (
     !force &&
     worldState.lastSimulatedAt &&
-    now.getTime() - worldState.lastSimulatedAt.getTime() < TICK_SECONDS * 1000
+    elapsedSinceLastSimulationMs < TICK_SECONDS * 1000
   ) {
     return { skipped: true };
   }
@@ -399,8 +403,13 @@ export async function runMarketSimulation(force = false) {
       return left.bot.displayName.localeCompare(right.bot.displayName);
     });
 
+  const cadenceLoadFactor = clamp(elapsedSinceLastSimulationMs / DEFAULT_SIMULATION_ELAPSED_MS, 0.85, 2.25);
+  const demandPressureFactor = clamp(eligibleBots.length / 8, 0, 1.2);
+  const weightedPurchaseBudget = cadenceLoadFactor + demandPressureFactor + Math.random() * 0.9;
   const maxPurchasesThisTick =
-    eligibleBots.length === 0 ? 0 : Math.min(2, Math.max(1, Math.round(Math.random() * 2)));
+    eligibleBots.length === 0
+      ? 0
+      : Math.min(4, eligibleBots.length, Math.max(1, Math.round(weightedPurchaseBudget)));
 
   let botPurchases = 0;
 
