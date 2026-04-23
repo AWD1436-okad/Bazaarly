@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type SoldOutListingActionsProps = {
@@ -13,8 +14,10 @@ export function SoldOutListingActions({
   listingId,
   productName,
 }: SoldOutListingActionsProps) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<number | null>(null);
 
   function clearLongPress() {
@@ -31,13 +34,39 @@ export function SoldOutListingActions({
     }, LONG_PRESS_MS);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     const confirmed = window.confirm("Delete this sold-out listing?");
     if (!confirmed) {
       return;
     }
 
-    formRef.current?.requestSubmit();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("listingId", listingId);
+
+      const response = await fetch("/listings/delete", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "x-bazaarly-async": "1",
+        },
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Unable to delete listing");
+      }
+
+      setMenuOpen(false);
+      router.refresh();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete listing");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   useEffect(() => clearLongPress, []);
@@ -61,6 +90,7 @@ export function SoldOutListingActions({
         aria-label={`More actions for ${productName}`}
         aria-expanded={menuOpen}
         onClick={() => setMenuOpen((current) => !current)}
+        disabled={submitting}
       >
         More
       </button>
@@ -69,15 +99,14 @@ export function SoldOutListingActions({
           <button
             type="button"
             className="ghost-button small sold-out-listing-actions__delete"
-            onClick={handleDelete}
+            onClick={() => void handleDelete()}
+            disabled={submitting}
           >
-            Delete
+            {submitting ? "Deleting..." : "Delete"}
           </button>
         </div>
       ) : null}
-      <form ref={formRef} action="/listings/delete" method="post">
-        <input type="hidden" name="listingId" value={listingId} />
-      </form>
+      {error ? <span className="status-text status-text--error">{error}</span> : null}
     </div>
   );
 }

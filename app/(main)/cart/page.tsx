@@ -1,3 +1,4 @@
+import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -82,11 +83,11 @@ export default async function CartPage({ searchParams }: CartProps) {
                     </span>
                   </div>
                   <div className="table-row__actions">
-                    <form action="/cart/item" method="post" className="inline-form">
-                      <input type="hidden" name="cartItemId" value={item.id} />
-                      <input type="number" name="quantity" min={0} max={item.listing.quantity} defaultValue={item.quantity} />
-                      <button type="submit">Update</button>
-                    </form>
+                    <CartItemQuantityForm
+                      cartItemId={item.id}
+                      quantity={item.quantity}
+                      maxQuantity={item.listing.quantity}
+                    />
                     <strong>{formatCurrency(item.quantity * item.unitPriceSnapshot)}</strong>
                   </div>
                 </div>

@@ -10,9 +10,17 @@ import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
+function isAsyncRequest(request: Request) {
+  return request.headers.get("x-bazaarly-async") === "1";
+}
+
 export async function POST(request: Request) {
+  const asyncRequest = isAsyncRequest(request);
   const user = await getSessionUser();
   if (!user) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
@@ -21,6 +29,12 @@ export async function POST(request: Request) {
   const quantityResult = parsePositiveQuantity(formData, "quantity");
 
   if (!listingIdResult.success || !quantityResult.success) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Enter a valid listing and quantity" },
+        { status: 400 },
+      );
+    }
     return NextResponse.redirect(
       new URL("/marketplace?error=Enter%20a%20valid%20listing%20and%20quantity", request.url),
       303,
@@ -132,6 +146,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to add item to cart";
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    }
     const redirectPath =
       message === "Checkout is single-seller for this version" || message === "Not enough stock for that quantity"
         ? "/cart"
@@ -144,5 +161,8 @@ export async function POST(request: Request) {
   }
 
   revalidatePath("/cart");
+  if (asyncRequest) {
+    return NextResponse.json({ ok: true });
+  }
   return NextResponse.redirect(new URL("/cart?added=1", request.url), 303);
 }

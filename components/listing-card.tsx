@@ -1,6 +1,7 @@
 import type { ProductCategory } from "@prisma/client";
 import Link from "next/link";
 
+import { InlineCartActions } from "@/components/inline-cart-actions";
 import { getCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 
@@ -66,11 +67,7 @@ export function ListingCard({
         ) : (
           <span className="muted listing-card__inline-note">Buying from this shop</span>
         )}
-        <form action="/cart/add" method="post" className="inline-cart-form">
-          <input type="hidden" name="listingId" value={listing.id} />
-          <input type="number" name="quantity" min={1} max={listing.quantity} defaultValue={1} />
-          <button type="submit">Add to cart</button>
-        </form>
+        <InlineCartActions listingId={listing.id} maxQuantity={listing.quantity} />
       </div>
     </article>
   );

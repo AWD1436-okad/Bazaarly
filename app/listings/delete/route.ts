@@ -8,9 +8,17 @@ import { parseRouteId } from "@/lib/route-validation";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
+function isAsyncRequest(request: Request) {
+  return request.headers.get("x-bazaarly-async") === "1";
+}
+
 export async function POST(request: Request) {
+  const asyncRequest = isAsyncRequest(request);
   const user = await getSessionUser();
   if (!user) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
@@ -18,6 +26,9 @@ export async function POST(request: Request) {
   const listingIdResult = parseRouteId(formData, "listingId");
 
   if (!listingIdResult.success) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Enter a valid listing" }, { status: 400 });
+    }
     return NextResponse.redirect(
       new URL("/dashboard?error=Enter%20a%20valid%20listing", request.url),
       303,
@@ -62,6 +73,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Listing delete failed";
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    }
     return NextResponse.redirect(
       new URL(`/dashboard?error=${encodeURIComponent(message)}`, request.url),
       303,
@@ -71,5 +85,8 @@ export async function POST(request: Request) {
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
   revalidatePath(shopPath);
+  if (asyncRequest) {
+    return NextResponse.json({ ok: true });
+  }
   return NextResponse.redirect(new URL("/dashboard", request.url), 303);
 }

@@ -753,10 +753,26 @@ textarea {
   display: flex;
   gap: 0.6rem;
   width: auto;
+  flex-wrap: wrap;
 }
 
 .inline-cart-form input {
   width: 72px;
+}
+
+.listing-card__purchase-stack,
+.cart-item-quantity-form {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.status-text--error {
+  color: var(--danger);
 }
 
 .stack {

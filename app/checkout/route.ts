@@ -236,9 +236,26 @@ export async function POST(request: Request) {
           select: {
             id: true,
             quantity: true,
+            allocatedQuantity: true,
             averageUnitCost: true,
           },
         });
+
+        const buyerListing = user.shop
+          ? await tx.listing.findUnique({
+              where: {
+                shopId_productId: {
+                  shopId: user.shop.id,
+                  productId: item.listing.productId,
+                },
+              },
+              select: {
+                id: true,
+                quantity: true,
+              },
+            })
+          : null;
+        const shouldRestockBuyerListing = Boolean(buyerListing);
 
         const nextBuyerQuantity = (buyerInventory?.quantity ?? 0) + item.quantity;
         const buyerCostTotal =
@@ -246,6 +263,8 @@ export async function POST(request: Request) {
           item.unitPrice * item.quantity;
         const nextBuyerAverageCost =
           nextBuyerQuantity > 0 ? Math.round(buyerCostTotal / nextBuyerQuantity) : item.unitPrice;
+        const nextAllocatedQuantity =
+          (buyerInventory?.allocatedQuantity ?? 0) + (shouldRestockBuyerListing ? item.quantity : 0);
 
         if (buyerInventory) {
           await tx.inventory.update({
@@ -254,6 +273,7 @@ export async function POST(request: Request) {
               quantity: {
                 increment: item.quantity,
               },
+              allocatedQuantity: nextAllocatedQuantity,
               averageUnitCost: nextBuyerAverageCost,
             },
           });
@@ -263,7 +283,20 @@ export async function POST(request: Request) {
               userId: buyer.id,
               productId: item.listing.productId,
               quantity: item.quantity,
+              allocatedQuantity: shouldRestockBuyerListing ? item.quantity : 0,
               averageUnitCost: nextBuyerAverageCost,
+            },
+          });
+        }
+
+        if (shouldRestockBuyerListing && buyerListing) {
+          await tx.listing.update({
+            where: { id: buyerListing.id },
+            data: {
+              quantity: {
+                increment: item.quantity,
+              },
+              active: true,
             },
           });
         }

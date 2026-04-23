@@ -3,6 +3,7 @@ import { ProductCategory } from "@prisma/client";
 import { CategoryFilterList } from "@/components/category-filter-list";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
+import { SupplierPurchaseForm } from "@/components/supplier-purchase-form";
 import { requireUser } from "@/lib/auth";
 import { CATEGORY_OPTIONS, getCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
@@ -259,23 +260,10 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                     <strong>{item.supplierStock}</strong>
                   </div>
 
-                  <form action="/supplier/buy" method="post" className="supplier-buy-form">
-                    <input type="hidden" name="productId" value={item.id} />
-                    <label className="supplier-buy-form__quantity">
-                      Quantity
-                      <input
-                        type="number"
-                        name="quantity"
-                        min={1}
-                        max={Math.max(item.supplierStock, 1)}
-                        defaultValue={1}
-                        disabled={item.supplierStock <= 0}
-                      />
-                    </label>
-                    <button type="submit" disabled={item.supplierStock <= 0}>
-                      {item.supplierStock > 0 ? "Buy now" : "Out of stock"}
-                    </button>
-                  </form>
+                  <SupplierPurchaseForm
+                    productId={item.id}
+                    supplierStock={item.supplierStock}
+                  />
                 </article>
               ))}
             </section>

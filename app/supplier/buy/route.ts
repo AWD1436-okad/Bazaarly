@@ -9,9 +9,17 @@ import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
+function isAsyncRequest(request: Request) {
+  return request.headers.get("x-bazaarly-async") === "1";
+}
+
 export async function POST(request: Request) {
+  const asyncRequest = isAsyncRequest(request);
   const user = await getSessionUser();
   if (!user) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
@@ -20,6 +28,12 @@ export async function POST(request: Request) {
   const quantityResult = parsePositiveQuantity(formData, "quantity");
 
   if (!productIdResult.success || !quantityResult.success) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Enter a valid product and quantity" },
+        { status: 400 },
+      );
+    }
     return NextResponse.redirect(
       new URL("/dashboard/supplier?error=Enter%20a%20valid%20product%20and%20quantity", request.url),
       303,
@@ -31,6 +45,8 @@ export async function POST(request: Request) {
 
   try {
     let restockedListing = false;
+    let purchasedProductName = "";
+    let purchaseTotalCost = 0;
 
     await prisma.$transaction(async (tx) => {
       const buyer = await tx.user.findUnique({
@@ -54,6 +70,8 @@ export async function POST(request: Request) {
 
       const unitCost = product.marketState.currentSupplierPrice;
       const totalCost = unitCost * quantity;
+      purchasedProductName = product.name;
+      purchaseTotalCost = totalCost;
 
       if (buyer.balance < totalCost) {
         throw new Error("Not enough balance");
@@ -82,10 +100,7 @@ export async function POST(request: Request) {
         (inventory?.averageUnitCost ?? 0) * (inventory?.quantity ?? 0) + unitCost * quantity;
       const nextAverageCost =
         combinedQuantity > 0 ? Math.round(weightedCostTotal / combinedQuantity) : unitCost;
-      const shouldRestockExistingListing =
-        Boolean(user.shop?.id) &&
-        Boolean(existingListing) &&
-        (existingListing?.quantity ?? 0) <= 0;
+      const shouldRestockExistingListing = Boolean(user.shop?.id) && Boolean(existingListing);
       const nextAllocatedQuantity =
         (inventory?.allocatedQuantity ?? 0) + (shouldRestockExistingListing ? quantity : 0);
 
@@ -149,23 +164,35 @@ export async function POST(request: Request) {
           userId: buyer.id,
           type: NotificationType.SYSTEM,
           message: restockedListing
-            ? `Bought ${quantity}x ${product.name} from Supplier for $${(totalCost / 100).toFixed(2)} and restocked your sold-out listing.`
+            ? `Bought ${quantity}x ${product.name} from Supplier for $${(totalCost / 100).toFixed(2)} and restocked your listing.`
             : `Bought ${quantity}x ${product.name} from Supplier for $${(totalCost / 100).toFixed(2)}.`,
         },
       });
     });
 
+    revalidatePath("/dashboard/supplier");
+    revalidatePath("/dashboard");
+    revalidatePath("/marketplace");
+
+    if (asyncRequest) {
+      return NextResponse.json({
+        ok: true,
+        restockedListing,
+        productName: purchasedProductName,
+        totalCost: purchaseTotalCost,
+      });
+    }
+
     const redirectUrl = new URL("/dashboard/supplier?purchase=1", request.url);
     if (restockedListing) {
       redirectUrl.searchParams.set("restocked", "1");
     }
-
-    revalidatePath("/dashboard/supplier");
-    revalidatePath("/dashboard");
-    revalidatePath("/marketplace");
     return NextResponse.redirect(redirectUrl, 303);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Supplier purchase failed";
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    }
     return NextResponse.redirect(
       new URL(`/dashboard/supplier?error=${encodeURIComponent(message)}`, request.url),
       303,
