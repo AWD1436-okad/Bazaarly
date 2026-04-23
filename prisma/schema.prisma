@@ -278,10 +278,14 @@ model BotCustomer {
   loyaltyShopId      String?
   activityLevel      Int             @default(50)
   active             Boolean         @default(true)
+  lastAttemptedAt    DateTime?
   lastPurchasedAt    DateTime?
+  nextPurchaseAt     DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   loyaltyShop        Shop?           @relation("LoyaltyShop", fields: [loyaltyShopId], references: [id], onDelete: SetNull)
+
+  @@index([active, nextPurchaseAt])
 }
 
 model MarketEvent {

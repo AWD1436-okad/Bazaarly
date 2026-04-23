@@ -682,7 +682,22 @@ async function main() {
     });
   }
 
-  for (const bot of INITIAL_BOTS) {
+  await prisma.botCustomer.updateMany({
+    where: {
+      displayName: {
+        notIn: INITIAL_BOTS.map((bot) => bot.displayName),
+      },
+    },
+    data: {
+      active: false,
+    },
+  });
+
+  const now = new Date();
+
+  for (const [index, bot] of INITIAL_BOTS.entries()) {
+    const nextPurchaseAt = new Date(now.getTime() + (35 + index * 13) * 1000);
+
     await prisma.botCustomer.upsert({
       where: { displayName: bot.displayName },
       update: {
@@ -692,6 +707,7 @@ async function main() {
         loyaltyShopId: null,
         activityLevel: bot.activityLevel,
         active: true,
+        nextPurchaseAt,
       },
       create: {
         displayName: bot.displayName,
@@ -700,7 +716,7 @@ async function main() {
         preferenceCategory: bot.preferenceCategory,
         loyaltyShopId: null,
         activityLevel: bot.activityLevel,
-        lastPurchasedAt: subHours(new Date(), Math.floor(Math.random() * 9) + 1),
+        nextPurchaseAt,
       },
     });
   }

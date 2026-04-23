@@ -11,11 +11,52 @@ import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
 const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
-const BOT_MIN_PURCHASE_INTERVAL_MS = 30 * 1000;
-const BOT_INTERVAL_VARIANCE_MS = 60 * 1000;
+const BOT_MIN_PURCHASE_INTERVAL_SECONDS = 30;
+const BOT_MAX_PURCHASE_INTERVAL_SECONDS = 90;
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
+const BOT_WALLET_TARGET_BALANCE = 500_000;
+const BOT_WALLET_REFILL_FLOOR = 120_000;
+
+type BotCandidateListing = {
+  id: string;
+  shopId: string;
+  price: number;
+  quantity: number;
+  productId: string;
+  shop: {
+    id: string;
+    ownerId: string;
+    rating: number;
+    totalSales: number;
+  };
+  product: {
+    id: string;
+    name: string;
+    category: ProductCategory;
+    marketState: {
+      demandScore: number;
+      marketAveragePrice: number;
+    } | null;
+  };
+};
+
+type ActiveBotRecord = {
+  id: string;
+  displayName: string;
+  type: BotPersonality;
+  budget: number;
+  preferenceCategory: ProductCategory;
+  loyaltyShopId: string | null;
+  activityLevel: number;
+  active: boolean;
+  lastAttemptedAt: Date | null;
+  lastPurchasedAt: Date | null;
+  nextPurchaseAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 function getCategoryAffinityScore(
   preferenceCategory: ProductCategory,
@@ -47,99 +88,168 @@ function getCategoryAffinityScore(
   return 0.72;
 }
 
-function hashString(value: string) {
-  let hash = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  return hash;
+function toSecondStamp(date: Date) {
+  return Math.floor(date.getTime() / 1000);
 }
 
-function getBotIntervalMs(botId: string) {
-  return BOT_MIN_PURCHASE_INTERVAL_MS + (hashString(botId) % BOT_INTERVAL_VARIANCE_MS);
+function fromSecondStamp(secondStamp: number) {
+  return new Date(secondStamp * 1000);
 }
 
-function getBotMarketTempoFactor(
-  bot: {
-    budget: number;
-    preferenceCategory: ProductCategory;
-    activityLevel: number;
-  },
-  listings: Array<{
-    price: number;
-    quantity: number;
-    product: {
-      category: ProductCategory;
-    };
-  }>,
+function randomIntInclusive(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function claimUniqueFutureSecond(
+  anchorDate: Date,
+  occupiedSeconds: Set<number>,
+  minimumDelaySeconds: number,
+  maximumDelaySeconds: number,
+  preferredDelaySeconds?: number,
 ) {
-  const affordable = listings.filter((listing) => listing.price <= bot.budget);
+  const anchorSecond = toSecondStamp(anchorDate);
 
-  if (affordable.length === 0) {
-    return 1.12;
+  if (preferredDelaySeconds !== undefined) {
+    const preferredSecond = anchorSecond + preferredDelaySeconds;
+    if (!occupiedSeconds.has(preferredSecond)) {
+      occupiedSeconds.add(preferredSecond);
+      return preferredSecond;
+    }
   }
 
-  const preferredListings = affordable.filter(
-    (listing) =>
-      getCategoryAffinityScore(bot.preferenceCategory, listing.product.category) >= 1.05,
-  );
+  for (let attempt = 0; attempt < 128; attempt += 1) {
+    const candidateSecond =
+      anchorSecond + randomIntInclusive(minimumDelaySeconds, maximumDelaySeconds);
 
-  const cheapestRatio = Math.min(
-    ...affordable.map((listing) => listing.price / Math.max(bot.budget, 100)),
-  );
-  const bestCategoryAffinity = Math.max(
-    ...affordable.map((listing) =>
-      getCategoryAffinityScore(bot.preferenceCategory, listing.product.category),
+    if (!occupiedSeconds.has(candidateSecond)) {
+      occupiedSeconds.add(candidateSecond);
+      return candidateSecond;
+    }
+  }
+
+  for (let delaySeconds = minimumDelaySeconds; delaySeconds <= maximumDelaySeconds; delaySeconds += 1) {
+    const candidateSecond = anchorSecond + delaySeconds;
+
+    if (!occupiedSeconds.has(candidateSecond)) {
+      occupiedSeconds.add(candidateSecond);
+      return candidateSecond;
+    }
+  }
+
+  let candidateSecond = anchorSecond + minimumDelaySeconds;
+  while (occupiedSeconds.has(candidateSecond)) {
+    candidateSecond += 1;
+  }
+
+  occupiedSeconds.add(candidateSecond);
+  return candidateSecond;
+}
+
+function claimUniqueAttemptSecond(attemptDate: Date, occupiedSeconds: Set<number>) {
+  let candidateSecond = toSecondStamp(attemptDate);
+
+  while (occupiedSeconds.has(candidateSecond)) {
+    candidateSecond += 1;
+  }
+
+  occupiedSeconds.add(candidateSecond);
+  return fromSecondStamp(candidateSecond);
+}
+
+function scheduleInitialPurchaseAt(
+  now: Date,
+  occupiedSeconds: Set<number>,
+  index: number,
+) {
+  const preferredDelaySeconds = 35 + index * 13;
+
+  return fromSecondStamp(
+    claimUniqueFutureSecond(
+      now,
+      occupiedSeconds,
+      BOT_MIN_PURCHASE_INTERVAL_SECONDS,
+      BOT_MAX_PURCHASE_INTERVAL_SECONDS,
+      preferredDelaySeconds,
     ),
   );
-  const averageVisibleStock =
-    affordable.reduce((sum, listing) => sum + Math.min(listing.quantity, 12), 0) / affordable.length;
+}
 
-  const affordabilityBoost = clamp(0.55 - cheapestRatio, 0, 0.3);
-  const preferenceBoost = clamp((bestCategoryAffinity - 1) * 0.32, 0, 0.14);
-  const preferenceDepthBoost = clamp(preferredListings.length / 18, 0, 0.12);
-  const stockBoost = clamp((averageVisibleStock - 2) / 40, 0, 0.08);
-  const activityBoost = clamp((bot.activityLevel - 50) / 250, -0.04, 0.12);
-
-  return clamp(
-    1 - affordabilityBoost - preferenceBoost - preferenceDepthBoost - stockBoost - activityBoost,
-    0.68,
-    1.12,
+function scheduleNextPurchaseAt(now: Date, occupiedSeconds: Set<number>) {
+  return fromSecondStamp(
+    claimUniqueFutureSecond(
+      now,
+      occupiedSeconds,
+      BOT_MIN_PURCHASE_INTERVAL_SECONDS,
+      BOT_MAX_PURCHASE_INTERVAL_SECONDS,
+    ),
   );
 }
 
-function getBotRecencyScore(lastPurchasedAt: Date | null, now: Date, intervalMs: number) {
-  if (!lastPurchasedAt) {
-    return 1.25;
-  }
+async function ensureActiveBotPool(now: Date) {
+  const configuredBotNames = INITIAL_BOTS.map((bot) => bot.displayName);
 
-  const elapsed = now.getTime() - lastPurchasedAt.getTime();
-  return clamp(elapsed / intervalMs, 0, 1.5);
-}
+  await prisma.botCustomer.updateMany({
+    where: {
+      displayName: {
+        notIn: configuredBotNames,
+      },
+    },
+    data: {
+      active: false,
+    },
+  });
 
-async function ensureActiveBotPool() {
-  for (const bot of INITIAL_BOTS) {
-    await prisma.botCustomer.upsert({
-      where: { displayName: bot.displayName },
+  const existingBots = await prisma.botCustomer.findMany({
+    where: {
+      displayName: {
+        in: configuredBotNames,
+      },
+    },
+  });
+
+  const botsByName = new Map(existingBots.map((bot) => [bot.displayName, bot]));
+  const occupiedSeconds = new Set<number>();
+  const syncedBots: ActiveBotRecord[] = [];
+
+  for (const [index, botSeed] of INITIAL_BOTS.entries()) {
+    const existingBot = botsByName.get(botSeed.displayName);
+    const existingSecond =
+      existingBot?.nextPurchaseAt ? toSecondStamp(existingBot.nextPurchaseAt) : null;
+    const hasUsableSchedule = existingSecond !== null && !occupiedSeconds.has(existingSecond);
+    const nextPurchaseAt = hasUsableSchedule
+      ? existingBot!.nextPurchaseAt!
+      : scheduleInitialPurchaseAt(now, occupiedSeconds, index);
+
+    if (hasUsableSchedule && existingSecond !== null) {
+      occupiedSeconds.add(existingSecond);
+    }
+
+    const syncedBot = await prisma.botCustomer.upsert({
+      where: { displayName: botSeed.displayName },
       update: {
-        type: bot.type,
-        budget: bot.budget,
-        preferenceCategory: bot.preferenceCategory,
-        activityLevel: bot.activityLevel,
+        type: botSeed.type,
+        budget: botSeed.budget,
+        preferenceCategory: botSeed.preferenceCategory,
+        activityLevel: botSeed.activityLevel,
         active: true,
+        nextPurchaseAt,
       },
       create: {
-        displayName: bot.displayName,
-        type: bot.type,
-        budget: bot.budget,
-        preferenceCategory: bot.preferenceCategory,
-        activityLevel: bot.activityLevel,
+        displayName: botSeed.displayName,
+        type: botSeed.type,
+        budget: botSeed.budget,
+        preferenceCategory: botSeed.preferenceCategory,
+        loyaltyShopId: null,
+        activityLevel: botSeed.activityLevel,
         active: true,
+        nextPurchaseAt,
       },
     });
+
+    syncedBots.push(syncedBot);
   }
+
+  return syncedBots;
 }
 
 function getEffectiveLoyaltyShopId(
@@ -228,18 +338,7 @@ function getTrendLabel(demandScore: number) {
 
 function scoreBotCandidate(
   personality: BotPersonality,
-  listing: {
-    price: number;
-    quantity: number;
-    shop: { id: string; rating: number; totalSales: number };
-    product: {
-      category: ProductCategory;
-      marketState: {
-        demandScore: number;
-        marketAveragePrice: number;
-      } | null;
-    };
-  },
+  listing: BotCandidateListing,
   loyaltyShopId: string | null,
   preferenceCategory: ProductCategory,
   recentBotSalesForShop: number,
@@ -319,10 +418,30 @@ function scoreBotCandidate(
   }
 }
 
-export async function runMarketSimulation(force = false, debug = false) {
-  await ensureActiveBotPool();
+function getDesiredBotQuantity(
+  personality: BotPersonality,
+  maxAffordableUnits: number,
+  availableQuantity: number,
+) {
+  const maxPurchaseableUnits = Math.max(
+    1,
+    Math.min(maxAffordableUnits, availableQuantity, personality === BotPersonality.BULK ? 6 : 3),
+  );
 
+  if (personality === BotPersonality.BULK) {
+    const minimumBulkQuantity = Math.min(
+      maxPurchaseableUnits,
+      Math.max(2, Math.ceil(maxPurchaseableUnits * 0.5)),
+    );
+    return randomIntInclusive(minimumBulkQuantity, maxPurchaseableUnits);
+  }
+
+  return randomIntInclusive(1, maxPurchaseableUnits);
+}
+
+export async function runMarketSimulation(force = false, debug = false) {
   const now = new Date();
+  const bots = await ensureActiveBotPool(now);
   const worldState =
     (await prisma.worldState.findUnique({ where: { id: "global" } })) ??
     (await prisma.worldState.create({ data: { id: "global" } }));
@@ -335,7 +454,24 @@ export async function runMarketSimulation(force = false, debug = false) {
     worldState.lastSimulatedAt &&
     elapsedSinceLastSimulationMs < TICK_SECONDS * 1000
   ) {
-    return { skipped: true };
+    return {
+      skipped: true,
+      ...(debug
+        ? {
+            debug: {
+              bots: bots
+                .slice()
+                .sort((left, right) => left.displayName.localeCompare(right.displayName))
+                .map((bot) => ({
+                  bot: bot.displayName,
+                  nextPurchaseAt: bot.nextPurchaseAt?.toISOString() ?? null,
+                  lastAttemptedAt: bot.lastAttemptedAt?.toISOString() ?? null,
+                  lastPurchasedAt: bot.lastPurchasedAt?.toISOString() ?? null,
+                })),
+            },
+          }
+        : {}),
+    };
   }
 
   const phase = getCurrentPhase(now);
@@ -378,13 +514,17 @@ export async function runMarketSimulation(force = false, debug = false) {
         : 0;
 
     const nextDemand = clamp(
-      state.demandScore + (Math.random() * 0.14 - 0.07) + getTimeBoost(state.product.category, phase) + eventBoost,
+      state.demandScore +
+        (Math.random() * 0.14 - 0.07) +
+        getTimeBoost(state.product.category, phase) +
+        eventBoost,
       0.78,
       1.45,
     );
 
     const nextSupplierPrice = Math.round(
-      state.product.basePrice * clamp(0.58 + nextDemand * 0.18 + state.popularityScore * 0.03, 0.52, 0.88),
+      state.product.basePrice *
+        clamp(0.58 + nextDemand * 0.18 + state.popularityScore * 0.03, 0.52, 0.88),
     );
 
     await prisma.marketProductState.update({
@@ -399,34 +539,30 @@ export async function runMarketSimulation(force = false, debug = false) {
     });
   }
 
-  const botWallet = await prisma.user.findUnique({
+  let botWallet = await prisma.user.findUnique({
     where: { username: "bot_market" },
+    select: {
+      id: true,
+      balance: true,
+    },
   });
 
   if (!botWallet) {
     return { skipped: false, botPurchases: 0 };
   }
 
-  const bots = await prisma.botCustomer.findMany({
-    where: { active: true },
-  });
-
-  const marketTempoListings = await prisma.listing.findMany({
-    where: {
-      active: true,
-      quantity: { gt: 0 },
-      shop: { status: "ACTIVE" },
-    },
-    select: {
-      price: true,
-      quantity: true,
-      product: {
-        select: {
-          category: true,
-        },
+  if (botWallet.balance < BOT_WALLET_REFILL_FLOOR) {
+    botWallet = await prisma.user.update({
+      where: { id: botWallet.id },
+      data: {
+        balance: BOT_WALLET_TARGET_BALANCE,
       },
-    },
-  });
+      select: {
+        id: true,
+        balance: true,
+      },
+    });
+  }
 
   const recentBotSales = await prisma.order.groupBy({
     by: ["shopId"],
@@ -468,295 +604,319 @@ export async function runMarketSimulation(force = false, debug = false) {
     }),
   );
 
-  const eligibleBots = bots
-    .map((bot) => {
-      const baseIntervalMs = getBotIntervalMs(bot.id);
-      const marketTempoFactor = getBotMarketTempoFactor(bot, marketTempoListings);
-      const intervalMs = clamp(
-        Math.round(baseIntervalMs * marketTempoFactor),
-        BOT_MIN_PURCHASE_INTERVAL_MS,
-        BOT_MIN_PURCHASE_INTERVAL_MS + BOT_INTERVAL_VARIANCE_MS,
-      );
-      const recencyScore = getBotRecencyScore(bot.lastPurchasedAt, now, intervalMs);
-      const activityScore = bot.activityLevel / 100;
-      const shouldAct = recencyScore >= 1 || Math.random() < recencyScore * activityScore;
+  const candidateListings = (await prisma.listing.findMany({
+    where: {
+      active: true,
+      quantity: { gt: 0 },
+      shop: { status: "ACTIVE" },
+    },
+    select: {
+      id: true,
+      shopId: true,
+      price: true,
+      quantity: true,
+      productId: true,
+      shop: {
+        select: {
+          id: true,
+          ownerId: true,
+          rating: true,
+          totalSales: true,
+        },
+      },
+      product: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          marketState: {
+            select: {
+              demandScore: true,
+              marketAveragePrice: true,
+            },
+          },
+        },
+      },
+    },
+  })) satisfies BotCandidateListing[];
 
-      return {
-        bot,
-        intervalMs,
-        marketTempoFactor,
-        recencyScore,
-        shouldAct,
-      };
-    })
-    .filter((entry) => entry.shouldAct)
+  const occupiedFutureSeconds = new Set<number>();
+  for (const bot of bots) {
+    if (bot.nextPurchaseAt) {
+      occupiedFutureSeconds.add(toSecondStamp(bot.nextPurchaseAt));
+    }
+  }
+
+  const dueBots = bots
+    .filter((bot) => !bot.nextPurchaseAt || bot.nextPurchaseAt <= now)
     .sort((left, right) => {
-      if (right.recencyScore !== left.recencyScore) {
-        return right.recencyScore - left.recencyScore;
+      const leftStamp = left.nextPurchaseAt ? left.nextPurchaseAt.getTime() : 0;
+      const rightStamp = right.nextPurchaseAt ? right.nextPurchaseAt.getTime() : 0;
+
+      if (leftStamp !== rightStamp) {
+        return leftStamp - rightStamp;
       }
 
-      return left.bot.displayName.localeCompare(right.bot.displayName);
+      return left.displayName.localeCompare(right.displayName);
     });
 
-  const cadenceLoadFactor = clamp(elapsedSinceLastSimulationMs / DEFAULT_SIMULATION_ELAPSED_MS, 0.85, 2.25);
-  const demandPressureFactor = clamp(eligibleBots.length / 8, 0, 1.2);
-  const weightedPurchaseBudget = cadenceLoadFactor + demandPressureFactor + Math.random() * 0.9;
-  const maxPurchasesThisTick =
-    eligibleBots.length === 0
-      ? 0
-      : Math.min(4, eligibleBots.length, Math.max(1, Math.round(weightedPurchaseBudget)));
-
-  let botPurchases = 0;
+  const occupiedAttemptSeconds = new Set<number>();
   const debugSnapshots: Array<{
     bot: string;
+    attemptedAt: string;
+    nextPurchaseAt: string;
     budget: number;
     candidateShopIds: string[];
     affordableListingCount: number;
     selectedShopId: string | null;
     selectedProduct: string | null;
+    selectedQuantity: number;
+    completedPurchase: boolean;
   }> = [];
 
-  for (const { bot } of eligibleBots.slice(0, maxPurchasesThisTick)) {
-    const effectiveLoyaltyShopId = getEffectiveLoyaltyShopId(bot);
-    const candidates = await prisma.listing.findMany({
-      where: {
-        active: true,
-        quantity: { gt: 0 },
-        shop: { status: "ACTIVE" },
-      },
-      include: {
-        product: {
-          include: {
-            marketState: {
-              select: {
-                demandScore: true,
-                marketAveragePrice: true,
-              },
-            },
-          },
-        },
-        shop: true,
-      },
-    });
+  let botPurchases = 0;
 
-    const affordable = candidates.filter((listing) => listing.price <= bot.budget);
-    if (affordable.length === 0) {
-      if (debug) {
-        debugSnapshots.push({
-          bot: bot.displayName,
-          budget: bot.budget,
-          candidateShopIds: [],
-          affordableListingCount: 0,
-          selectedShopId: null,
-          selectedProduct: null,
-        });
-      }
-      continue;
+  for (const bot of dueBots) {
+    if (bot.nextPurchaseAt) {
+      occupiedFutureSeconds.delete(toSecondStamp(bot.nextPurchaseAt));
     }
 
-    const selection = pickWeighted(
-      affordable.map((listing) => ({
-        value: listing,
-        score: Math.max(
-          1,
-          scoreBotCandidate(
-            bot.type,
-            listing,
-            effectiveLoyaltyShopId,
-            bot.preferenceCategory,
-            recentBotSalesByShop.get(listing.shopId) ?? 0,
-            shopBreadthByShop.get(listing.shopId) ?? 0,
-          ),
+    const attemptedAt = claimUniqueAttemptSecond(bot.nextPurchaseAt ?? now, occupiedAttemptSeconds);
+    const nextPurchaseAt = scheduleNextPurchaseAt(attemptedAt, occupiedFutureSeconds);
+    const effectiveLoyaltyShopId = getEffectiveLoyaltyShopId(bot);
+    const affordableListings = candidateListings.filter((listing) => listing.price <= bot.budget);
+    const weightedSelection = affordableListings.map((listing) => ({
+      value: listing,
+      score: Math.max(
+        1,
+        scoreBotCandidate(
+          bot.type,
+          listing,
+          effectiveLoyaltyShopId,
+          bot.preferenceCategory,
+          recentBotSalesByShop.get(listing.shopId) ?? 0,
+          shopBreadthByShop.get(listing.shopId) ?? 0,
         ),
-      })),
-    );
+      ),
+    }));
+    const selection = pickWeighted(weightedSelection);
 
-    if (!selection) continue;
+    let completedPurchase = false;
+    let selectedProduct: string | null = null;
+    let selectedShopId: string | null = null;
+    let selectedQuantity = 0;
+
+    if (selection) {
+      selectedProduct = selection.product.name;
+      selectedShopId = selection.shopId;
+
+      const maxAffordableUnits = Math.max(1, Math.floor(bot.budget / selection.price));
+      selectedQuantity = getDesiredBotQuantity(bot.type, maxAffordableUnits, selection.quantity);
+      const totalPrice = selection.price * selectedQuantity;
+
+      await prisma.$transaction(async (tx) => {
+        const freshListing = await tx.listing.findUnique({
+          where: { id: selection.id },
+          include: {
+            product: true,
+            shop: true,
+          },
+        });
+
+        if (!freshListing || !freshListing.active || freshListing.quantity < selectedQuantity) {
+          return;
+        }
+
+        const botBuyer = await tx.user.findUnique({
+          where: { id: botWallet.id },
+          select: {
+            id: true,
+            balance: true,
+          },
+        });
+
+        const seller = await tx.user.findUnique({
+          where: { id: freshListing.shop.ownerId },
+          select: {
+            id: true,
+          },
+        });
+
+        if (!botBuyer || botBuyer.balance < totalPrice || !seller) {
+          return;
+        }
+
+        const inventory = await tx.inventory.findUnique({
+          where: {
+            userId_productId: {
+              userId: seller.id,
+              productId: freshListing.productId,
+            },
+          },
+          select: {
+            id: true,
+            quantity: true,
+            allocatedQuantity: true,
+          },
+        });
+
+        if (
+          !inventory ||
+          inventory.quantity < selectedQuantity ||
+          inventory.allocatedQuantity < selectedQuantity
+        ) {
+          return;
+        }
+
+        const order = await tx.order.create({
+          data: {
+            buyerId: botBuyer.id,
+            sellerId: seller.id,
+            shopId: freshListing.shopId,
+            totalPrice,
+            createdAt: attemptedAt,
+          },
+        });
+
+        await tx.orderLineItem.create({
+          data: {
+            orderId: order.id,
+            productId: freshListing.productId,
+            listingId: freshListing.id,
+            quantity: selectedQuantity,
+            unitPrice: freshListing.price,
+            lineTotal: totalPrice,
+            createdAt: attemptedAt,
+          },
+        });
+
+        await tx.user.update({
+          where: { id: seller.id },
+          data: {
+            balance: {
+              increment: totalPrice,
+            },
+          },
+        });
+
+        await tx.user.update({
+          where: { id: botBuyer.id },
+          data: {
+            balance: {
+              decrement: totalPrice,
+            },
+          },
+        });
+
+        await tx.shop.update({
+          where: { id: freshListing.shopId },
+          data: {
+            totalRevenue: {
+              increment: totalPrice,
+            },
+            totalSales: {
+              increment: selectedQuantity,
+            },
+            rating: clamp(
+              freshListing.shop.rating + (bot.type === BotPersonality.QUALITY ? 0.05 : 0.02),
+              1,
+              5,
+            ),
+          },
+        });
+
+        await tx.listing.update({
+          where: { id: freshListing.id },
+          data: {
+            quantity: {
+              decrement: selectedQuantity,
+            },
+            active: freshListing.quantity - selectedQuantity > 0,
+          },
+        });
+
+        await tx.inventory.update({
+          where: { id: inventory.id },
+          data: {
+            quantity: {
+              decrement: selectedQuantity,
+            },
+            allocatedQuantity: {
+              decrement: selectedQuantity,
+            },
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: seller.id,
+            type: NotificationType.SALE,
+            message: `${bot.displayName} bought ${selectedQuantity}x ${freshListing.product.name} for $${(
+              totalPrice / 100
+            ).toFixed(2)}.`,
+            createdAt: attemptedAt,
+          },
+        });
+
+        if (freshListing.quantity - selectedQuantity <= 3) {
+          await tx.notification.create({
+            data: {
+              userId: seller.id,
+              type: NotificationType.LOW_STOCK,
+              message: `${freshListing.product.name} is running low. Only ${Math.max(
+                freshListing.quantity - selectedQuantity,
+                0,
+              )} left in your live listing.`,
+              createdAt: attemptedAt,
+            },
+          });
+        }
+
+        await tx.botCustomer.update({
+          where: { id: bot.id },
+          data: {
+            lastAttemptedAt: attemptedAt,
+            lastPurchasedAt: attemptedAt,
+            nextPurchaseAt,
+            loyaltyShopId:
+              bot.type === BotPersonality.LOYAL || bot.type === BotPersonality.QUALITY
+                ? freshListing.shopId
+                : bot.loyaltyShopId,
+          },
+        });
+
+        completedPurchase = true;
+      });
+    }
+
+    if (!completedPurchase) {
+      await prisma.botCustomer.update({
+        where: { id: bot.id },
+        data: {
+          lastAttemptedAt: attemptedAt,
+          nextPurchaseAt,
+        },
+      });
+    } else {
+      botPurchases += 1;
+      if (selectedShopId) {
+        recentBotSalesByShop.set(selectedShopId, (recentBotSalesByShop.get(selectedShopId) ?? 0) + 1);
+      }
+    }
 
     if (debug) {
       debugSnapshots.push({
         bot: bot.displayName,
+        attemptedAt: attemptedAt.toISOString(),
+        nextPurchaseAt: nextPurchaseAt.toISOString(),
         budget: bot.budget,
-        candidateShopIds: Array.from(new Set(affordable.map((listing) => listing.shopId))).sort(),
-        affordableListingCount: affordable.length,
-        selectedShopId: selection.shopId,
-        selectedProduct: selection.product.name,
+        candidateShopIds: Array.from(new Set(affordableListings.map((listing) => listing.shopId))).sort(),
+        affordableListingCount: affordableListings.length,
+        selectedShopId,
+        selectedProduct,
+        selectedQuantity,
+        completedPurchase,
       });
-    }
-
-    const maxAffordableUnits = Math.max(1, Math.floor(bot.budget / selection.price));
-    const desiredQuantity =
-      bot.type === BotPersonality.BULK
-        ? clamp(Math.min(maxAffordableUnits, selection.quantity), 2, 6)
-        : clamp(Math.min(maxAffordableUnits, selection.quantity), 1, 3);
-    const quantity =
-      desiredQuantity > 1 ? clamp(Math.ceil(Math.random() * desiredQuantity), 1, desiredQuantity) : 1;
-    const totalPrice = selection.price * quantity;
-
-    let completedPurchase = false;
-
-    await prisma.$transaction(async (tx) => {
-      const freshListing = await tx.listing.findUnique({
-        where: { id: selection.id },
-        include: {
-          product: true,
-          shop: true,
-        },
-      });
-
-      if (!freshListing || !freshListing.active || freshListing.quantity < quantity) {
-        return;
-      }
-
-      const botBuyer = await tx.user.findUnique({
-        where: { id: botWallet.id },
-        select: {
-          id: true,
-          balance: true,
-        },
-      });
-
-      const seller = await tx.user.findUnique({
-        where: { id: freshListing.shop.ownerId },
-      });
-
-      if (!botBuyer || botBuyer.balance < totalPrice || !seller) return;
-
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          userId_productId: {
-            userId: seller.id,
-            productId: freshListing.productId,
-          },
-        },
-        select: {
-          id: true,
-          quantity: true,
-          allocatedQuantity: true,
-        },
-      });
-
-      if (!inventory || inventory.quantity < quantity || inventory.allocatedQuantity < quantity) {
-        return;
-      }
-
-      const order = await tx.order.create({
-        data: {
-          buyerId: botBuyer.id,
-          sellerId: seller.id,
-          shopId: freshListing.shopId,
-          totalPrice,
-        },
-      });
-
-      await tx.orderLineItem.create({
-        data: {
-          orderId: order.id,
-          productId: freshListing.productId,
-          listingId: freshListing.id,
-          quantity,
-          unitPrice: freshListing.price,
-          lineTotal: totalPrice,
-        },
-      });
-
-      await tx.user.update({
-        where: { id: seller.id },
-        data: {
-          balance: {
-            increment: totalPrice,
-          },
-        },
-      });
-
-      await tx.user.update({
-        where: { id: botBuyer.id },
-        data: {
-          balance: {
-            decrement: totalPrice,
-          },
-        },
-      });
-
-      await tx.shop.update({
-        where: { id: freshListing.shopId },
-        data: {
-          totalRevenue: {
-            increment: totalPrice,
-          },
-          totalSales: {
-            increment: quantity,
-          },
-          rating: clamp(
-            freshListing.shop.rating + (bot.type === BotPersonality.QUALITY ? 0.05 : 0.02),
-            1,
-            5,
-          ),
-        },
-      });
-
-      await tx.listing.update({
-        where: { id: freshListing.id },
-        data: {
-          quantity: {
-            decrement: quantity,
-          },
-          active: freshListing.quantity - quantity > 0,
-        },
-      });
-
-      await tx.inventory.update({
-        where: { id: inventory.id },
-        data: {
-          quantity: {
-            decrement: quantity,
-          },
-          allocatedQuantity: {
-            decrement: quantity,
-          },
-        },
-      });
-
-      await tx.notification.create({
-        data: {
-          userId: seller.id,
-          type: NotificationType.SALE,
-          message: `${bot.displayName} bought ${quantity}x ${freshListing.product.name} for $${(
-            totalPrice / 100
-          ).toFixed(2)}.`,
-        },
-      });
-
-      if (freshListing.quantity - quantity <= 3) {
-        await tx.notification.create({
-          data: {
-            userId: seller.id,
-            type: NotificationType.LOW_STOCK,
-            message: `${freshListing.product.name} is running low. Only ${Math.max(
-              freshListing.quantity - quantity,
-              0,
-            )} left in your live listing.`,
-          },
-        });
-      }
-
-      await tx.botCustomer.update({
-        where: { id: bot.id },
-        data: {
-          lastPurchasedAt: now,
-          loyaltyShopId:
-            bot.type === BotPersonality.LOYAL || bot.type === BotPersonality.QUALITY
-              ? freshListing.shopId
-              : bot.loyaltyShopId,
-        },
-      });
-
-      completedPurchase = true;
-    });
-
-    if (completedPurchase) {
-      botPurchases += 1;
-      recentBotSalesByShop.set(selection.shopId, (recentBotSalesByShop.get(selection.shopId) ?? 0) + 1);
     }
   }
 
@@ -776,8 +936,34 @@ export async function runMarketSimulation(force = false, debug = false) {
     ...(debug
       ? {
           debug: {
-            eligibleBots: eligibleBots.length,
-            maxPurchasesThisTick,
+            bots: await prisma.botCustomer
+              .findMany({
+                where: {
+                  displayName: {
+                    in: INITIAL_BOTS.map((bot) => bot.displayName),
+                  },
+                },
+                orderBy: {
+                  displayName: "asc",
+                },
+                select: {
+                  displayName: true,
+                  nextPurchaseAt: true,
+                  lastAttemptedAt: true,
+                  lastPurchasedAt: true,
+                  loyaltyShopId: true,
+                },
+              })
+              .then((botStates) =>
+                botStates.map((botState) => ({
+                  bot: botState.displayName,
+                  nextPurchaseAt: botState.nextPurchaseAt?.toISOString() ?? null,
+                  lastAttemptedAt: botState.lastAttemptedAt?.toISOString() ?? null,
+                  lastPurchasedAt: botState.lastPurchasedAt?.toISOString() ?? null,
+                  loyaltyShopId: botState.loyaltyShopId,
+                })),
+              ),
+            dueBotsProcessed: dueBots.length,
             snapshots: debugSnapshots,
           },
         }
