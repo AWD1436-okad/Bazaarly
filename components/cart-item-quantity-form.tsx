@@ -15,7 +15,7 @@ export function CartItemQuantityForm({
   maxQuantity,
 }: CartItemQuantityFormProps) {
   const router = useRouter();
-  const [nextQuantity, setNextQuantity] = useState(quantity);
+  const [nextQuantity, setNextQuantity] = useState(String(quantity));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,13 +28,24 @@ export function CartItemQuantityForm({
   }
 
   async function updateItem() {
+    if (nextQuantity === "") {
+      setError("Enter a quantity or use 0 to remove");
+      return;
+    }
+
+    const parsedQuantity = Number.parseInt(nextQuantity, 10);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity < 0) {
+      setError("Enter a valid quantity");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
       const formData = new FormData();
       formData.set("cartItemId", cartItemId);
-      formData.set("quantity", String(nextQuantity));
+      formData.set("quantity", String(parsedQuantity));
 
       const response = await fetch("/cart/item", {
         method: "POST",
@@ -67,13 +78,17 @@ export function CartItemQuantityForm({
           value={nextQuantity}
           disabled={submitting}
           onChange={(event) => {
-            const parsed = Number(event.target.value);
-            if (!Number.isFinite(parsed)) {
-              setNextQuantity(0);
+            const nextValue = event.target.value;
+            if (nextValue === "") {
+              setNextQuantity("");
               return;
             }
 
-            setNextQuantity(Math.max(0, Math.min(maxQuantity, Math.floor(parsed))));
+            if (!/^\d+$/.test(nextValue)) {
+              return;
+            }
+
+            setNextQuantity(nextValue);
           }}
         />
         <button type="button" onClick={() => void updateItem()} disabled={submitting}>

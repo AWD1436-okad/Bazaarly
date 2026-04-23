@@ -13,7 +13,7 @@ export function SupplierPurchaseForm({
   supplierStock,
 }: SupplierPurchaseFormProps) {
   const router = useRouter();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +27,13 @@ export function SupplierPurchaseForm({
   }
 
   async function handlePurchase() {
+    const parsedQuantity = Number.parseInt(quantity, 10);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      setError("Please buy at least 1");
+      setFeedback(null);
+      return;
+    }
+
     setSubmitting(true);
     setFeedback(null);
     setError(null);
@@ -34,7 +41,7 @@ export function SupplierPurchaseForm({
     try {
       const formData = new FormData();
       formData.set("productId", productId);
-      formData.set("quantity", String(quantity));
+      formData.set("quantity", String(parsedQuantity));
 
       const response = await fetch("/supplier/buy", {
         method: "POST",
@@ -80,13 +87,17 @@ export function SupplierPurchaseForm({
           value={quantity}
           disabled={supplierStock <= 0 || submitting}
           onChange={(event) => {
-            const nextValue = Number(event.target.value);
-            if (!Number.isFinite(nextValue)) {
-              setQuantity(1);
+            const nextValue = event.target.value;
+            if (nextValue === "") {
+              setQuantity("");
               return;
             }
 
-            setQuantity(Math.max(1, Math.min(Math.max(supplierStock, 1), Math.floor(nextValue))));
+            if (!/^\d+$/.test(nextValue)) {
+              return;
+            }
+
+            setQuantity(nextValue);
           }}
         />
       </label>

@@ -1,3 +1,5 @@
+import type { Route } from "next";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -82,8 +84,20 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
               {hasNextPage ? " with more history available." : "."}
             </p>
             <div style={{ display: "flex", gap: "1rem" }}>
-              {hasPreviousPage ? <a href={buildNotificationsHref(page - 1)}>Previous</a> : <span />}
-              {hasNextPage ? <a href={buildNotificationsHref(page + 1)}>Next</a> : <span />}
+              {hasPreviousPage ? (
+                <Link href={buildNotificationsHref(page - 1) as Route} scroll={false}>
+                  Previous
+                </Link>
+              ) : (
+                <span />
+              )}
+              {hasNextPage ? (
+                <Link href={buildNotificationsHref(page + 1) as Route} scroll={false}>
+                  Next
+                </Link>
+              ) : (
+                <span />
+              )}
             </div>
           </div>
         )}

@@ -1,3 +1,5 @@
+import type { Route } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ListingCard } from "@/components/listing-card";
@@ -87,12 +89,16 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             </p>
             <div style={{ display: "flex", gap: "1rem" }}>
               {shop.hasPreviousPage ? (
-                <a href={buildShopHref(shopId, shop.currentPage - 1)}>Previous</a>
+                <Link href={buildShopHref(shopId, shop.currentPage - 1) as Route} scroll={false}>
+                  Previous
+                </Link>
               ) : (
                 <span />
               )}
               {shop.hasNextPage ? (
-                <a href={buildShopHref(shopId, shop.currentPage + 1)}>Next</a>
+                <Link href={buildShopHref(shopId, shop.currentPage + 1) as Route} scroll={false}>
+                  Next
+                </Link>
               ) : (
                 <span />
               )}

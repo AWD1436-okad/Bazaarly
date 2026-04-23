@@ -10,12 +10,19 @@ type InlineCartActionsProps = {
 
 export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsProps) {
   const router = useRouter();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function submitCartAction(mode: "add" | "buy") {
+    const parsedQuantity = Number.parseInt(quantity, 10);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      setError("Please buy at least 1");
+      setFeedback(null);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setFeedback(null);
@@ -23,7 +30,7 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
     try {
       const formData = new FormData();
       formData.set("listingId", listingId);
-      formData.set("quantity", String(quantity));
+      formData.set("quantity", String(parsedQuantity));
 
       const response = await fetch("/cart/add", {
         method: "POST",
@@ -62,13 +69,17 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
           max={maxQuantity}
           value={quantity}
           onChange={(event) => {
-            const nextValue = Number(event.target.value);
-            if (!Number.isFinite(nextValue)) {
-              setQuantity(1);
+            const nextValue = event.target.value;
+            if (nextValue === "") {
+              setQuantity("");
               return;
             }
 
-            setQuantity(Math.max(1, Math.min(maxQuantity, Math.floor(nextValue))));
+            if (!/^\d+$/.test(nextValue)) {
+              return;
+            }
+
+            setQuantity(nextValue);
           }}
           disabled={submitting}
         />

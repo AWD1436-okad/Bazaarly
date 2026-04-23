@@ -1,3 +1,5 @@
+import type { Route } from "next";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -166,28 +168,30 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                   </p>
                   <div style={{ display: "flex", gap: "1rem" }}>
                     {hasPreviousBuyerPage ? (
-                      <a
+                      <Link
                         href={buildOrdersHref({
                           checkout,
                           buyerPage: buyerPage - 1,
                           sellerPage,
-                        })}
+                        }) as Route}
+                        scroll={false}
                       >
                         Previous
-                      </a>
+                      </Link>
                     ) : (
                       <span />
                     )}
                     {hasNextBuyerPage ? (
-                      <a
+                      <Link
                         href={buildOrdersHref({
                           checkout,
                           buyerPage: buyerPage + 1,
                           sellerPage,
-                        })}
+                        }) as Route}
+                        scroll={false}
                       >
                         Next
-                      </a>
+                      </Link>
                     ) : (
                       <span />
                     )}
@@ -226,28 +230,30 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                   </p>
                   <div style={{ display: "flex", gap: "1rem" }}>
                     {hasPreviousSellerPage ? (
-                      <a
+                      <Link
                         href={buildOrdersHref({
                           checkout,
                           buyerPage,
                           sellerPage: sellerPage - 1,
-                        })}
+                        }) as Route}
+                        scroll={false}
                       >
                         Previous
-                      </a>
+                      </Link>
                     ) : (
                       <span />
                     )}
                     {hasNextSellerPage ? (
-                      <a
+                      <Link
                         href={buildOrdersHref({
                           checkout,
                           buyerPage,
                           sellerPage: sellerPage + 1,
-                        })}
+                        }) as Route}
+                        scroll={false}
                       >
                         Next
-                      </a>
+                      </Link>
                     ) : (
                       <span />
                     )}

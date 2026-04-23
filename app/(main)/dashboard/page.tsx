@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
@@ -389,20 +390,22 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 </span>
                 <div className="table-row__actions">
                   {inventoryPage > 1 ? (
-                    <a
-                      href={buildDashboardHref(params, { inventoryPage: inventoryPage - 1 })}
+                    <Link
+                      href={buildDashboardHref(params, { inventoryPage: inventoryPage - 1 }) as Route}
                       className="ghost-button"
+                      scroll={false}
                     >
                       Previous
-                    </a>
+                    </Link>
                   ) : null}
                   {hasNextInventoryPage ? (
-                    <a
-                      href={buildDashboardHref(params, { inventoryPage: inventoryPage + 1 })}
+                    <Link
+                      href={buildDashboardHref(params, { inventoryPage: inventoryPage + 1 }) as Route}
                       className="ghost-button"
+                      scroll={false}
                     >
                       Next
-                    </a>
+                    </Link>
                   ) : null}
                 </div>
               </div>
@@ -452,20 +455,22 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 <span className="muted">Showing page {listingsPage} of your listings</span>
                 <div className="table-row__actions">
                   {listingsPage > 1 ? (
-                    <a
-                      href={buildDashboardHref(params, { listingsPage: listingsPage - 1 })}
+                    <Link
+                      href={buildDashboardHref(params, { listingsPage: listingsPage - 1 }) as Route}
                       className="ghost-button"
+                      scroll={false}
                     >
                       Previous
-                    </a>
+                    </Link>
                   ) : null}
                   {hasNextListingsPage ? (
-                    <a
-                      href={buildDashboardHref(params, { listingsPage: listingsPage + 1 })}
+                    <Link
+                      href={buildDashboardHref(params, { listingsPage: listingsPage + 1 }) as Route}
                       className="ghost-button"
+                      scroll={false}
                     >
                       Next
-                    </a>
+                    </Link>
                   ) : null}
                 </div>
               </div>
