@@ -761,7 +761,9 @@ textarea {
 }
 
 .listing-card__purchase-stack,
-.cart-item-quantity-form {
+.cart-item-quantity-form,
+.dashboard-listing-manage-form,
+.dashboard-listing-form__actions {
   display: grid;
   gap: 0.35rem;
 }

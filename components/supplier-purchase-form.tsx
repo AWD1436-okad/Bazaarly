@@ -18,6 +18,14 @@ export function SupplierPurchaseForm({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  function refreshInPlace() {
+    const scrollY = window.scrollY;
+    router.refresh();
+    window.setTimeout(() => {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+    }, 60);
+  }
+
   async function handlePurchase() {
     setSubmitting(true);
     setFeedback(null);
@@ -51,7 +59,7 @@ export function SupplierPurchaseForm({
           ? "Restocked your existing listing"
           : "Added to inventory",
       );
-      router.refresh();
+      refreshInPlace();
     } catch (purchaseError) {
       setError(
         purchaseError instanceof Error ? purchaseError.message : "Supplier purchase failed",

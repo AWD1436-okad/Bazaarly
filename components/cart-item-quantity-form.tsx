@@ -19,6 +19,14 @@ export function CartItemQuantityForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function refreshInPlace() {
+    const scrollY = window.scrollY;
+    router.refresh();
+    window.setTimeout(() => {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+    }, 60);
+  }
+
   async function updateItem() {
     setSubmitting(true);
     setError(null);
@@ -41,7 +49,7 @@ export function CartItemQuantityForm({
         throw new Error(payload.error ?? "Unable to update cart item");
       }
 
-      router.refresh();
+      refreshInPlace();
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Unable to update cart item");
     } finally {

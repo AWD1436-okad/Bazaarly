@@ -457,4 +457,11 @@ export const INITIAL_BOTS = [
     preferenceCategory: ProductCategory.BAKERY_AND_GRAINS,
     activityLevel: 62,
   },
+  {
+    displayName: "Random Riley",
+    type: BotPersonality.RANDOM,
+    budget: 6100,
+    preferenceCategory: ProductCategory.SCHOOL_AND_MISC,
+    activityLevel: 58,
+  },
 ] as const;

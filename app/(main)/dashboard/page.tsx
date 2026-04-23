@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
+import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
 import { SoldOutListingActions } from "@/components/sold-out-listing-actions";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
@@ -344,33 +346,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               </Link>
             </div>
             {listingOptions.length > 0 ? (
-              <form action="/listings/save" method="post" className="stack-sm">
-                <label>
-                  Product
-                  <select name="productId" defaultValue="">
-                    <option value="" disabled>
-                      Choose inventory
-                    </option>
-                    {listingOptions.map((item) => (
-                        <option key={item.inventoryId} value={item.productId}>
-                          {item.productName} - {item.availableToList} available to list -{" "}
-                          {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label>
-                  Sale price per unit
-                  <input
-                    name="price"
-                    type="number"
-                    min={0.01}
-                    step="0.01"
-                    defaultValue={defaultListingPrice}
-                  />
-                </label>
-                <button type="submit">Publish listing</button>
-              </form>
+              <DashboardListingCreateForm
+                listingOptions={listingOptions}
+                defaultListingPrice={defaultListingPrice}
+              />
             ) : (
               <div className="empty-state">
                   All of your current stock is already live in listings, or your inventory is empty.
@@ -451,23 +430,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     <div className="table-row__actions">
                       {listing.quantity > 0 ? (
                         <>
-                          <form action="/listings/save" method="post" className="inline-form">
-                            <input type="hidden" name="productId" value={listing.productId} />
-                            <input
-                              name="price"
-                              type="number"
-                              min={0.01}
-                              step="0.01"
-                              defaultValue={(listing.price / 100).toFixed(2)}
-                            />
-                            <button type="submit">Save</button>
-                          </form>
-                          <form action="/listings/pause" method="post">
-                            <input type="hidden" name="listingId" value={listing.id} />
-                            <button type="submit" className="ghost-button">
-                              Remove
-                            </button>
-                          </form>
+                          <DashboardListingManageForm
+                            listingId={listing.id}
+                            productId={listing.productId}
+                            defaultPrice={(listing.price / 100).toFixed(2)}
+                          />
                         </>
                       ) : (
                         <SoldOutListingActions

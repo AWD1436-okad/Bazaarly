@@ -20,6 +20,14 @@ export function SoldOutListingActions({
   const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<number | null>(null);
 
+  function refreshInPlace() {
+    const scrollY = window.scrollY;
+    router.refresh();
+    window.setTimeout(() => {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+    }, 60);
+  }
+
   function clearLongPress() {
     if (timeoutRef.current !== null) {
       window.clearTimeout(timeoutRef.current);
@@ -61,7 +69,7 @@ export function SoldOutListingActions({
       }
 
       setMenuOpen(false);
-      router.refresh();
+      refreshInPlace();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete listing");
     } finally {
