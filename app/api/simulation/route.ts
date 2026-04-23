@@ -18,13 +18,14 @@ function isCronRequest(request: Request) {
   return userAgent.includes("vercel-cron");
 }
 
-async function respondToSimulationTick() {
-  const result = await runMarketSimulation(false);
+async function respondToSimulationTick(debug = false) {
+  const result = await runMarketSimulation(false, debug);
   return NextResponse.json(result);
 }
 
-export async function POST() {
-  return respondToSimulationTick();
+export async function POST(request: Request) {
+  const { searchParams } = new URL(request.url);
+  return respondToSimulationTick(searchParams.get("debug") === "1");
 }
 
 export async function GET(request: Request) {
@@ -32,5 +33,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  return respondToSimulationTick();
+  const { searchParams } = new URL(request.url);
+  return respondToSimulationTick(searchParams.get("debug") === "1");
 }

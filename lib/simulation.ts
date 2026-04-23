@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import { subMinutes } from "date-fns";
 
+import { INITIAL_BOTS } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ const BOT_MIN_PURCHASE_INTERVAL_MS = 30 * 1000;
 const BOT_INTERVAL_VARIANCE_MS = 60 * 1000;
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
+const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 
 function getCategoryAffinityScore(
   preferenceCategory: ProductCategory,
@@ -117,6 +119,46 @@ function getBotRecencyScore(lastPurchasedAt: Date | null, now: Date, intervalMs:
   return clamp(elapsed / intervalMs, 0, 1.5);
 }
 
+async function ensureActiveBotPool() {
+  for (const bot of INITIAL_BOTS) {
+    await prisma.botCustomer.upsert({
+      where: { displayName: bot.displayName },
+      update: {
+        type: bot.type,
+        budget: bot.budget,
+        preferenceCategory: bot.preferenceCategory,
+        activityLevel: bot.activityLevel,
+        active: true,
+      },
+      create: {
+        displayName: bot.displayName,
+        type: bot.type,
+        budget: bot.budget,
+        preferenceCategory: bot.preferenceCategory,
+        activityLevel: bot.activityLevel,
+        active: true,
+      },
+    });
+  }
+}
+
+function getEffectiveLoyaltyShopId(
+  bot: {
+    loyaltyShopId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+) {
+  if (!bot.loyaltyShopId) {
+    return null;
+  }
+
+  const looksSeeded =
+    Math.abs(bot.updatedAt.getTime() - bot.createdAt.getTime()) <= SEEDED_LOYALTY_GRACE_MS;
+
+  return looksSeeded ? null : bot.loyaltyShopId;
+}
+
 function getCurrentPhase(date: Date) {
   const hour = date.getHours();
 
@@ -189,11 +231,12 @@ function scoreBotCandidate(
   listing: {
     price: number;
     quantity: number;
-    shop: { id: string; rating: number };
+    shop: { id: string; rating: number; totalSales: number };
     product: {
       category: ProductCategory;
       marketState: {
         demandScore: number;
+        marketAveragePrice: number;
       } | null;
     };
   },
@@ -203,30 +246,82 @@ function scoreBotCandidate(
   shopBreadthScore: number,
 ) {
   const affordability = 2200 / Math.max(listing.price, 120);
-  const ratingFactor = listing.shop.rating * 4;
+  const relativeDealScore = clamp(
+    (listing.product.marketState?.marketAveragePrice ?? listing.price) / Math.max(listing.price, 1),
+    0.74,
+    1.26,
+  );
+  const ratingFactor = listing.shop.rating * 3.1;
   const stockFactor = Math.min(listing.quantity, 14);
-  const loyaltyFactor = loyaltyShopId && loyaltyShopId === listing.shop.id ? 30 : 0;
+  const loyaltyFactor = loyaltyShopId && loyaltyShopId === listing.shop.id ? 16 : 0;
   const categoryAffinity = getCategoryAffinityScore(preferenceCategory, listing.product.category);
   const demandFactor = listing.product.marketState?.demandScore ?? 1;
   const demandBoost = clamp(demandFactor, 0.82, 1.35) * 10;
-  const recentSalesPenalty = clamp(1 - recentBotSalesForShop * 0.12, 0.58, 1);
-  const assortmentBoost = shopBreadthScore * 9;
+  const recentSalesPenalty = clamp(1 - recentBotSalesForShop * 0.07, 0.72, 1.06);
+  const assortmentBoost = shopBreadthScore * 5;
+  const discoveryBoost = clamp(
+    1.08 +
+      clamp((18 - Math.min(listing.shop.totalSales, 18)) / 120, 0, 0.16) -
+      recentBotSalesForShop * 0.04,
+    0.9,
+    1.16,
+  );
+  const randomnessBoost = 1 + Math.random() * 0.12;
 
   switch (personality) {
     case BotPersonality.BUDGET:
-      return (affordability * 18 + stockFactor + demandBoost + assortmentBoost + loyaltyFactor * 0.4) * categoryAffinity * recentSalesPenalty;
+      return (
+        affordability * 15 +
+        relativeDealScore * 24 +
+        stockFactor +
+        demandBoost +
+        assortmentBoost +
+        loyaltyFactor * 0.35
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
     case BotPersonality.QUALITY:
-      return (ratingFactor * 4 + stockFactor * 0.5 + affordability * 5 + demandBoost + assortmentBoost + loyaltyFactor * 0.8) * categoryAffinity * recentSalesPenalty;
+      return (
+        ratingFactor * 3.4 +
+        stockFactor * 0.5 +
+        affordability * 4 +
+        relativeDealScore * 18 +
+        demandBoost +
+        assortmentBoost +
+        loyaltyFactor * 0.65
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
     case BotPersonality.LOYAL:
-      return (loyaltyFactor + ratingFactor * 2 + stockFactor + demandBoost * 0.6 + assortmentBoost) * categoryAffinity * recentSalesPenalty;
+      return (
+        loyaltyFactor +
+        ratingFactor * 1.8 +
+        stockFactor +
+        relativeDealScore * 12 +
+        demandBoost * 0.6 +
+        assortmentBoost
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
     case BotPersonality.BULK:
-      return (stockFactor * 3 + affordability * 10 + demandBoost * 0.7 + assortmentBoost * 1.2 + loyaltyFactor) * categoryAffinity * recentSalesPenalty;
+      return (
+        stockFactor * 3 +
+        affordability * 9 +
+        relativeDealScore * 10 +
+        demandBoost * 0.7 +
+        assortmentBoost * 1.15 +
+        loyaltyFactor
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
     default:
-      return (affordability * 10 + ratingFactor * 1.5 + stockFactor + demandBoost + assortmentBoost + Math.random() * 12) * categoryAffinity * recentSalesPenalty;
+      return (
+        affordability * 9 +
+        ratingFactor * 1.4 +
+        relativeDealScore * 14 +
+        stockFactor +
+        demandBoost +
+        assortmentBoost +
+        Math.random() * 12
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost;
   }
 }
 
-export async function runMarketSimulation(force = false) {
+export async function runMarketSimulation(force = false, debug = false) {
+  await ensureActiveBotPool();
+
   const now = new Date();
   const worldState =
     (await prisma.worldState.findUnique({ where: { id: "global" } })) ??
@@ -412,9 +507,17 @@ export async function runMarketSimulation(force = false) {
       : Math.min(4, eligibleBots.length, Math.max(1, Math.round(weightedPurchaseBudget)));
 
   let botPurchases = 0;
+  const debugSnapshots: Array<{
+    bot: string;
+    budget: number;
+    candidateShopIds: string[];
+    affordableListingCount: number;
+    selectedShopId: string | null;
+    selectedProduct: string | null;
+  }> = [];
 
   for (const { bot } of eligibleBots.slice(0, maxPurchasesThisTick)) {
-
+    const effectiveLoyaltyShopId = getEffectiveLoyaltyShopId(bot);
     const candidates = await prisma.listing.findMany({
       where: {
         active: true,
@@ -427,6 +530,7 @@ export async function runMarketSimulation(force = false) {
             marketState: {
               select: {
                 demandScore: true,
+                marketAveragePrice: true,
               },
             },
           },
@@ -436,7 +540,19 @@ export async function runMarketSimulation(force = false) {
     });
 
     const affordable = candidates.filter((listing) => listing.price <= bot.budget);
-    if (affordable.length === 0) continue;
+    if (affordable.length === 0) {
+      if (debug) {
+        debugSnapshots.push({
+          bot: bot.displayName,
+          budget: bot.budget,
+          candidateShopIds: [],
+          affordableListingCount: 0,
+          selectedShopId: null,
+          selectedProduct: null,
+        });
+      }
+      continue;
+    }
 
     const selection = pickWeighted(
       affordable.map((listing) => ({
@@ -446,7 +562,7 @@ export async function runMarketSimulation(force = false) {
           scoreBotCandidate(
             bot.type,
             listing,
-            bot.loyaltyShopId ?? null,
+            effectiveLoyaltyShopId,
             bot.preferenceCategory,
             recentBotSalesByShop.get(listing.shopId) ?? 0,
             shopBreadthByShop.get(listing.shopId) ?? 0,
@@ -456,6 +572,17 @@ export async function runMarketSimulation(force = false) {
     );
 
     if (!selection) continue;
+
+    if (debug) {
+      debugSnapshots.push({
+        bot: bot.displayName,
+        budget: bot.budget,
+        candidateShopIds: Array.from(new Set(affordable.map((listing) => listing.shopId))).sort(),
+        affordableListingCount: affordable.length,
+        selectedShopId: selection.shopId,
+        selectedProduct: selection.product.name,
+      });
+    }
 
     const maxAffordableUnits = Math.max(1, Math.floor(bot.budget / selection.price));
     const desiredQuantity =
@@ -646,5 +773,14 @@ export async function runMarketSimulation(force = false) {
     skipped: false,
     botPurchases,
     phase,
+    ...(debug
+      ? {
+          debug: {
+            eligibleBots: eligibleBots.length,
+            maxPurchasesThisTick,
+            snapshots: debugSnapshots,
+          },
+        }
+      : {}),
   };
 }

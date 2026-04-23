@@ -689,12 +689,7 @@ async function main() {
         type: bot.type,
         budget: bot.budget,
         preferenceCategory: bot.preferenceCategory,
-        loyaltyShopId:
-          bot.type === "LOYAL"
-            ? users.get("jordan")?.shopId
-            : bot.type === "QUALITY"
-              ? users.get("avery")?.shopId
-              : null,
+        loyaltyShopId: null,
         activityLevel: bot.activityLevel,
         active: true,
       },
@@ -703,12 +698,7 @@ async function main() {
         type: bot.type,
         budget: bot.budget,
         preferenceCategory: bot.preferenceCategory,
-        loyaltyShopId:
-          bot.type === "LOYAL"
-            ? users.get("jordan")?.shopId
-            : bot.type === "QUALITY"
-              ? users.get("avery")?.shopId
-              : null,
+        loyaltyShopId: null,
         activityLevel: bot.activityLevel,
         lastPurchasedAt: subHours(new Date(), Math.floor(Math.random() * 9) + 1),
       },
