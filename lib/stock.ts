@@ -6,6 +6,15 @@ export function sanitizeStockCount(quantity: number | null | undefined) {
   return Math.max(0, Math.floor(quantity));
 }
 
+export function getFreeInventoryQuantity(
+  inventoryQuantity: number | null | undefined,
+  allocatedQuantity: number | null | undefined,
+) {
+  return sanitizeStockCount(
+    sanitizeStockCount(inventoryQuantity) - sanitizeStockCount(allocatedQuantity),
+  );
+}
+
 export function getLiveStockStatusMessage(quantity: number | null | undefined) {
   const safeQuantity = sanitizeStockCount(quantity);
 

@@ -37,6 +37,14 @@ export function DashboardListingCreateForm({
   }
 
   async function handlePublish() {
+    const selectedOption = listingOptions.find((item) => item.productId === productId);
+
+    if (!selectedOption || selectedOption.availableToList <= 0) {
+      setFeedback(null);
+      setError("No free inventory is available to list");
+      return;
+    }
+
     setSubmitting(true);
     setFeedback(null);
     setError(null);
@@ -59,7 +67,7 @@ export function DashboardListingCreateForm({
         throw new Error(payload.error ?? "Unable to publish listing");
       }
 
-      setFeedback("Listing updated");
+      setFeedback("Listing published successfully");
       refreshInPlace();
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "Unable to publish listing");

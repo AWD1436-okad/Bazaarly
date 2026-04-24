@@ -12,7 +12,7 @@ import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
-import { getLiveStockStatusMessage } from "@/lib/stock";
+import { getFreeInventoryQuantity, getLiveStockStatusMessage } from "@/lib/stock";
 
 const INVENTORY_PAGE_SIZE = 12;
 const LISTING_PAGE_SIZE = 12;
@@ -104,31 +104,68 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     soldOutListingCount,
   ] =
     await Promise.all([
-      prisma.$queryRaw<FreeInventoryRow[]>(Prisma.sql`
-        SELECT
-          i."id" AS "inventoryId",
-          i."productId" AS "productId",
-          p."name" AS "productName",
-          p."unitLabel" AS "unitLabel",
-          GREATEST(i."quantity" - i."allocatedQuantity", 0)::int AS "availableToList",
-          COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
-        ${freeInventoryBaseQuery}
-        ORDER BY p."name" ASC
-        LIMIT ${LISTING_OPTION_LIMIT}
-      `),
-      prisma.$queryRaw<FreeInventoryRow[]>(Prisma.sql`
-        SELECT
-          i."id" AS "inventoryId",
-          i."productId" AS "productId",
-          p."name" AS "productName",
-          p."unitLabel" AS "unitLabel",
-          GREATEST(i."quantity" - i."allocatedQuantity", 0)::int AS "availableToList",
-          COALESCE(ms."marketAveragePrice", p."basePrice")::int AS "marketAveragePrice"
-        ${freeInventoryBaseQuery}
-        ORDER BY p."name" ASC
-        OFFSET ${inventoryOffset}
-        LIMIT ${INVENTORY_PAGE_SIZE + 1}
-      `),
+      prisma.inventory.findMany({
+        where: {
+          userId: user.id,
+          quantity: {
+            gt: 0,
+          },
+        },
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          allocatedQuantity: true,
+          product: {
+            select: {
+              name: true,
+              unitLabel: true,
+              basePrice: true,
+              marketState: {
+                select: {
+                  marketAveragePrice: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          product: {
+            name: "asc",
+          },
+        },
+      }),
+      prisma.inventory.findMany({
+        where: {
+          userId: user.id,
+          quantity: {
+            gt: 0,
+          },
+        },
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          allocatedQuantity: true,
+          product: {
+            select: {
+              name: true,
+              unitLabel: true,
+              basePrice: true,
+              marketState: {
+                select: {
+                  marketAveragePrice: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          product: {
+            name: "asc",
+          },
+        },
+      }),
       prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
         SELECT COUNT(*)::bigint AS "count"
         ${freeInventoryBaseQuery}
@@ -262,13 +299,39 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       }),
     ]);
 
-  const visibleInventory = freeInventoryRows.slice(0, INVENTORY_PAGE_SIZE);
-  const hasNextInventoryPage = freeInventoryRows.length > INVENTORY_PAGE_SIZE;
+  const listingOptionRows = listingOptions
+    .map((item) => ({
+      inventoryId: item.id,
+      productId: item.productId,
+      productName: item.product.name,
+      unitLabel: item.product.unitLabel,
+      availableToList: getFreeInventoryQuantity(item.quantity, item.allocatedQuantity),
+      marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
+    }))
+    .filter((item) => item.availableToList > 0)
+    .slice(0, LISTING_OPTION_LIMIT);
+  const freeInventoryRowList = freeInventoryRows
+    .map((item) => ({
+      inventoryId: item.id,
+      productId: item.productId,
+      productName: item.product.name,
+      unitLabel: item.product.unitLabel,
+      availableToList: getFreeInventoryQuantity(item.quantity, item.allocatedQuantity),
+      marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
+    }))
+    .filter((item) => item.availableToList > 0);
+  const visibleInventory = freeInventoryRowList.slice(
+    inventoryOffset,
+    inventoryOffset + INVENTORY_PAGE_SIZE,
+  );
+  const hasNextInventoryPage = freeInventoryRowList.length > inventoryOffset + INVENTORY_PAGE_SIZE;
   const freeInventoryCount = Number(freeInventoryCountRows[0]?.count ?? 0);
   const visibleListings = listings.slice(0, LISTING_PAGE_SIZE);
   const hasNextListingsPage = listings.length > LISTING_PAGE_SIZE;
   const defaultListingPrice =
-    listingOptions.length > 0 ? (listingOptions[0].marketAveragePrice / 100).toFixed(2) : "2.50";
+    listingOptionRows.length > 0
+      ? (listingOptionRows[0].marketAveragePrice / 100).toFixed(2)
+      : "2.50";
   const todayRevenue = todayRevenueSummary._sum.totalPrice ?? 0;
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
@@ -357,9 +420,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 </Link>
               </div>
             </div>
-            {listingOptions.length > 0 ? (
+            {listingOptionRows.length > 0 ? (
               <DashboardListingCreateForm
-                listingOptions={listingOptions}
+                listingOptions={listingOptionRows}
                 defaultListingPrice={defaultListingPrice}
               />
             ) : (

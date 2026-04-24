@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePriceInput, parseRouteId } from "@/lib/route-validation";
-import { sanitizeStockCount } from "@/lib/stock";
+import { getFreeInventoryQuantity, sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -78,22 +78,24 @@ export async function POST(request: Request) {
         },
       });
 
-      const currentlyAllocated = sanitizeStockCount(
-        inventory.allocatedQuantity - (listing?.quantity ?? 0),
+      const quantityToList = getFreeInventoryQuantity(
+        inventory.quantity,
+        inventory.allocatedQuantity,
       );
-      const quantity = sanitizeStockCount(inventory.quantity - currentlyAllocated);
 
-      if (quantity <= 0) {
+      if (quantityToList <= 0) {
         throw new Error("No free inventory is available to list");
       }
+
+      const nextListingQuantity = sanitizeStockCount((listing?.quantity ?? 0) + quantityToList);
 
       if (listing) {
         await tx.listing.update({
           where: { id: listing.id },
           data: {
             price: priceCents,
-            quantity,
-            active: quantity > 0,
+            quantity: nextListingQuantity,
+            active: nextListingQuantity > 0,
           },
         });
       } else {
@@ -102,7 +104,7 @@ export async function POST(request: Request) {
             shopId: shop.id,
             productId,
             price: priceCents,
-            quantity,
+            quantity: quantityToList,
             active: true,
           },
         });
@@ -111,7 +113,7 @@ export async function POST(request: Request) {
       await tx.inventory.update({
         where: { id: inventory.id },
         data: {
-          allocatedQuantity: sanitizeStockCount(currentlyAllocated + quantity),
+          allocatedQuantity: sanitizeStockCount(inventory.allocatedQuantity + quantityToList),
         },
       });
 
@@ -137,7 +139,7 @@ export async function POST(request: Request) {
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
   if (asyncRequest) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, message: "Listing published successfully" });
   }
   return NextResponse.redirect(new URL("/dashboard?listingSuccess=1", request.url), 303);
 }
