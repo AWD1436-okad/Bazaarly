@@ -5,6 +5,7 @@ import { useState } from "react";
 
 type SettingsActionsProps = {
   username: string;
+  displayName: string;
   currentShopName: string | null;
   canRenameStore: boolean;
 };
@@ -21,24 +22,111 @@ const initialState: ActionState = {
 
 export function SettingsActions({
   username,
+  displayName,
   currentShopName,
   canRenameStore,
 }: SettingsActionsProps) {
   const router = useRouter();
+  const [usernameOpen, setUsernameOpen] = useState(false);
+  const [displayNameOpen, setDisplayNameOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [nextUsername, setNextUsername] = useState(username);
+  const [usernamePassword, setUsernamePassword] = useState("");
+  const [nextDisplayName, setNextDisplayName] = useState(displayName);
+  const [displayNamePassword, setDisplayNamePassword] = useState("");
   const [renameName, setRenameName] = useState(currentShopName ?? "");
   const [renamePassword, setRenamePassword] = useState("");
   const [logoutPassword, setLogoutPassword] = useState("");
   const [deleteUsername, setDeleteUsername] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [submitting, setSubmitting] = useState<null | "rename" | "logout" | "delete">(null);
+  const [submitting, setSubmitting] = useState<
+    null | "username" | "displayName" | "rename" | "logout" | "delete"
+  >(null);
   const [state, setState] = useState<ActionState>(initialState);
 
   function resetMessages() {
     setState(initialState);
+  }
+
+  async function handleUsernameChange() {
+    setSubmitting("username");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("username", nextUsername);
+      formData.set("password", usernamePassword);
+
+      const response = await fetch("/settings/rename-username", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        username?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Username change failed");
+      }
+
+      setState({ message: payload.message ?? "Username changed successfully", error: null });
+      setNextUsername(payload.username ?? nextUsername);
+      setUsernamePassword("");
+      setUsernameOpen(false);
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Username change failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function handleDisplayNameChange() {
+    setSubmitting("displayName");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("displayName", nextDisplayName);
+      formData.set("password", displayNamePassword);
+
+      const response = await fetch("/settings/rename-display-name", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        displayName?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Display name change failed");
+      }
+
+      setState({ message: payload.message ?? "Display name changed successfully", error: null });
+      setNextDisplayName(payload.displayName ?? nextDisplayName);
+      setDisplayNamePassword("");
+      setDisplayNameOpen(false);
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Display name change failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
   }
 
   async function handleRename() {
@@ -169,6 +257,50 @@ export function SettingsActions({
       <section className="card settings-card">
         <div className="card-header">
           <div className="card-header__copy">
+            <h2>Change Username</h2>
+            <p>Update your login handle after password confirmation.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              resetMessages();
+              setNextUsername(username);
+              setUsernamePassword("");
+              setUsernameOpen(true);
+            }}
+            disabled={submitting !== null}
+          >
+            Change Username
+          </button>
+        </div>
+        <p className="muted">Current username: @{username}</p>
+      </section>
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
+            <h2>Change Display Name</h2>
+            <p>Update the name other users see across orders, sales, and account screens.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              resetMessages();
+              setNextDisplayName(displayName);
+              setDisplayNamePassword("");
+              setDisplayNameOpen(true);
+            }}
+            disabled={submitting !== null}
+          >
+            Change Display Name
+          </button>
+        </div>
+        <p className="muted">Current display name: {displayName}</p>
+      </section>
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
             <h2>Rename Store</h2>
             <p>Cost: $200.00. This updates your public shop name after password confirmation.</p>
           </div>
@@ -235,6 +367,118 @@ export function SettingsActions({
           be used.
         </p>
       </section>
+
+      {usernameOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setUsernameOpen(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="change-username-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-card__copy">
+              <h3 id="change-username-title">Change Username</h3>
+              <p>Use 3-24 letters, numbers, underscores, or hyphens.</p>
+            </div>
+            <label className="modal-card__field">
+              New username
+              <input
+                value={nextUsername}
+                onChange={(event) => setNextUsername(event.target.value)}
+                autoComplete="username"
+                disabled={submitting !== null}
+              />
+            </label>
+            <label className="modal-card__field">
+              Password
+              <input
+                value={usernamePassword}
+                onChange={(event) => setUsernamePassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                disabled={submitting !== null}
+              />
+            </label>
+            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+            <div className="modal-card__actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setUsernameOpen(false)}
+                disabled={submitting !== null}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUsernameChange()}
+                disabled={submitting !== null}
+              >
+                {submitting === "username" ? "Changing..." : "Change Username"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {displayNameOpen ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setDisplayNameOpen(false)}
+        >
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="change-display-name-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-card__copy">
+              <h3 id="change-display-name-title">Change Display Name</h3>
+              <p>Enter the name people should see across Bazaarly.</p>
+            </div>
+            <label className="modal-card__field">
+              New display name
+              <input
+                value={nextDisplayName}
+                onChange={(event) => setNextDisplayName(event.target.value)}
+                autoComplete="name"
+                disabled={submitting !== null}
+              />
+            </label>
+            <label className="modal-card__field">
+              Password
+              <input
+                value={displayNamePassword}
+                onChange={(event) => setDisplayNamePassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                disabled={submitting !== null}
+              />
+            </label>
+            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+            <div className="modal-card__actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setDisplayNameOpen(false)}
+                disabled={submitting !== null}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDisplayNameChange()}
+                disabled={submitting !== null}
+              >
+                {submitting === "displayName" ? "Changing..." : "Change Display Name"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {renameOpen ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setRenameOpen(false)}>

@@ -35,6 +35,7 @@ export default async function SettingsPage() {
 
       <SettingsActions
         username={user.username}
+        displayName={user.displayName}
         currentShopName={user.shop?.name ?? null}
         canRenameStore={Boolean(user.shop)}
       />
