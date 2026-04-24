@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/brand-logo";
@@ -66,6 +67,9 @@ export function Navigation({
         </Link>
         <Link href="/cart" className="topbar-link">
           Cart
+        </Link>
+        <Link href={"/settings" as Route} className="topbar-link">
+          Settings
         </Link>
         <form action="/auth/logout" method="post">
           <button type="submit" className="ghost-button small">

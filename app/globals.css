@@ -70,6 +70,11 @@ button:disabled,
   transform: none;
 }
 
+.danger-button {
+  background: var(--danger);
+  color: white;
+}
+
 .ghost-button {
   display: inline-flex;
   align-items: center;
@@ -930,6 +935,10 @@ textarea {
   box-shadow: 0 22px 70px rgba(31, 41, 51, 0.22);
 }
 
+.modal-card--danger {
+  border-color: rgba(180, 35, 24, 0.34);
+}
+
 .modal-card__copy {
   display: grid;
   gap: 0.35rem;
@@ -952,6 +961,23 @@ textarea {
   justify-content: flex-end;
   gap: 0.7rem;
   flex-wrap: wrap;
+}
+
+.settings-actions {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.settings-card {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-card--danger {
+  border-color: rgba(180, 35, 24, 0.28);
+  background:
+    linear-gradient(180deg, rgba(180, 35, 24, 0.035), rgba(255, 255, 255, 0.94)),
+    var(--surface);
 }
 
 .status-banner {

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     include: { shop: true },
   });
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || user.deletedAt || !verifyPassword(password, user.passwordHash)) {
     const nextBlockedUntil = await recordAuthThrottleAttempt("LOGIN", throttleKey);
     return NextResponse.redirect(
       new URL(

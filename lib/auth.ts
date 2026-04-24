@@ -40,7 +40,7 @@ export async function getSessionUser() {
     return null;
   }
 
-  if (session.expiresAt <= new Date()) {
+  if (session.expiresAt <= new Date() || session.user.deletedAt) {
     await prisma.session.deleteMany({
       where: {
         tokenHash: session.tokenHash,
