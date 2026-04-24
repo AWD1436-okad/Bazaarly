@@ -5,7 +5,12 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { SupplierPurchaseForm } from "@/components/supplier-purchase-form";
 import { requireUser } from "@/lib/auth";
-import { CATEGORY_OPTIONS, getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
+import {
+  CATEGORY_OPTIONS,
+  getCategoryFilterOption,
+  getCategoryLabel,
+  getProductCategoryLabel,
+} from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount } from "@/lib/stock";
@@ -30,10 +35,10 @@ function parseCategoryFilter(value: string | string[] | undefined) {
     return null;
   }
 
-  return CATEGORY_OPTIONS.find((category) => category.value === value)?.value ?? null;
+  return getCategoryFilterOption(value);
 }
 
-function buildSupplierHref(category: ProductCategory | null) {
+function buildSupplierHref(category: string | null) {
   const params = new URLSearchParams();
 
   if (category) {
@@ -134,7 +139,12 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
 
   const products = await prisma.product.findMany({
     where: {
-      ...(selectedCategory ? { category: selectedCategory } : {}),
+      ...(selectedCategory
+        ? {
+            category: selectedCategory.category ?? (selectedCategory.value as ProductCategory),
+            ...(selectedCategory.subcategory ? { subcategory: selectedCategory.subcategory } : {}),
+          }
+        : {}),
     },
     select: {
       id: true,
@@ -210,8 +220,8 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
             <span className="tag">Categories</span>
             <CategoryFilterList
               categories={CATEGORY_OPTIONS}
-              selectedCategory={selectedCategory}
-              buildHref={(category) => buildSupplierHref(category as ProductCategory | null)}
+              selectedCategory={selectedCategory?.value ?? null}
+              buildHref={(category) => buildSupplierHref(category)}
             />
           </div>
         </aside>
@@ -240,10 +250,10 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
           ) : null}
 
           <section className="page-header">
-            <h2>{selectedCategory ? getCategoryLabel(selectedCategory) : "All supplier items"}</h2>
+            <h2>{selectedCategory ? selectedCategory.label : "All supplier items"}</h2>
             <p>
               {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} shown
-              {selectedCategory ? ` in ${getCategoryLabel(selectedCategory)}` : ""}.
+              {selectedCategory ? ` in ${selectedCategory.label}` : ""}.
               {searchQuery ? ` Search: "${searchQuery}".` : ""}
             </p>
           </section>

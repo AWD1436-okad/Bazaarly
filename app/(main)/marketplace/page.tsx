@@ -4,7 +4,7 @@ import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
-import { CATEGORY_OPTIONS, getDailyFeaturedProduct } from "@/lib/catalog";
+import { CATEGORY_OPTIONS, getCategoryFilterLabel, getDailyFeaturedProduct } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
 
 type MarketplacePageProps = {
@@ -45,8 +45,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     (typeof params.maxPrice === "string" && params.maxPrice.length > 0);
   const selectedCategory =
     typeof params.category === "string" && params.category !== "ALL" ? params.category : "ALL";
-  const selectedCategoryLabel =
-    CATEGORY_OPTIONS.find((category) => category.value === selectedCategory)?.label ?? "All Products";
+  const selectedCategoryLabel = getCategoryFilterLabel(selectedCategory);
   const marketplace = await getMarketplaceData({
     q: typeof params.q === "string" ? params.q : undefined,
     sort: typeof params.sort === "string" ? params.sort : undefined,

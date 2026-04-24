@@ -1,6 +1,6 @@
 import { Prisma, ProductCategory, ShopStatus, type MarketEvent } from "@prisma/client";
 
-import { getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
+import { getCategoryFilterOption, getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 
 export type MarketplaceParams = {
@@ -193,8 +193,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
   const inStockOnly = params.stock === "in";
   const normalizedQuery = query.toLowerCase();
   const searchContext = buildSearchContext(query);
-  const categoryFilter =
-    params.category && params.category !== "ALL" ? (params.category as ProductCategory) : null;
+  const categoryFilter = getCategoryFilterOption(params.category);
 
   const where: Prisma.ListingWhereInput = {
     active: true,
@@ -212,7 +211,14 @@ export async function getMarketplaceData(params: MarketplaceParams) {
           },
         }
       : {}),
-    ...(categoryFilter ? { product: { category: categoryFilter } } : {}),
+    ...(categoryFilter
+      ? {
+          product: {
+            category: categoryFilter.category ?? (categoryFilter.value as ProductCategory),
+            ...(categoryFilter.subcategory ? { subcategory: categoryFilter.subcategory } : {}),
+          },
+        }
+      : {}),
   };
 
   if (query) {

@@ -33,10 +33,15 @@ type CategoryDefinition = {
 };
 
 export type CategoryOption = {
-  value: ProductCategory;
+  value: string;
   label: string;
   emoji: string;
+  category?: ProductCategory;
+  subcategory?: string;
 };
+
+export const MUSLIM_CLOTHING_MEN = "Men's Muslim Clothing";
+export const MUSLIM_CLOTHING_WOMEN = "Women's Muslim Clothing";
 
 export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> = {
   [ProductCategory.FRUIT_AND_VEGETABLES]: {
@@ -212,6 +217,20 @@ export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
     emoji: "👕",
   },
   {
+    value: "CLOTHING_MUSLIM_MEN",
+    label: "Men's Muslim Clothing",
+    emoji: "👕",
+    category: ProductCategory.CLOTHING,
+    subcategory: MUSLIM_CLOTHING_MEN,
+  },
+  {
+    value: "CLOTHING_MUSLIM_WOMEN",
+    label: "Women's Muslim Clothing",
+    emoji: "👕",
+    category: ProductCategory.CLOTHING,
+    subcategory: MUSLIM_CLOTHING_WOMEN,
+  },
+  {
     value: ProductCategory.HOME_AND_STORAGE,
     label: "Home & Storage",
     emoji: "🏠",
@@ -227,6 +246,22 @@ export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
     emoji: "🎒",
   },
 ] as const;
+
+export function getCategoryFilterOption(value: string | null | undefined) {
+  if (!value || value === "ALL") {
+    return null;
+  }
+
+  return CATEGORY_OPTIONS.find((category) => category.value === value) ?? null;
+}
+
+export function getCategoryFilterLabel(value: string | null | undefined) {
+  if (!value || value === "ALL") {
+    return "All Products";
+  }
+
+  return getCategoryFilterOption(value)?.label ?? "All Products";
+}
 
 export const CATEGORY_COUNT_EXPECTATIONS = Object.fromEntries(
   CATALOG_SOURCE.map((section) => [section.enumValue, section.items.length]),
