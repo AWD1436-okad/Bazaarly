@@ -5,7 +5,7 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { SupplierPurchaseForm } from "@/components/supplier-purchase-form";
 import { requireUser } from "@/lib/auth";
-import { CATEGORY_OPTIONS, getCategoryLabel } from "@/lib/catalog";
+import { CATEGORY_OPTIONS, getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount } from "@/lib/stock";
@@ -18,6 +18,7 @@ type SupplierProduct = {
   id: string;
   name: string;
   category: ProductCategory;
+  subcategory: string | null;
   unitLabel: string;
   description: string;
   supplierPrice: number;
@@ -81,13 +82,22 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
 
   const name = normalizeSearchValue(product.name);
   const category = normalizeSearchValue(getCategoryLabel(product.category));
+  const categoryDisplay = normalizeSearchValue(
+    getProductCategoryLabel(product.category, product.subcategory),
+  );
   const description = normalizeSearchValue(product.description);
   const searchableTokens = Array.from(
-    new Set([...name.split(" "), ...category.split(" "), ...description.split(" ")]),
+    new Set([
+      ...name.split(" "),
+      ...category.split(" "),
+      ...categoryDisplay.split(" "),
+      ...description.split(" "),
+    ]),
   ).filter(Boolean);
 
   if (name.includes(query)) return 1000 - name.indexOf(query);
   if (category.includes(query)) return 700;
+  if (categoryDisplay.includes(query)) return 760;
   if (description.includes(query)) return 500;
 
   const compactQuery = query.replace(/\s+/g, "");
@@ -130,6 +140,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       id: true,
       name: true,
       category: true,
+      subcategory: true,
       unitLabel: true,
       description: true,
       marketState: {
@@ -146,6 +157,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     id: item.id,
     name: item.name,
     category: item.category,
+    subcategory: item.subcategory,
     unitLabel: item.unitLabel,
     description: item.description,
     supplierPrice: item.marketState?.currentSupplierPrice ?? 0,
@@ -246,7 +258,9 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                 <article key={item.id} className="card supplier-card">
                   <div className="supplier-card__header">
                     <div className="supplier-card__title">
-                      <span className="category-chip">{getCategoryLabel(item.category)}</span>
+                      <span className="category-chip">
+                        {getProductCategoryLabel(item.category, item.subcategory)}
+                      </span>
                       <h2>{item.name}</h2>
                     </div>
                     <strong>{formatPriceWithUnit(item.supplierPrice, item.unitLabel)}</strong>

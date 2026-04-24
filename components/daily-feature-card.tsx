@@ -1,4 +1,4 @@
-import { type CatalogProduct, getCategoryLabel } from "@/lib/catalog";
+import { type CatalogProduct, getProductCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 
 type DailyFeatureCardProps = {
@@ -35,7 +35,7 @@ export function DailyFeatureCard({
           <div className="featured-item-card__detail">
             <span className="muted">Category</span>
             <span className="featured-item-card__category-text">
-              {getCategoryLabel(product.category)}
+              {getProductCategoryLabel(product.category, product.subcategory)}
             </span>
           </div>
           <div className="featured-item-card__detail">

@@ -6,6 +6,7 @@ export type CatalogProduct = {
   sku: string;
   name: string;
   category: ProductCategory;
+  subcategory?: string;
   unitLabel: string;
   description: string;
   basePrice: number;
@@ -247,7 +248,12 @@ function clampPrice(value: number, minimum = 100) {
   return Math.max(minimum, Math.round(value));
 }
 
-function buildKeywords(name: string, category: ProductCategory, unitLabel: string) {
+function buildKeywords(
+  name: string,
+  category: ProductCategory,
+  unitLabel: string,
+  subcategory?: string,
+) {
   const tokens = name
     .toLowerCase()
     .split(/[^a-z0-9]+/)
@@ -259,8 +265,11 @@ function buildKeywords(name: string, category: ProductCategory, unitLabel: strin
         ...tokens,
         name.toLowerCase(),
         unitLabel.toLowerCase(),
+        subcategory?.toLowerCase(),
         ...CATEGORY_DEFINITIONS[category].keywords,
-      ].map((value) => value.toLowerCase()),
+      ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase()),
     ),
   );
 }
@@ -290,8 +299,9 @@ function inferTrendLabel(category: ProductCategory, name: string) {
   return CATEGORY_DEFINITIONS[category].trendLabel;
 }
 
-function describeProduct(name: string, unitLabel: string) {
-  return `${name} priced ${unitLabel} in Bazaarly's curated marketplace catalog.`;
+function describeProduct(name: string, unitLabel: string, subcategory?: string) {
+  const subcategoryText = subcategory ? ` from ${subcategory}` : "";
+  return `${name}${subcategoryText} priced ${unitLabel} in Bazaarly's curated marketplace catalog.`;
 }
 
 function buildCatalogProducts(): CatalogProduct[] {
@@ -304,8 +314,9 @@ function buildCatalogProducts(): CatalogProduct[] {
         sku: `${definition.prefix}-${slugifyName(item.name)}`,
         name: item.name,
         category: section.enumValue,
+        subcategory: item.subcategory,
         unitLabel: item.unitLabel,
-        description: describeProduct(item.name, item.unitLabel),
+        description: describeProduct(item.name, item.unitLabel, item.subcategory),
         basePrice: item.basePrice,
         supplierPrice,
         demandScore: definition.demandScore,
@@ -313,7 +324,7 @@ function buildCatalogProducts(): CatalogProduct[] {
         trendLabel: inferTrendLabel(section.enumValue, item.name),
         spoilable: definition.spoilable,
         shelfLife: inferShelfLife(section.enumValue, item.unitLabel),
-        keywords: buildKeywords(item.name, section.enumValue, item.unitLabel),
+        keywords: buildKeywords(item.name, section.enumValue, item.unitLabel, item.subcategory),
       };
     }),
   );
@@ -327,6 +338,14 @@ export function getCategoryLabel(category: ProductCategory | null | undefined) {
   }
 
   return CATEGORY_DEFINITIONS[category].label;
+}
+
+export function getProductCategoryLabel(
+  category: ProductCategory | null | undefined,
+  subcategory?: string | null,
+) {
+  const label = getCategoryLabel(category);
+  return subcategory ? `${label} / ${subcategory}` : label;
 }
 
 export function getCatalogProductBySku(sku: string) {
@@ -463,5 +482,19 @@ export const INITIAL_BOTS = [
     budget: 6100,
     preferenceCategory: ProductCategory.SCHOOL_AND_MISC,
     activityLevel: 58,
+  },
+  {
+    displayName: "Style Sam",
+    type: BotPersonality.QUALITY,
+    budget: 14500,
+    preferenceCategory: ProductCategory.CLOTHING,
+    activityLevel: 68,
+  },
+  {
+    displayName: "Eid Eva",
+    type: BotPersonality.LOYAL,
+    budget: 16500,
+    preferenceCategory: ProductCategory.CLOTHING,
+    activityLevel: 63,
   },
 ] as const;

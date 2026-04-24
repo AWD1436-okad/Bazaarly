@@ -1,6 +1,6 @@
 import { Prisma, ProductCategory, ShopStatus, type MarketEvent } from "@prisma/client";
 
-import { getCategoryLabel } from "@/lib/catalog";
+import { getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 
 export type MarketplaceParams = {
@@ -26,6 +26,7 @@ const listingCardSelect = {
     select: {
       name: true,
       category: true,
+      subcategory: true,
       unitLabel: true,
       description: true,
       keywords: true,
@@ -47,6 +48,7 @@ type ListingWithRelations = {
   product: {
     name: string;
     category: ProductCategory;
+    subcategory: string | null;
     unitLabel: string;
     description: string;
     keywords: unknown;
@@ -96,6 +98,10 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
   const shopName = listing.shop.name.toLowerCase();
   const description = listing.product.description.toLowerCase();
   const category = getCategoryLabel(listing.product.category).toLowerCase();
+  const categoryDisplay = getProductCategoryLabel(
+    listing.product.category,
+    listing.product.subcategory,
+  ).toLowerCase();
   const keywords = Array.isArray(listing.product.keywords)
     ? listing.product.keywords.map((keyword: unknown) => String(keyword).toLowerCase())
     : [];
@@ -106,6 +112,7 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
   if (name.includes(searchContext.normalized)) score += 110;
   if (shopName.includes(searchContext.normalized)) score += 70;
   if (category.includes(searchContext.normalized)) score += 60;
+  if (categoryDisplay.includes(searchContext.normalized)) score += 75;
   if (description.includes(searchContext.normalized)) score += 40;
 
   for (const token of searchContext.tokens) {
@@ -113,6 +120,7 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
     if (shopName.includes(token)) score += 18;
     if (description.includes(token)) score += 12;
     if (category.includes(token)) score += 14;
+    if (categoryDisplay.includes(token)) score += 18;
     if (keywords.some((keyword: string) => keyword.includes(token))) score += 20;
   }
 
@@ -219,6 +227,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     where.OR = [
       { product: { name: { contains: query, mode: "insensitive" } } },
       { product: { description: { contains: query, mode: "insensitive" } } },
+      { product: { subcategory: { contains: query, mode: "insensitive" } } },
       { shop: { name: { contains: query, mode: "insensitive" } } },
       ...categoryMatches,
     ];
@@ -342,6 +351,7 @@ export async function getShopPageData(shopId: string, page = 1) {
         select: {
           name: true,
           category: true,
+          subcategory: true,
           unitLabel: true,
           description: true,
         },

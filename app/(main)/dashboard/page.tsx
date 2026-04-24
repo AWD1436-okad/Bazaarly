@@ -2,12 +2,13 @@ import { Prisma } from "@prisma/client";
 import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BulkSoldOutCleanup } from "@/components/bulk-sold-out-cleanup";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
 import { SoldOutListingActions } from "@/components/sold-out-listing-actions";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
-import { getCategoryLabel } from "@/lib/catalog";
+import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -100,6 +101,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     bestSellerRows,
     inventoryPresence,
     todayRevenueSummary,
+    soldOutListingCount,
   ] =
     await Promise.all([
       prisma.$queryRaw<FreeInventoryRow[]>(Prisma.sql`
@@ -149,6 +151,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             select: {
               id: true,
               name: true,
+              subcategory: true,
               unitLabel: true,
               category: true,
             },
@@ -251,6 +254,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           totalPrice: true,
         },
       }),
+      prisma.listing.count({
+        where: {
+          shopId: user.shop.id,
+          quantity: { lte: 0 },
+        },
+      }),
     ]);
 
   const visibleInventory = freeInventoryRows.slice(0, INVENTORY_PAGE_SIZE);
@@ -334,17 +343,19 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       <section className="dashboard-grid">
         <div className="stack">
           <section className="card">
-            <div className="section-row">
-              <div>
+            <div className="card-header">
+              <div className="card-header__copy">
                 <h2>Create or update a listing</h2>
                 <p>
                   Pick an inventory item you own and publish it live. Bazaarly will move
                   all free units for that product into your active listing automatically.
                 </p>
               </div>
-              <Link href="/dashboard/supplier" className="ghost-button">
-                Open supplier
-              </Link>
+              <div className="card-toolbar">
+                <Link href="/dashboard/supplier" className="ghost-button">
+                  Open supplier
+                </Link>
+              </div>
             </div>
             {listingOptions.length > 0 ? (
               <DashboardListingCreateForm
@@ -359,10 +370,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           </section>
 
           <section className="card">
-            <h2>Inventory</h2>
-            <p className="muted">
-              This section only shows stock that is not currently live in your shop.
-            </p>
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Inventory</h2>
+                <p>This section only shows stock that is not currently live in your shop.</p>
+              </div>
+            </div>
             <div className="table-list">
               {freeInventoryCount === 0 ? (
                 <div className="empty-state">
@@ -413,7 +426,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           </section>
 
           <section className="card">
-            <h2>Shop listings</h2>
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Shop listings</h2>
+                <p>Manage live listings, clean out sold-out rows, and keep your shop tidy.</p>
+              </div>
+              <div className="card-toolbar">
+                <BulkSoldOutCleanup soldOutCount={soldOutListingCount} />
+              </div>
+            </div>
             {visibleListings.length === 0 ? (
               <div className="empty-state">
                 You have not published any listings yet.
@@ -425,7 +446,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                     <div className="table-row__meta">
                       <strong>{listing.product.name}</strong>
                       <span className="muted">
-                        {getCategoryLabel(listing.product.category)} -{" "}
+                        {getProductCategoryLabel(
+                          listing.product.category,
+                          listing.product.subcategory,
+                        )} -{" "}
                         {formatPriceWithUnit(listing.price, listing.product.unitLabel)} -{" "}
                         {getLiveStockStatusMessage(listing.quantity)}
                       </span>
@@ -480,7 +504,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
         <div className="stack">
           <section className="card">
-            <h2>Recent sales</h2>
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Recent sales</h2>
+                <p>The latest orders update here automatically as your shop sells.</p>
+              </div>
+            </div>
             {recentSales.length === 0 ? (
               <div className="empty-state">No sales yet. Once customers buy from you, sales will appear here.</div>
             ) : (
@@ -501,7 +530,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           </section>
 
           <section className="card">
-            <h2>Best-selling items</h2>
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Best-selling items</h2>
+                <p>Your strongest sellers, ranked by real completed orders.</p>
+              </div>
+            </div>
             {bestSellers.length === 0 ? (
               <div className="empty-state">Sales insights will appear once orders come in.</div>
             ) : (
@@ -520,7 +554,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           </section>
 
           <section className="card">
-            <h2>Low-stock alerts</h2>
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Low-stock alerts</h2>
+                <p>Catch items that are nearly gone before they disappear from your shop.</p>
+              </div>
+            </div>
             {lowStockListings.length === 0 ? (
               <div className="empty-state">No low-stock listings right now.</div>
             ) : (
@@ -540,14 +579,23 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           </section>
 
           <section className="card">
-            <h2>Alerts</h2>
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Alerts</h2>
+                <p>Your latest unread sale and stock updates in one place.</p>
+              </div>
+            </div>
             <div className="table-list">
-              {unreadAlerts.map((notification) => (
-                <div key={notification.id} className="notification-row unread">
-                  <strong>{notification.type.replace("_", " ")}</strong>
-                  <p className="muted">{notification.message}</p>
-                </div>
-              ))}
+              {unreadAlerts.length === 0 ? (
+                <div className="empty-state">No unread alerts right now.</div>
+              ) : (
+                unreadAlerts.map((notification) => (
+                  <div key={notification.id} className="notification-row unread">
+                    <strong>{notification.type.replace("_", " ")}</strong>
+                    <p className="muted">{notification.message}</p>
+                  </div>
+                ))
+              )}
             </div>
           </section>
         </div>

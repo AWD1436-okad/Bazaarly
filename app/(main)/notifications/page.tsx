@@ -47,12 +47,12 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
       </section>
 
       <section className="card">
-        <div className="section-row">
-          <div>
+        <div className="card-header">
+          <div className="card-header__copy">
             <h2>Notification center</h2>
             <p>Unread items stay highlighted until you mark them read.</p>
           </div>
-          <form action="/notifications/read-all" method="post">
+          <form action="/notifications/read-all" method="post" className="card-toolbar">
             <button type="submit">Mark all as read</button>
           </form>
         </div>
@@ -78,21 +78,29 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
         </div>
 
         {(hasPreviousPage || hasNextPage) && (
-          <div className="section-row">
+          <div className="section-row section-row--top-gap">
             <p className="muted">
               Showing page {page}
               {hasNextPage ? " with more history available." : "."}
             </p>
-            <div style={{ display: "flex", gap: "1rem" }}>
+            <div className="inline-actions">
               {hasPreviousPage ? (
-                <Link href={buildNotificationsHref(page - 1) as Route} scroll={false}>
+                <Link
+                  href={buildNotificationsHref(page - 1) as Route}
+                  className="ghost-button"
+                  scroll={false}
+                >
                   Previous
                 </Link>
               ) : (
                 <span />
               )}
               {hasNextPage ? (
-                <Link href={buildNotificationsHref(page + 1) as Route} scroll={false}>
+                <Link
+                  href={buildNotificationsHref(page + 1) as Route}
+                  className="ghost-button"
+                  scroll={false}
+                >
                   Next
                 </Link>
               ) : (

@@ -2,7 +2,7 @@ import type { ProductCategory } from "@prisma/client";
 import Link from "next/link";
 
 import { InlineCartActions } from "@/components/inline-cart-actions";
-import { getCategoryLabel } from "@/lib/catalog";
+import { getProductCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 import { getStockAvailabilityLabel, sanitizeStockCount } from "@/lib/stock";
 
@@ -15,6 +15,7 @@ type ListingCardProps = {
     product: {
       name: string;
       category: ProductCategory;
+      subcategory?: string | null;
       unitLabel: string;
       description: string;
     };
@@ -38,7 +39,9 @@ export function ListingCard({
     <article className="card supplier-card listing-card">
       <div className="listing-card__header">
         <div className="supplier-card__title">
-          <span className="category-chip">{getCategoryLabel(listing.product.category)}</span>
+          <span className="category-chip">
+            {getProductCategoryLabel(listing.product.category, listing.product.subcategory)}
+          </span>
           <h3>{listing.product.name}</h3>
           <span className="listing-card__shop">
             {shopLabel} {" - "}Rated {listing.shop.rating.toFixed(1)}

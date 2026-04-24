@@ -107,6 +107,7 @@ model Product {
   sku          String             @unique
   name         String             @unique
   category     ProductCategory
+  subcategory  String?
   unitLabel    String
   description  String
   basePrice    Int

@@ -191,6 +191,7 @@ async function main() {
       update: {
         name: product.name,
         category: product.category,
+        subcategory: product.subcategory ?? null,
         unitLabel: product.unitLabel,
         description: product.description,
         basePrice: product.basePrice,
@@ -203,6 +204,7 @@ async function main() {
         sku: product.sku,
         name: product.name,
         category: product.category,
+        subcategory: product.subcategory ?? null,
         unitLabel: product.unitLabel,
         description: product.description,
         basePrice: product.basePrice,
@@ -384,6 +386,11 @@ async function main() {
     ],
     noah: [
       { name: "T-Shirts", quantity: 18 },
+      { name: "Basic Shalwar Kameez", quantity: 12, costMultiplier: 0.64 },
+      { name: "Premium Thobe", quantity: 8, costMultiplier: 0.64 },
+      { name: "Basic Abaya", quantity: 10, costMultiplier: 0.64 },
+      { name: "Basic Hijab", quantity: 22, costMultiplier: 0.62 },
+      { name: "Long Kurta", quantity: 12, costMultiplier: 0.64 },
       { name: "Socks", quantity: 22 },
       { name: "Toothpaste", quantity: 20 },
       { name: "Shampoo", quantity: 16 },
@@ -421,6 +428,11 @@ async function main() {
     ],
     noah: [
       { name: "T-Shirts", quantity: 7, priceMultiplier: 1.18 },
+      { name: "Basic Shalwar Kameez", quantity: 5, priceMultiplier: 1.12 },
+      { name: "Premium Thobe", quantity: 4, priceMultiplier: 1.1 },
+      { name: "Basic Abaya", quantity: 5, priceMultiplier: 1.1 },
+      { name: "Basic Hijab", quantity: 10, priceMultiplier: 1.12 },
+      { name: "Long Kurta", quantity: 5, priceMultiplier: 1.12 },
       { name: "Socks", quantity: 12, priceMultiplier: 1.18 },
       { name: "Toothpaste", quantity: 8, priceMultiplier: 1.12 },
       { name: "Shampoo", quantity: 8, priceMultiplier: 1.12 },
@@ -693,11 +705,7 @@ async function main() {
     },
   });
 
-  const now = new Date();
-
-  for (const [index, bot] of INITIAL_BOTS.entries()) {
-    const nextPurchaseAt = new Date(now.getTime() + (35 + index * 13) * 1000);
-
+  for (const bot of INITIAL_BOTS) {
     await prisma.botCustomer.upsert({
       where: { displayName: bot.displayName },
       update: {
@@ -707,7 +715,7 @@ async function main() {
         loyaltyShopId: null,
         activityLevel: bot.activityLevel,
         active: true,
-        nextPurchaseAt,
+        nextPurchaseAt: null,
       },
       create: {
         displayName: bot.displayName,
@@ -716,7 +724,7 @@ async function main() {
         preferenceCategory: bot.preferenceCategory,
         loyaltyShopId: null,
         activityLevel: bot.activityLevel,
-        nextPurchaseAt,
+        nextPurchaseAt: null,
       },
     });
   }

@@ -141,7 +141,12 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
 
       <section className="orders-grid">
         <article className="card">
-          <h2>Buyer history</h2>
+          <div className="card-header">
+            <div className="card-header__copy">
+              <h2>Buyer history</h2>
+              <p>Everything you bought across the marketplace.</p>
+            </div>
+          </div>
           {visibleBuyerOrders.length === 0 ? (
             <div className="empty-state">No purchases yet.</div>
           ) : (
@@ -161,12 +166,12 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                 ))}
               </div>
               {(hasPreviousBuyerPage || hasNextBuyerPage) && (
-                <div className="section-row">
+                <div className="section-row section-row--top-gap">
                   <p className="muted">
                     Showing buyer page {buyerPage}
                     {hasNextBuyerPage ? " with older purchases available." : "."}
                   </p>
-                  <div style={{ display: "flex", gap: "1rem" }}>
+                  <div className="inline-actions">
                     {hasPreviousBuyerPage ? (
                       <Link
                         href={buildOrdersHref({
@@ -174,6 +179,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                           buyerPage: buyerPage - 1,
                           sellerPage,
                         }) as Route}
+                        className="ghost-button"
                         scroll={false}
                       >
                         Previous
@@ -188,6 +194,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                           buyerPage: buyerPage + 1,
                           sellerPage,
                         }) as Route}
+                        className="ghost-button"
                         scroll={false}
                       >
                         Next
@@ -203,7 +210,12 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
         </article>
 
         <article className="card">
-          <h2>Seller history</h2>
+          <div className="card-header">
+            <div className="card-header__copy">
+              <h2>Seller history</h2>
+              <p>Your completed sales and the buyers behind them.</p>
+            </div>
+          </div>
           {visibleSellerOrders.length === 0 ? (
             <div className="empty-state">No sales yet.</div>
           ) : (
@@ -223,12 +235,12 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                 ))}
               </div>
               {(hasPreviousSellerPage || hasNextSellerPage) && (
-                <div className="section-row">
+                <div className="section-row section-row--top-gap">
                   <p className="muted">
                     Showing seller page {sellerPage}
                     {hasNextSellerPage ? " with older sales available." : "."}
                   </p>
-                  <div style={{ display: "flex", gap: "1rem" }}>
+                  <div className="inline-actions">
                     {hasPreviousSellerPage ? (
                       <Link
                         href={buildOrdersHref({
@@ -236,6 +248,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                           buyerPage,
                           sellerPage: sellerPage - 1,
                         }) as Route}
+                        className="ghost-button"
                         scroll={false}
                       >
                         Previous
@@ -250,6 +263,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                           buyerPage,
                           sellerPage: sellerPage + 1,
                         }) as Route}
+                        className="ghost-button"
                         scroll={false}
                       >
                         Next
