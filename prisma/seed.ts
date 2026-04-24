@@ -41,6 +41,14 @@ type DemoListingEntry = {
   active?: boolean;
 };
 
+type SeededUserRef = {
+  id: string;
+  displayName: string;
+  shopId: string;
+  shopName: string;
+  balance: number;
+};
+
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
@@ -66,6 +74,139 @@ function requireProduct(productMap: Map<string, ProductRef>, name: string) {
   }
 
   return product;
+}
+
+async function seedDemoInventoryAndListings({
+  products,
+  users,
+  demoInventorySeed,
+  demoListingSeed,
+  updateExisting,
+}: {
+  products: Map<string, ProductRef>;
+  users: Map<string, SeededUserRef>;
+  demoInventorySeed: Record<string, DemoStockEntry[]>;
+  demoListingSeed: Record<string, DemoListingEntry[]>;
+  updateExisting: boolean;
+}) {
+  const listings = new Map<string, string>();
+
+  for (const [username, items] of Object.entries(demoInventorySeed)) {
+    const user = users.get(username);
+    if (!user) continue;
+
+    for (const item of items) {
+      const product = requireProduct(products, item.name);
+      const existingInventory = await prisma.inventory.findUnique({
+        where: {
+          userId_productId: {
+            userId: user.id,
+            productId: product.id,
+          },
+        },
+      });
+
+      if (existingInventory && !updateExisting) {
+        continue;
+      }
+
+      await prisma.inventory.upsert({
+        where: {
+          userId_productId: {
+            userId: user.id,
+            productId: product.id,
+          },
+        },
+        update: {
+          ...(updateExisting
+            ? {
+                quantity: item.quantity,
+                allocatedQuantity: 0,
+                averageUnitCost: unitCost(product, item.costMultiplier),
+              }
+            : {}),
+        },
+        create: {
+          userId: user.id,
+          productId: product.id,
+          quantity: item.quantity,
+          averageUnitCost: unitCost(product, item.costMultiplier),
+        },
+      });
+    }
+  }
+
+  for (const [username, shopListings] of Object.entries(demoListingSeed)) {
+    const user = users.get(username);
+    if (!user) continue;
+
+    for (const item of shopListings) {
+      const product = requireProduct(products, item.name);
+      const price = livePrice(product, item.priceMultiplier);
+      const existingListing = await prisma.listing.findUnique({
+        where: {
+          shopId_productId: {
+            shopId: user.shopId,
+            productId: product.id,
+          },
+        },
+      });
+
+      if (existingListing && !updateExisting) {
+        listings.set(`${username}:${item.name}`, existingListing.id);
+        continue;
+      }
+
+      const listing = await prisma.listing.upsert({
+        where: {
+          shopId_productId: {
+            shopId: user.shopId,
+            productId: product.id,
+          },
+        },
+        update: {
+          ...(updateExisting
+            ? {
+                price,
+                quantity: item.quantity,
+                active: item.active ?? true,
+              }
+            : {}),
+        },
+        create: {
+          shopId: user.shopId,
+          productId: product.id,
+          price,
+          quantity: item.quantity,
+          active: item.active ?? true,
+        },
+      });
+
+      listings.set(`${username}:${item.name}`, listing.id);
+
+      const inventory = await prisma.inventory.findUnique({
+        where: {
+          userId_productId: {
+            userId: user.id,
+            productId: product.id,
+          },
+        },
+      });
+
+      if (!inventory) {
+        continue;
+      }
+
+      await prisma.inventory.update({
+        where: { id: inventory.id },
+        data: {
+          allocatedQuantity: Math.max(inventory.allocatedQuantity, item.quantity),
+        },
+      });
+    }
+  }
+
+  return listings;
 }
 
 async function deleteStaleProducts(currentSkus: string[]) {
@@ -251,7 +392,7 @@ async function main() {
 
   const users = new Map<
     string,
-    { id: string; displayName: string; shopId: string; shopName: string; balance: number }
+    SeededUserRef
   >();
 
   for (const entry of INITIAL_USERS) {
@@ -387,9 +528,16 @@ async function main() {
     noah: [
       { name: "T-Shirts", quantity: 18 },
       { name: "Basic Shalwar Kameez", quantity: 12, costMultiplier: 0.64 },
+      { name: "Formal Shalwar Kameez", quantity: 8, costMultiplier: 0.64 },
+      { name: "Embroidered Kurta", quantity: 10, costMultiplier: 0.64 },
       { name: "Premium Thobe", quantity: 8, costMultiplier: 0.64 },
+      { name: "Eid Thobe", quantity: 8, costMultiplier: 0.64 },
       { name: "Basic Abaya", quantity: 10, costMultiplier: 0.64 },
+      { name: "Premium Abaya", quantity: 6, costMultiplier: 0.64 },
       { name: "Basic Hijab", quantity: 22, costMultiplier: 0.62 },
+      { name: "Premium Hijab", quantity: 16, costMultiplier: 0.62 },
+      { name: "Modest Dress", quantity: 8, costMultiplier: 0.64 },
+      { name: "Khimar", quantity: 12, costMultiplier: 0.62 },
       { name: "Long Kurta", quantity: 12, costMultiplier: 0.64 },
       { name: "Socks", quantity: 22 },
       { name: "Toothpaste", quantity: 20 },
@@ -429,9 +577,16 @@ async function main() {
     noah: [
       { name: "T-Shirts", quantity: 7, priceMultiplier: 1.18 },
       { name: "Basic Shalwar Kameez", quantity: 5, priceMultiplier: 1.12 },
+      { name: "Formal Shalwar Kameez", quantity: 4, priceMultiplier: 1.1 },
+      { name: "Embroidered Kurta", quantity: 5, priceMultiplier: 1.1 },
       { name: "Premium Thobe", quantity: 4, priceMultiplier: 1.1 },
+      { name: "Eid Thobe", quantity: 4, priceMultiplier: 1.1 },
       { name: "Basic Abaya", quantity: 5, priceMultiplier: 1.1 },
+      { name: "Premium Abaya", quantity: 3, priceMultiplier: 1.08 },
       { name: "Basic Hijab", quantity: 10, priceMultiplier: 1.12 },
+      { name: "Premium Hijab", quantity: 8, priceMultiplier: 1.1 },
+      { name: "Modest Dress", quantity: 4, priceMultiplier: 1.1 },
+      { name: "Khimar", quantity: 6, priceMultiplier: 1.1 },
       { name: "Long Kurta", quantity: 5, priceMultiplier: 1.12 },
       { name: "Socks", quantity: 12, priceMultiplier: 1.18 },
       { name: "Toothpaste", quantity: 8, priceMultiplier: 1.12 },
@@ -440,83 +595,15 @@ async function main() {
     ],
   };
 
-  const listings = new Map<string, string>();
+  const listings = await seedDemoInventoryAndListings({
+    products,
+    users,
+    demoInventorySeed,
+    demoListingSeed,
+    updateExisting: shouldSeedDemoWorld,
+  });
 
   if (shouldSeedDemoWorld) {
-    for (const [username, items] of Object.entries(demoInventorySeed)) {
-      const user = users.get(username);
-      if (!user) continue;
-
-      for (const item of items) {
-        const product = requireProduct(products, item.name);
-
-        await prisma.inventory.upsert({
-          where: {
-            userId_productId: {
-              userId: user.id,
-              productId: product.id,
-            },
-          },
-          update: {
-            quantity: item.quantity,
-            allocatedQuantity: 0,
-            averageUnitCost: unitCost(product, item.costMultiplier),
-          },
-          create: {
-            userId: user.id,
-            productId: product.id,
-            quantity: item.quantity,
-            averageUnitCost: unitCost(product, item.costMultiplier),
-          },
-        });
-      }
-    }
-
-    for (const [username, shopListings] of Object.entries(demoListingSeed)) {
-      const user = users.get(username);
-      if (!user) continue;
-
-      for (const item of shopListings) {
-        const product = requireProduct(products, item.name);
-        const price = livePrice(product, item.priceMultiplier);
-
-        const listing = await prisma.listing.upsert({
-          where: {
-            shopId_productId: {
-              shopId: user.shopId,
-              productId: product.id,
-            },
-          },
-          update: {
-            price,
-            quantity: item.quantity,
-            active: item.active ?? true,
-          },
-          create: {
-            shopId: user.shopId,
-            productId: product.id,
-            price,
-            quantity: item.quantity,
-            active: item.active ?? true,
-          },
-        });
-
-        listings.set(`${username}:${item.name}`, listing.id);
-
-        await prisma.inventory.update({
-          where: {
-            userId_productId: {
-              userId: user.id,
-              productId: product.id,
-            },
-          },
-          data: {
-            allocatedQuantity: item.quantity,
-          },
-        });
-      }
-    }
-
     const sampleOrders = [
       {
         buyer: "jordan",
