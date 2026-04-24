@@ -446,9 +446,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               />
             ) : (
               <div className="empty-state">
-                  All of your current stock is already live in listings, or your inventory is empty.
-                </div>
-              )}
+                <p>You don&apos;t have any products ready to list.</p>
+                <Link href="/dashboard/supplier" className="ghost-button">
+                  Open supplier
+                </Link>
+              </div>
+            )}
           </section>
 
           <section className="card">

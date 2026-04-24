@@ -27,6 +27,9 @@ export function DashboardListingCreateForm({
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const selectedProductId = listingOptions.some((item) => item.productId === productId)
+    ? productId
+    : (listingOptions[0]?.productId ?? "");
 
   function refreshInPlace() {
     const scrollY = window.scrollY;
@@ -37,11 +40,11 @@ export function DashboardListingCreateForm({
   }
 
   async function handlePublish() {
-    const selectedOption = listingOptions.find((item) => item.productId === productId);
+    const selectedOption = listingOptions.find((item) => item.productId === selectedProductId);
 
-    if (!selectedOption || selectedOption.availableToList <= 0) {
+    if (!selectedOption) {
       setFeedback(null);
-      setError("No free inventory is available to list");
+      setError("Select a product to list");
       return;
     }
 
@@ -51,7 +54,7 @@ export function DashboardListingCreateForm({
 
     try {
       const formData = new FormData();
-      formData.set("productId", productId);
+      formData.set("productId", selectedProductId);
       formData.set("price", price);
 
       const response = await fetch("/listings/save", {
@@ -68,6 +71,7 @@ export function DashboardListingCreateForm({
       }
 
       setFeedback("Listing published successfully");
+      setError(null);
       refreshInPlace();
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "Unable to publish listing");
@@ -80,7 +84,14 @@ export function DashboardListingCreateForm({
     <div className="stack-sm">
       <label>
         Product
-        <select value={productId} onChange={(event) => setProductId(event.target.value)}>
+        <select
+          value={selectedProductId}
+          onChange={(event) => {
+            setProductId(event.target.value);
+            setError(null);
+            setFeedback(null);
+          }}
+        >
           {listingOptions.map((item) => (
             <option key={item.inventoryId} value={item.productId}>
               {item.productName} - {item.availableToList} available to list -{" "}
@@ -93,7 +104,11 @@ export function DashboardListingCreateForm({
         Sale price per unit
         <input
           value={price}
-          onChange={(event) => setPrice(event.target.value)}
+          onChange={(event) => {
+            setPrice(event.target.value);
+            setError(null);
+            setFeedback(null);
+          }}
           name="price"
           type="number"
           min={0.01}
