@@ -71,11 +71,6 @@ export function Navigation({
         <Link href={"/settings" as Route} className="topbar-link">
           Settings
         </Link>
-        <form action="/auth/logout" method="post">
-          <button type="submit" className="ghost-button small">
-            Logout
-          </button>
-        </form>
       </nav>
     </header>
   );

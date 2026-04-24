@@ -26,13 +26,15 @@ export function SettingsActions({
 }: SettingsActionsProps) {
   const router = useRouter();
   const [renameOpen, setRenameOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [renameName, setRenameName] = useState(currentShopName ?? "");
   const [renamePassword, setRenamePassword] = useState("");
+  const [logoutPassword, setLogoutPassword] = useState("");
   const [deleteUsername, setDeleteUsername] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [submitting, setSubmitting] = useState<null | "rename" | "delete">(null);
+  const [submitting, setSubmitting] = useState<null | "rename" | "logout" | "delete">(null);
   const [state, setState] = useState<ActionState>(initialState);
 
   function resetMessages() {
@@ -111,6 +113,39 @@ export function SettingsActions({
     }
   }
 
+  async function handleLogout() {
+    setSubmitting("logout");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("password", logoutPassword);
+
+      const response = await fetch("/auth/logout", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        redirectTo?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Logout failed");
+      }
+
+      window.location.assign(payload.redirectTo ?? "/login");
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Logout failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   return (
     <div className="settings-actions">
       {state.message ? (
@@ -153,6 +188,28 @@ export function SettingsActions({
         ) : (
           <p className="muted">Current store name: {currentShopName}</p>
         )}
+      </section>
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
+            <h2>Logout</h2>
+            <p>Sign out of this device after confirming your password.</p>
+          </div>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              resetMessages();
+              setLogoutPassword("");
+              setLogoutOpen(true);
+            }}
+            disabled={submitting !== null}
+          >
+            Logout
+          </button>
+        </div>
+        <p className="muted">Easy to find here, but no longer exposed in the main navigation.</p>
       </section>
 
       <section className="card settings-card settings-card--danger">
@@ -222,6 +279,51 @@ export function SettingsActions({
               </button>
               <button type="button" onClick={() => void handleRename()} disabled={submitting !== null}>
                 {submitting === "rename" ? "Renaming..." : "Pay $200 and rename"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {logoutOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setLogoutOpen(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-card__copy">
+              <h3 id="logout-title">Confirm Logout</h3>
+              <p>Enter your password to confirm logout.</p>
+            </div>
+            <label className="modal-card__field">
+              Password
+              <input
+                value={logoutPassword}
+                onChange={(event) => setLogoutPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                disabled={submitting !== null}
+              />
+            </label>
+            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+            <div className="modal-card__actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setLogoutOpen(false)}
+                disabled={submitting !== null}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                disabled={submitting !== null}
+              >
+                {submitting === "logout" ? "Logging out..." : "Logout"}
               </button>
             </div>
           </div>

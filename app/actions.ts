@@ -4,7 +4,7 @@ import { ProductCategory, NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getPostLoginRedirect, requireUser, setSession, clearSession } from "@/lib/auth";
+import { getPostLoginRedirect, requireUser, setSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseCurrencyInput } from "@/lib/money";
 import { getLiveStockStatusMessage, sanitizeStockCount } from "@/lib/stock";
@@ -86,11 +86,6 @@ export async function accountLoginAction(formData: FormData) {
 
   await setSession(user.id);
   redirect(getPostLoginRedirect(Boolean(user.shop)));
-}
-
-export async function logoutAction() {
-  await clearSession();
-  redirect("/login");
 }
 
 export async function createShopAction(formData: FormData) {
