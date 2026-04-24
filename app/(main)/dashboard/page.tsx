@@ -82,18 +82,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const endOfToday = new Date(startOfToday);
   endOfToday.setDate(endOfToday.getDate() + 1);
 
-  const freeInventoryBaseQuery = Prisma.sql`
-    FROM "Inventory" i
-    INNER JOIN "Product" p ON p."id" = i."productId"
-    LEFT JOIN "MarketProductState" ms ON ms."productId" = p."id"
-    WHERE i."userId" = ${user.id}
-      AND i."quantity" > i."allocatedQuantity"
-  `;
-
   const [
     listingOptions,
     freeInventoryRows,
-    freeInventoryCountRows,
     listings,
     recentSales,
     lowStockListings,
@@ -126,6 +117,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   marketAveragePrice: true,
                 },
               },
+              listings: {
+                where: {
+                  shopId: user.shop.id,
+                  active: true,
+                },
+                select: {
+                  quantity: true,
+                },
+              },
             },
           },
         },
@@ -157,6 +157,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   marketAveragePrice: true,
                 },
               },
+              listings: {
+                where: {
+                  shopId: user.shop.id,
+                  active: true,
+                },
+                select: {
+                  quantity: true,
+                },
+              },
             },
           },
         },
@@ -166,10 +175,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           },
         },
       }),
-      prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
-        SELECT COUNT(*)::bigint AS "count"
-        ${freeInventoryBaseQuery}
-      `),
       prisma.listing.findMany({
         where: {
           shopId: user.shop.id,
@@ -300,32 +305,46 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     ]);
 
   const listingOptionRows = listingOptions
-    .map((item) => ({
-      inventoryId: item.id,
-      productId: item.productId,
-      productName: item.product.name,
-      unitLabel: item.product.unitLabel,
-      availableToList: getFreeInventoryQuantity(item.quantity, item.allocatedQuantity),
-      marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
-    }))
+    .map((item) => {
+      const activeListingQuantity = item.product.listings.reduce(
+        (total, listing) => total + listing.quantity,
+        0,
+      );
+
+      return {
+        inventoryId: item.id,
+        productId: item.productId,
+        productName: item.product.name,
+        unitLabel: item.product.unitLabel,
+        availableToList: getFreeInventoryQuantity(item.quantity, activeListingQuantity),
+        marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
+      };
+    })
     .filter((item) => item.availableToList > 0)
     .slice(0, LISTING_OPTION_LIMIT);
   const freeInventoryRowList = freeInventoryRows
-    .map((item) => ({
-      inventoryId: item.id,
-      productId: item.productId,
-      productName: item.product.name,
-      unitLabel: item.product.unitLabel,
-      availableToList: getFreeInventoryQuantity(item.quantity, item.allocatedQuantity),
-      marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
-    }))
+    .map((item) => {
+      const activeListingQuantity = item.product.listings.reduce(
+        (total, listing) => total + listing.quantity,
+        0,
+      );
+
+      return {
+        inventoryId: item.id,
+        productId: item.productId,
+        productName: item.product.name,
+        unitLabel: item.product.unitLabel,
+        availableToList: getFreeInventoryQuantity(item.quantity, activeListingQuantity),
+        marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
+      };
+    })
     .filter((item) => item.availableToList > 0);
   const visibleInventory = freeInventoryRowList.slice(
     inventoryOffset,
     inventoryOffset + INVENTORY_PAGE_SIZE,
   );
   const hasNextInventoryPage = freeInventoryRowList.length > inventoryOffset + INVENTORY_PAGE_SIZE;
-  const freeInventoryCount = Number(freeInventoryCountRows[0]?.count ?? 0);
+  const freeInventoryCount = freeInventoryRowList.length;
   const visibleListings = listings.slice(0, LISTING_PAGE_SIZE);
   const hasNextListingsPage = listings.length > LISTING_PAGE_SIZE;
   const defaultListingPrice =

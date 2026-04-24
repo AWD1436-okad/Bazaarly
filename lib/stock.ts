@@ -8,10 +8,10 @@ export function sanitizeStockCount(quantity: number | null | undefined) {
 
 export function getFreeInventoryQuantity(
   inventoryQuantity: number | null | undefined,
-  allocatedQuantity: number | null | undefined,
+  activeListingQuantity: number | null | undefined,
 ) {
   return sanitizeStockCount(
-    sanitizeStockCount(inventoryQuantity) - sanitizeStockCount(allocatedQuantity),
+    sanitizeStockCount(inventoryQuantity) - sanitizeStockCount(activeListingQuantity),
   );
 }
 

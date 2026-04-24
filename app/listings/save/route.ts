@@ -78,16 +78,17 @@ export async function POST(request: Request) {
         },
       });
 
+      const activeListingQuantity = listing?.active ? listing.quantity : 0;
       const quantityToList = getFreeInventoryQuantity(
         inventory.quantity,
-        inventory.allocatedQuantity,
+        activeListingQuantity,
       );
 
       if (quantityToList <= 0) {
         throw new Error("No free inventory is available to list");
       }
 
-      const nextListingQuantity = sanitizeStockCount((listing?.quantity ?? 0) + quantityToList);
+      const nextListingQuantity = sanitizeStockCount(activeListingQuantity + quantityToList);
 
       if (listing) {
         await tx.listing.update({
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
       await tx.inventory.update({
         where: { id: inventory.id },
         data: {
-          allocatedQuantity: sanitizeStockCount(inventory.allocatedQuantity + quantityToList),
+          allocatedQuantity: nextListingQuantity,
         },
       });
 
