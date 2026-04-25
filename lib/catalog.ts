@@ -336,9 +336,181 @@ function inferTrendLabel(category: ProductCategory, name: string) {
   return CATEGORY_DEFINITIONS[category].trendLabel;
 }
 
-function describeProduct(name: string, unitLabel: string, subcategory?: string) {
-  const subcategoryText = subcategory ? ` from ${subcategory}` : "";
-  return `${name}${subcategoryText} priced ${unitLabel} in Bazaarly's curated marketplace catalog.`;
+const PRODUCT_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  Apples: "Fresh fruit for eating, cooking, or adding to snacks and lunch boxes.",
+  Avocados: "Creamy fruit used for toast, salads, dips, and simple meals.",
+  Bagels: "Round bread rolls suited for breakfast, sandwiches, or toasted snacks.",
+  "Basic Thobe": "A simple long robe commonly worn by men for daily modest clothing.",
+  Shampoo: "Hair washing product used to clean and refresh hair.",
+  Notebook: "Paper notebook for school, study notes, planning, or writing.",
+  Pans: "Kitchen pan used for frying eggs, meat, vegetables, and other foods.",
+  "Frying Spatula": "Flat kitchen tool used for turning and lifting food while cooking.",
+};
+
+function describeClothingProduct(name: string) {
+  if (/Thobe/.test(name)) {
+    return "A long modest robe commonly worn by men for daily, formal, or Eid clothing.";
+  }
+
+  if (/Jubba/.test(name)) {
+    return "A loose modest robe worn by men for comfortable everyday or occasion wear.";
+  }
+
+  if (/Kurta/.test(name)) {
+    return "A long tunic-style top worn with modest outfits for casual or formal occasions.";
+  }
+
+  if (/Shalwar Kameez|Pakistani Eid Set/.test(name)) {
+    return "Traditional matching outfit worn for modest daily wear, events, or Eid gatherings.";
+  }
+
+  if (/Waistcoat/.test(name)) {
+    return "Dress vest worn over a kurta or formal outfit for a sharper look.";
+  }
+
+  if (/Sherwani/.test(name)) {
+    return "Formal long coat worn for weddings, Eid, and special occasions.";
+  }
+
+  if (/Bisht/.test(name)) {
+    return "Traditional outer cloak worn over formal clothing for special occasions.";
+  }
+
+  if (/Ihram/.test(name)) {
+    return "Simple two-piece garment used by men during pilgrimage rituals.";
+  }
+
+  if (/Kufi|Taqiyah|Cap/.test(name)) {
+    return "Small head covering worn with modest or traditional outfits.";
+  }
+
+  if (/Turban/.test(name)) {
+    return "Head wrap worn as part of traditional or modest styling.";
+  }
+
+  if (/Islamic Sandals/.test(name)) {
+    return "Open footwear suited for casual wear with modest traditional outfits.";
+  }
+
+  if (/Abaya/.test(name)) {
+    return "Loose full-length outer garment worn by women for modest everyday wear.";
+  }
+
+  if (/Jilbab/.test(name)) {
+    return "Loose modest garment designed to cover the body comfortably.";
+  }
+
+  if (/Khimar/.test(name)) {
+    return "Modest head and shoulder covering worn over everyday clothing.";
+  }
+
+  if (/Hijab/.test(name)) {
+    return "Headscarf worn for modest dressing and everyday styling.";
+  }
+
+  if (/Undercap/.test(name)) {
+    return "Soft cap worn under a hijab to help keep it secure.";
+  }
+
+  if (/Niqab/.test(name)) {
+    return "Face veil worn with modest clothing for additional coverage.";
+  }
+
+  if (/Modest Dress|Eid Dress/.test(name)) {
+    return "Full-length dress designed for modest styling and special occasions.";
+  }
+
+  if (/Tunic/.test(name)) {
+    return "Long modest top worn with skirts, trousers, or loose pants.";
+  }
+
+  if (/Loose Pants|Churidar/.test(name)) {
+    return "Comfortable modest pants worn with tunics, kurtas, or long tops.";
+  }
+
+  if (/Skirt/.test(name)) {
+    return "Long skirt designed for modest everyday outfits.";
+  }
+
+  if (/Prayer Dress/.test(name)) {
+    return "Loose garment worn for prayer and comfortable modest coverage.";
+  }
+
+  if (/Swimwear/.test(name)) {
+    return "Modest swim outfit designed for comfortable coverage in the water.";
+  }
+
+  if (/Dupatta/.test(name)) {
+    return "Long scarf worn with traditional outfits for modest styling.";
+  }
+
+  if (/Shoes|Trainers|Sandals|Slippers/.test(name)) {
+    return "Footwear for everyday outfits, walking, school, or casual wear.";
+  }
+
+  if (/Socks/.test(name)) {
+    return "Soft socks worn with shoes for comfort and daily use.";
+  }
+
+  if (/Hats/.test(name)) {
+    return "Headwear used for sun protection, warmth, or casual styling.";
+  }
+
+  return "Clothing item used for daily wear, modest outfits, or comfortable styling.";
+}
+
+function describeProduct(name: string, category: ProductCategory) {
+  const override = PRODUCT_DESCRIPTION_OVERRIDES[name];
+  if (override) return override;
+
+  if (category === ProductCategory.CLOTHING) {
+    return describeClothingProduct(name);
+  }
+
+  if (category === ProductCategory.FRUIT_AND_VEGETABLES) {
+    if (/Parsley|Coriander|Mint/.test(name)) {
+      return `${name} used to add fresh flavour to salads, meals, and home cooking.`;
+    }
+    return `${name} used for fresh eating, cooking, salads, snacks, or family meals.`;
+  }
+
+  if (category === ProductCategory.BAKERY_AND_GRAINS) {
+    return `${name} used for meals, lunch boxes, breakfast, baking, or everyday pantry staples.`;
+  }
+
+  if (category === ProductCategory.PANTRY_AND_COOKING) {
+    return `${name} used for cooking, seasoning, sauces, baking, or pantry storage.`;
+  }
+
+  if (category === ProductCategory.DRINKS) {
+    return `${name} used as a drink for refreshment, meals, school, work, or travel.`;
+  }
+
+  if (category === ProductCategory.MEAT_DAIRY_AND_PROTEIN) {
+    return `${name} used for cooking meals, adding protein, or preparing family dinners.`;
+  }
+
+  if (category === ProductCategory.SNACKS_AND_SWEETS) {
+    return `${name} used as a snack, treat, lunch-box item, or quick dessert.`;
+  }
+
+  if (category === ProductCategory.KITCHEN_AND_COOKWARE) {
+    return `${name} used for preparing, cooking, serving, or storing food at home.`;
+  }
+
+  if (category === ProductCategory.CLEANING_AND_PERSONAL_CARE) {
+    return `${name} used for cleaning, hygiene, personal care, or household routines.`;
+  }
+
+  if (category === ProductCategory.HOME_AND_STORAGE) {
+    return `${name} used for home organisation, comfort, storage, or everyday household needs.`;
+  }
+
+  if (category === ProductCategory.ELECTRONICS) {
+    return `${name} used for communication, work, entertainment, charging, or digital tasks.`;
+  }
+
+  return `${name} used for school, writing, organising, carrying items, or everyday errands.`;
 }
 
 function buildCatalogProducts(): CatalogProduct[] {
@@ -353,7 +525,7 @@ function buildCatalogProducts(): CatalogProduct[] {
         category: section.enumValue,
         subcategory: item.subcategory,
         unitLabel: item.unitLabel,
-        description: describeProduct(item.name, item.unitLabel, item.subcategory),
+        description: describeProduct(item.name, section.enumValue),
         basePrice: item.basePrice,
         supplierPrice,
         demandScore: definition.demandScore,
