@@ -2,7 +2,7 @@ import { NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
@@ -21,6 +21,9 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
   }
 
   const formData = await request.formData();

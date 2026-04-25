@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
@@ -26,6 +26,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
 
   if (!user.shop) {

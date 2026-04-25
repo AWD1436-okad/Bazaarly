@@ -1,8 +1,10 @@
 import { LiveUpdatesWatcher } from "@/components/live-updates-watcher";
 import { Navigation } from "@/components/navigation";
-import { requireUser } from "@/lib/auth";
+import { SecuritySetupLock } from "@/components/security-setup-lock";
+import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -12,10 +14,20 @@ type MainLayoutProps = {
 };
 
 export default async function MainLayout({ children }: MainLayoutProps) {
-  const user = await requireUser();
-  const [unreadNotifications, liveStateVersion] = await Promise.all([
+  const user = await requireUser({ allowIncompleteSecurity: true });
+
+  if (!hasCompletedSecuritySetup(user)) {
+    return (
+      <main className="auth-layout">
+        <SecuritySetupLock />
+      </main>
+    );
+  }
+
+  const [unreadNotifications, liveStateVersion, currencyCode] = await Promise.all([
     getUnreadNotificationBadge(user.id),
     getLiveStateVersion(user.id),
+    getActiveCurrencyCode(),
   ]);
 
   return (
@@ -23,6 +35,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
       <Navigation
         balance={user.balance}
+        currencyCode={currencyCode}
         unreadNotifications={unreadNotifications.unreadCount}
         unreadNotificationLabel={unreadNotifications.label}
       />

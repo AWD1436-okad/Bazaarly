@@ -34,6 +34,11 @@ enum CartStatus {
   ABANDONED
 }
 
+enum CartItemSource {
+  MARKETPLACE
+  SUPPLIER
+}
+
 enum OrderStatus {
   COMPLETED
   CANCELLED
@@ -67,6 +72,11 @@ model User {
   username               String         @unique
   displayName            String
   passwordHash           String         @default("")
+  checkoutPinHash        String?
+  checkoutPinLookupHash  String?        @unique
+  bankNumberHash         String?
+  bankNumberLookupHash   String?        @unique
+  securitySetupCompleted Boolean        @default(false)
   balance                Int            @default(0)
   deletedAt              DateTime?
   createdAt              DateTime       @default(now())
@@ -123,7 +133,23 @@ model Product {
   cartItems    CartItem[]
   lineItems    OrderLineItem[]
   marketState  MarketProductState?
+  priceProfiles ProductPriceProfile[]
   marketEvents MarketEvent[]
+}
+
+model ProductPriceProfile {
+  id                 String   @id @default(cuid())
+  productId          String
+  currencyCode       String
+  unitLabel          String
+  basePrice          Int
+  supplierPrice      Int
+  marketAveragePrice Int
+  updatedAt          DateTime @updatedAt
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, currencyCode])
+  @@index([currencyCode])
 }
 
 model MarketProductState {
@@ -158,6 +184,7 @@ model Listing {
   shopId     String
   productId  String
   price      Int
+  currencyCode String @default("AUD")
   quantity   Int
   active     Boolean   @default(true)
   createdAt  DateTime  @default(now())
@@ -187,17 +214,19 @@ model Cart {
 model CartItem {
   id                String    @id @default(cuid())
   cartId            String
-  listingId         String
+  listingId         String?
   productId         String
+  source            CartItemSource @default(MARKETPLACE)
   quantity          Int
   unitPriceSnapshot Int
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   cart              Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  listing           Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing           Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
   product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, listingId])
+  @@unique([cartId, productId, source])
 }
 
 model Order {
@@ -313,6 +342,7 @@ model WorldState {
   id              String           @id @default("global")
   currentDay      Int              @default(1)
   currentPhase    MarketTimePhase  @default(MORNING)
+  currencyCode    String           @default("AUD")
   lastSimulatedAt DateTime?
   updatedAt       DateTime         @updatedAt
 }

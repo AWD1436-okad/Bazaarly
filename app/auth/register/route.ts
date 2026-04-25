@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const response = NextResponse.redirect(new URL("/onboarding/shop", request.url), 303);
+  const response = NextResponse.redirect(new URL("/security-setup", request.url), 303);
   const sessionToken = await createSessionToken(user.id);
   response.cookies.set(getSessionCookieName(), sessionToken, getSessionCookieOptions());
 

@@ -6,6 +6,7 @@ import { ListingCard } from "@/components/listing-card";
 import { getCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { getShopPageData } from "@/lib/marketplace";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 
 type ShopPageProps = {
   params: Promise<{ shopId: string }>;
@@ -23,6 +24,7 @@ function buildShopHref(shopId: string, page: number) {
 
 export default async function ShopPage({ params, searchParams }: ShopPageProps) {
   await requireUser();
+  const currencyCode = await getActiveCurrencyCode();
   const { shopId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = parsePositivePage(resolvedSearchParams?.page);
@@ -75,6 +77,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                 rating: shop.rating,
               },
             }}
+            currencyCode={currencyCode}
             showShopLink={false}
             shopNameOverride={shop.name}
           />

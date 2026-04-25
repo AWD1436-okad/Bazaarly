@@ -10,6 +10,7 @@ import {
   createSessionToken,
   getSessionCookieName,
   getSessionCookieOptions,
+  hasCompletedSecuritySetup,
 } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
@@ -62,7 +63,14 @@ export async function POST(request: Request) {
   await clearAuthThrottle("LOGIN", throttleKey);
 
   const response = NextResponse.redirect(
-    new URL(user.shop ? "/dashboard" : "/onboarding/shop", request.url),
+    new URL(
+      !hasCompletedSecuritySetup(user)
+        ? "/security-setup"
+        : user.shop
+          ? "/dashboard"
+          : "/onboarding/shop",
+      request.url,
+    ),
     303,
   );
   const sessionToken = await createSessionToken(user.id);

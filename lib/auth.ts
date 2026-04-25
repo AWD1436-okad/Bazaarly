@@ -52,11 +52,32 @@ export async function getSessionUser() {
   return session.user;
 }
 
-export async function requireUser() {
+type RequireUserOptions = {
+  allowMissingPin?: boolean;
+  allowIncompleteSecurity?: boolean;
+};
+
+export function hasCompletedSecuritySetup(user: {
+  checkoutPinHash?: string | null;
+  bankNumberHash?: string | null;
+  securitySetupCompleted?: boolean | null;
+}) {
+  return Boolean(user.securitySetupCompleted && user.checkoutPinHash && user.bankNumberHash);
+}
+
+export async function requireUser(options: RequireUserOptions = {}) {
   const user = await getSessionUser();
 
   if (!user) {
     redirect("/login");
+  }
+
+  if (
+    !options.allowMissingPin &&
+    !options.allowIncompleteSecurity &&
+    !hasCompletedSecuritySetup(user)
+  ) {
+    redirect("/security-setup" as never);
   }
 
   return user;
@@ -78,7 +99,11 @@ export async function clearSession() {
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
-export function getPostLoginRedirect(hasShop: boolean) {
+export function getPostLoginRedirect(hasShop: boolean, hasSecuritySetup: boolean) {
+  if (!hasSecuritySetup) {
+    return "/security-setup";
+  }
+
   return hasShop ? "/dashboard" : "/onboarding/shop";
 }
 

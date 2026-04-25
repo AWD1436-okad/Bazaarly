@@ -10,6 +10,7 @@ type NavigationProps = {
   unreadNotificationLabel?: string | null;
   currentSearch?: string;
   currentSort?: string;
+  currencyCode?: string;
 };
 
 export function Navigation({
@@ -18,6 +19,7 @@ export function Navigation({
   unreadNotificationLabel,
   currentSearch,
   currentSort,
+  currencyCode = "AUD",
 }: NavigationProps) {
   return (
     <header className="topbar">
@@ -49,7 +51,7 @@ export function Navigation({
       </form>
 
       <nav className="topbar-links">
-        <span className="balance-pill">{formatCurrency(balance)}</span>
+        <span className="balance-pill">{formatCurrency(balance, currencyCode)}</span>
         <Link href="/notifications" className="notification-pill">
           Notifications
           {unreadNotifications > 0 ? (

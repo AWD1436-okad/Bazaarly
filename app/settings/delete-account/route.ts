@@ -1,7 +1,12 @@
 import { CartStatus, ShopStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { getSessionCookieName, getSessionCookieOptions, getSessionUser } from "@/lib/auth";
+import {
+  getSessionCookieName,
+  getSessionCookieOptions,
+  getSessionUser,
+  hasCompletedSecuritySetup,
+} from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
@@ -18,6 +23,9 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
   }
 
   const formData = await request.formData();

@@ -2,7 +2,8 @@ import { NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { parsePriceInput, parseRouteId } from "@/lib/route-validation";
 import { getFreeInventoryQuantity, sanitizeStockCount } from "@/lib/stock";
@@ -22,6 +23,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
   if (!user.shop) {
     if (asyncRequest) {
@@ -50,6 +57,7 @@ export async function POST(request: Request) {
 
   const productId = productIdResult.data;
   const priceCents = priceResult.data;
+  const currencyCode = await getActiveCurrencyCode();
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -95,6 +103,7 @@ export async function POST(request: Request) {
           where: { id: listing.id },
           data: {
             price: priceCents,
+            currencyCode,
             quantity: nextListingQuantity,
             active: nextListingQuantity > 0,
           },
@@ -105,6 +114,7 @@ export async function POST(request: Request) {
             shopId: shop.id,
             productId,
             price: priceCents,
+            currencyCode,
             quantity: quantityToList,
             active: true,
           },

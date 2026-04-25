@@ -2,6 +2,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
 type OrdersProps = {
@@ -51,6 +52,7 @@ function buildOrdersHref({
 
 export default async function OrdersPage({ searchParams }: OrdersProps) {
   const user = await requireUser();
+  const currencyCode = await getActiveCurrencyCode();
   const params = (await searchParams) ?? {};
   const checkout = getSingleParam(params.checkout) === "1";
   const buyerPage = parsePositivePage(params.buyerPage);
@@ -160,7 +162,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                     </span>
                     <div className="section-row">
                       <span>{order.createdAt.toLocaleString()}</span>
-                      <strong>{formatCurrency(order.totalPrice)}</strong>
+                       <strong>{formatCurrency(order.totalPrice, currencyCode)}</strong>
                     </div>
                   </div>
                 ))}
@@ -229,7 +231,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                     </span>
                     <div className="section-row">
                       <span>{order.createdAt.toLocaleString()}</span>
-                      <strong>{formatCurrency(order.totalPrice)}</strong>
+                       <strong>{formatCurrency(order.totalPrice, currencyCode)}</strong>
                     </div>
                   </div>
                 ))}

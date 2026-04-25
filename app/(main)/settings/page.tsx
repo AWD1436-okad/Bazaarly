@@ -1,12 +1,15 @@
 import { SettingsActions } from "@/components/settings-actions";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
+import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const currencyCode = await getActiveCurrencyCode();
+  const profile = getPriceProfileMetadata(currencyCode);
 
   return (
     <div className="page-grid">
@@ -23,8 +26,13 @@ export default async function SettingsPage() {
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Balance</span>
-          <strong>{formatCurrency(user.balance)}</strong>
-          <p className="muted">Store rename cost: $200.00</p>
+          <strong>{formatCurrency(user.balance, currencyCode)}</strong>
+          <p className="muted">Store rename cost: {formatCurrency(20000, currencyCode)}</p>
+        </article>
+        <article className="metric-card">
+          <span className="metric-card__eyebrow">Price profile</span>
+          <strong>{profile.currencyCode}</strong>
+          <p className="muted">{profile.regionName}-style catalog prices</p>
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Store</span>
@@ -38,6 +46,8 @@ export default async function SettingsPage() {
         displayName={user.displayName}
         currentShopName={user.shop?.name ?? null}
         canRenameStore={Boolean(user.shop)}
+        currentCurrencyCode={currencyCode}
+        priceProfiles={getSupportedPriceProfiles()}
       />
     </div>
   );

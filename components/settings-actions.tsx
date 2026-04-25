@@ -8,6 +8,12 @@ type SettingsActionsProps = {
   displayName: string;
   currentShopName: string | null;
   canRenameStore: boolean;
+  currentCurrencyCode: string;
+  priceProfiles: Array<{
+    currencyCode: string;
+    label: string;
+    regionName: string;
+  }>;
 };
 
 type ActionState = {
@@ -25,6 +31,8 @@ export function SettingsActions({
   displayName,
   currentShopName,
   canRenameStore,
+  currentCurrencyCode,
+  priceProfiles,
 }: SettingsActionsProps) {
   const router = useRouter();
   const [usernameOpen, setUsernameOpen] = useState(false);
@@ -42,8 +50,9 @@ export function SettingsActions({
   const [deleteUsername, setDeleteUsername] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
   const [submitting, setSubmitting] = useState<
-    null | "username" | "displayName" | "rename" | "logout" | "delete"
+    null | "username" | "displayName" | "rename" | "logout" | "delete" | "currency"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
 
@@ -234,6 +243,42 @@ export function SettingsActions({
     }
   }
 
+  async function handleCurrencyChange() {
+    setSubmitting("currency");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("currencyCode", currencyCode);
+
+      const response = await fetch("/settings/price-region", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        currencyCode?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Price profile update failed");
+      }
+
+      setCurrencyCode(payload.currencyCode ?? currencyCode);
+      setState({ message: payload.message ?? "Regional price profile updated", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Price profile update failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   return (
     <div className="settings-actions">
       {state.message ? (
@@ -253,6 +298,49 @@ export function SettingsActions({
           </div>
         </div>
       ) : null}
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
+            <h2>Regional Price Profile</h2>
+            <p>
+              Choose the local catalog and currency style used for supplier prices, market averages,
+              listings, and bot price judgement.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleCurrencyChange()}
+            disabled={submitting !== null || currencyCode === currentCurrencyCode}
+          >
+            {submitting === "currency" ? "Updating..." : "Update Price Profile"}
+          </button>
+        </div>
+        <label>
+          Search/select currency region
+          <input
+            list="price-profile-options"
+            value={currencyCode}
+            onChange={(event) => {
+              setCurrencyCode(event.target.value.toUpperCase());
+              resetMessages();
+            }}
+            disabled={submitting !== null}
+            placeholder="AUD, PKR, USD..."
+          />
+          <datalist id="price-profile-options">
+            {priceProfiles.map((profile) => (
+              <option key={profile.currencyCode} value={profile.currencyCode}>
+                {profile.label}
+              </option>
+            ))}
+          </datalist>
+        </label>
+        <p className="muted">
+          Current profile: {currentCurrencyCode}. This is not a simple converted display;
+          catalog prices are re-profiled for the selected region.
+        </p>
+      </section>
 
       <section className="card settings-card">
         <div className="card-header">

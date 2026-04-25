@@ -15,11 +15,13 @@ type ListingOption = {
 type DashboardListingCreateFormProps = {
   listingOptions: ListingOption[];
   defaultListingPrice: string;
+  currencyCode: string;
 };
 
 export function DashboardListingCreateForm({
   listingOptions,
   defaultListingPrice,
+  currencyCode,
 }: DashboardListingCreateFormProps) {
   const router = useRouter();
   const [productId, setProductId] = useState(listingOptions[0]?.productId ?? "");
@@ -95,7 +97,10 @@ export function DashboardListingCreateForm({
           {listingOptions.map((item) => (
             <option key={item.inventoryId} value={item.productId}>
               {item.productName} - {item.availableToList} available to list -{" "}
-              ${(item.marketAveragePrice / 100).toFixed(2)} {item.unitLabel}
+              {new Intl.NumberFormat(undefined, {
+                style: "currency",
+                currency: currencyCode,
+              }).format(item.marketAveragePrice / 100)} {item.unitLabel}
             </option>
           ))}
         </select>

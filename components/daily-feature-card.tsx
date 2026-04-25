@@ -6,6 +6,9 @@ type DailyFeatureCardProps = {
   href: string;
   ctaLabel: string;
   eyebrow?: string;
+  displayPrice?: number;
+  displayUnitLabel?: string;
+  currencyCode?: string;
 };
 
 export function DailyFeatureCard({
@@ -13,6 +16,9 @@ export function DailyFeatureCard({
   href,
   ctaLabel,
   eyebrow = "Today's featured item",
+  displayPrice,
+  displayUnitLabel,
+  currencyCode = "AUD",
 }: DailyFeatureCardProps) {
   return (
     <section className="featured-item-card">
@@ -29,7 +35,11 @@ export function DailyFeatureCard({
           <div className="featured-item-card__detail">
             <span className="muted">Today&apos;s price</span>
             <strong className="featured-item-card__price">
-              {formatPriceWithUnit(product.basePrice, product.unitLabel)}
+              {formatPriceWithUnit(
+                displayPrice ?? product.basePrice,
+                displayUnitLabel ?? product.unitLabel,
+                currencyCode,
+              )}
             </strong>
           </div>
           <div className="featured-item-card__detail">

@@ -11,6 +11,7 @@ import { StatusBanner } from "@/components/status-banner";
 import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { getFreeInventoryQuantity, getLiveStockStatusMessage } from "@/lib/stock";
 
@@ -64,6 +65,7 @@ function buildDashboardHref(
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
   const user = await requireUser();
+  const currencyCode = await getActiveCurrencyCode();
 
   if (!user.shop) {
     redirect("/onboarding/shop");
@@ -410,15 +412,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       <section className="metrics-grid">
         <article className="metric-card">
           <span className="metric-card__eyebrow">Balance</span>
-          <strong>{formatCurrency(user.balance)}</strong>
+          <strong>{formatCurrency(user.balance, currencyCode)}</strong>
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Today&apos;s revenue</span>
-          <strong>{formatCurrency(todayRevenue)}</strong>
+          <strong>{formatCurrency(todayRevenue, currencyCode)}</strong>
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Total revenue</span>
-          <strong>{formatCurrency(user.shop.totalRevenue)}</strong>
+          <strong>{formatCurrency(user.shop.totalRevenue, currencyCode)}</strong>
         </article>
       </section>
 
@@ -443,6 +445,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <DashboardListingCreateForm
                 listingOptions={listingOptionRows}
                 defaultListingPrice={defaultListingPrice}
+                currencyCode={currencyCode}
               />
             ) : (
               <div className="empty-state">
@@ -473,10 +476,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       <strong>{item.productName}</strong>
                       <span className="muted">
                         Available in inventory: {item.availableToList} - Market average:{" "}
-                        {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel)}
+                        {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}
                       </span>
                     </div>
-                    <strong>{formatPriceWithUnit(item.marketAveragePrice, item.unitLabel)}</strong>
+                    <strong>{formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}</strong>
                   </div>
                 ))
               )}
@@ -535,7 +538,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                           listing.product.category,
                           listing.product.subcategory,
                         )} -{" "}
-                        {formatPriceWithUnit(listing.price, listing.product.unitLabel)} -{" "}
+                        {formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)} -{" "}
                         {getLiveStockStatusMessage(listing.quantity)}
                       </span>
                     </div>
@@ -607,7 +610,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         {sale.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
                       </span>
                     </div>
-                    <strong>{formatCurrency(sale.totalPrice)}</strong>
+                    <strong>{formatCurrency(sale.totalPrice, currencyCode)}</strong>
                   </div>
                 ))}
               </div>
@@ -631,7 +634,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       <strong>{item.name}</strong>
                       <span className="muted">{item.units} units sold</span>
                     </div>
-                    <strong>{formatCurrency(item.revenue)}</strong>
+                    <strong>{formatCurrency(item.revenue, currencyCode)}</strong>
                   </div>
                 ))}
               </div>

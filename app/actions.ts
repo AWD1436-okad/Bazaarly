@@ -4,7 +4,7 @@ import { ProductCategory, NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getPostLoginRedirect, requireUser, setSession } from "@/lib/auth";
+import { getPostLoginRedirect, hasCompletedSecuritySetup, requireUser, setSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseCurrencyInput } from "@/lib/money";
 import { getLiveStockStatusMessage, sanitizeStockCount } from "@/lib/stock";
@@ -54,7 +54,7 @@ export async function loginAction(formData: FormData) {
       }));
 
     await setSession(user.id);
-    redirect(getPostLoginRedirect(Boolean(user.shop)));
+    redirect(getPostLoginRedirect(Boolean(user.shop), hasCompletedSecuritySetup(user)) as never);
   }
 
   const user = await prisma.user.findFirst({
@@ -69,7 +69,7 @@ export async function loginAction(formData: FormData) {
   }
 
   await setSession(user.id);
-  redirect(getPostLoginRedirect(Boolean(user.shop)));
+  redirect(getPostLoginRedirect(Boolean(user.shop), hasCompletedSecuritySetup(user)) as never);
 }
 
 export async function accountLoginAction(formData: FormData) {
@@ -85,7 +85,7 @@ export async function accountLoginAction(formData: FormData) {
   }
 
   await setSession(user.id);
-  redirect(getPostLoginRedirect(Boolean(user.shop)));
+  redirect(getPostLoginRedirect(Boolean(user.shop), hasCompletedSecuritySetup(user)) as never);
 }
 
 export async function createShopAction(formData: FormData) {
@@ -364,6 +364,7 @@ export async function addToCartAction(formData: FormData) {
         cartId: cart.id,
         listingId: listing.id,
         productId: listing.productId,
+        source: "MARKETPLACE",
         quantity,
         unitPriceSnapshot: listing.price,
       },
@@ -395,7 +396,7 @@ export async function updateCartItemAction(formData: FormData) {
     await prisma.cartItem.delete({
       where: { id: cartItemId },
     });
-  } else {
+  } else if (cartItem.listing) {
     const safeQuantity = clamp(quantity, 1, cartItem.listing.quantity);
     await prisma.cartItem.update({
       where: { id: cartItemId },
@@ -404,209 +405,18 @@ export async function updateCartItemAction(formData: FormData) {
         unitPriceSnapshot: cartItem.listing.price,
       },
     });
+  } else {
+    await prisma.cartItem.delete({
+      where: { id: cartItemId },
+    });
   }
 
   revalidatePath("/cart");
 }
 
 export async function checkoutAction() {
-  const user = await requireUser();
-
-  const cart = await prisma.cart.findFirst({
-    where: {
-      userId: user.id,
-      status: "ACTIVE",
-    },
-    include: {
-      shop: {
-        include: {
-          owner: true,
-        },
-      },
-      items: {
-        include: {
-          listing: {
-            include: {
-              product: true,
-              shop: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!cart || cart.items.length === 0 || !cart.shop) {
-    redirect("/cart?error=Your%20cart%20is%20empty");
-  }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      const buyer = await tx.user.findUnique({
-        where: { id: user.id },
-      });
-
-    const seller = await tx.user.findUnique({
-      where: { id: cart.shop!.ownerId },
-    });
-
-    if (!buyer || !seller) {
-      throw new Error("Buyer or seller not found");
-    }
-
-    let totalPrice = 0;
-    const saleSummary: string[] = [];
-
-    for (const item of cart.items) {
-      const listing = await tx.listing.findUnique({
-        where: { id: item.listingId },
-        include: {
-          product: true,
-        },
-      });
-
-      if (!listing || !listing.active || listing.quantity < item.quantity) {
-        throw new Error("Listing stock changed");
-      }
-
-      totalPrice += listing.price * item.quantity;
-      saleSummary.push(`${item.quantity}x ${listing.product.name}`);
-    }
-
-    if (buyer.balance < totalPrice) {
-      throw new Error("Not enough balance");
-    }
-
-    const order = await tx.order.create({
-      data: {
-        buyerId: buyer.id,
-        sellerId: seller.id,
-        shopId: cart.shopId!,
-        totalPrice,
-      },
-    });
-
-    await tx.user.update({
-      where: { id: buyer.id },
-      data: {
-        balance: {
-          decrement: totalPrice,
-        },
-      },
-    });
-
-    await tx.user.update({
-      where: { id: seller.id },
-      data: {
-        balance: {
-          increment: totalPrice,
-        },
-      },
-    });
-
-    for (const item of cart.items) {
-      const listing = await tx.listing.findUnique({
-        where: { id: item.listingId },
-      });
-
-      if (!listing) continue;
-      const remainingListingQuantity = sanitizeStockCount(listing.quantity - item.quantity);
-
-      await tx.listing.update({
-        where: { id: listing.id },
-        data: {
-          quantity: remainingListingQuantity,
-          active: remainingListingQuantity > 0,
-        },
-      });
-
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          userId_productId: {
-            userId: seller.id,
-            productId: item.productId,
-          },
-        },
-      });
-
-      if (inventory) {
-        const remainingInventoryQuantity = sanitizeStockCount(inventory.quantity - item.quantity);
-        const remainingAllocatedQuantity = sanitizeStockCount(
-          inventory.allocatedQuantity - item.quantity,
-        );
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: {
-            quantity: remainingInventoryQuantity,
-            allocatedQuantity: remainingAllocatedQuantity,
-          },
-        });
-      }
-
-      await tx.orderLineItem.create({
-        data: {
-          orderId: order.id,
-          productId: item.productId,
-          listingId: item.listingId,
-          quantity: item.quantity,
-          unitPrice: item.unitPriceSnapshot,
-          lineTotal: item.unitPriceSnapshot * item.quantity,
-        },
-      });
-
-      if (remainingListingQuantity <= 3) {
-        await tx.notification.create({
-          data: {
-            userId: seller.id,
-            type: NotificationType.LOW_STOCK,
-            message: `${item.listing.product.name}: ${getLiveStockStatusMessage(
-              remainingListingQuantity,
-            )}.`,
-          },
-        });
-      }
-    }
-
-    await tx.shop.update({
-      where: { id: cart.shopId! },
-      data: {
-        totalRevenue: {
-          increment: totalPrice,
-        },
-        totalSales: {
-          increment: cart.items.reduce((sum, item) => sum + item.quantity, 0),
-        },
-        rating: clamp(cart.shop!.rating + 0.03, 1, 5),
-      },
-    });
-
-    await tx.notification.create({
-      data: {
-        userId: seller.id,
-        type: NotificationType.SALE,
-        message: `${buyer.displayName} bought ${saleSummary.join(", ")} for $${(
-          totalPrice / 100
-        ).toFixed(2)}.`,
-      },
-    });
-
-    await tx.cart.update({
-      where: { id: cart.id },
-      data: {
-        status: "CHECKED_OUT",
-      },
-    });
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Checkout failed";
-    redirect(`/cart?error=${encodeURIComponent(message)}`);
-  }
-
-  revalidatePath("/marketplace");
-  revalidatePath("/cart");
-  revalidatePath("/orders");
-  revalidatePath("/dashboard");
-  redirect("/orders?checkout=1");
+  await requireUser();
+  redirect("/checkout" as never);
 }
 
 export async function markNotificationsReadAction() {

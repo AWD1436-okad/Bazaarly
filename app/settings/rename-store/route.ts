@@ -2,9 +2,10 @@ import { NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { verifyPassword } from "@/lib/password";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -26,12 +27,16 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
   }
+  if (!hasCompletedSecuritySetup(user)) {
+    return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+  }
 
   if (!user.shop) {
     return NextResponse.json({ ok: false, error: "Shop setup required" }, { status: 400 });
   }
 
   const formData = await request.formData();
+  const currencyCode = await getActiveCurrencyCode();
   const newName = readFormString(formData, "name");
   const password = readFormString(formData, "password");
   const baseSlug = slugify(newName);
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
       });
 
       if (balanceUpdate.count !== 1) {
-        throw new Error(`You need ${formatCurrency(RENAME_COST_CENTS)} to rename your store`);
+        throw new Error(`You need ${formatCurrency(RENAME_COST_CENTS, currencyCode)} to rename your store`);
       }
 
       const matchingSlugs = await tx.shop.count({
@@ -115,6 +120,7 @@ export async function POST(request: Request) {
           type: NotificationType.SYSTEM,
           message: `Store renamed to ${newName}. ${formatCurrency(
             RENAME_COST_CENTS,
+            currencyCode,
           )} was charged from your balance.`,
         },
       });

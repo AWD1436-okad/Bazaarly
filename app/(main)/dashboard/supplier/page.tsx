@@ -12,6 +12,7 @@ import {
   getProductCategoryLabel,
 } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount } from "@/lib/stock";
 
@@ -130,6 +131,7 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
 
 export default async function SupplierPage({ searchParams }: SupplierPageProps) {
   await requireUser();
+  const currencyCode = await getActiveCurrencyCode();
   const params = (await searchParams) ?? {};
   const selectedCategory = parseCategoryFilter(params.category);
   const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
@@ -161,6 +163,15 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
           supplierStock: true,
         },
       },
+      priceProfiles: {
+        where: {
+          currencyCode,
+        },
+        select: {
+          supplierPrice: true,
+          unitLabel: true,
+        },
+      },
     },
     orderBy: [{ name: "asc" }],
   });
@@ -170,9 +181,9 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     name: item.name,
     category: item.category,
     subcategory: item.subcategory,
-    unitLabel: item.unitLabel,
+    unitLabel: item.priceProfiles[0]?.unitLabel ?? item.unitLabel,
     description: item.description,
-    supplierPrice: item.marketState?.currentSupplierPrice ?? 0,
+    supplierPrice: item.priceProfiles[0]?.supplierPrice ?? item.marketState?.currentSupplierPrice ?? 0,
     supplierStock: item.marketState?.supplierStock ?? 0,
   }));
 
@@ -275,7 +286,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                       </span>
                       <h2>{item.name}</h2>
                     </div>
-                    <strong>{formatPriceWithUnit(item.supplierPrice, item.unitLabel)}</strong>
+                    <strong>{formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)}</strong>
                   </div>
 
                   <p>{item.description}</p>

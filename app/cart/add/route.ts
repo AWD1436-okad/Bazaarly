@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
@@ -22,6 +22,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
 
   const formData = await request.formData();
@@ -138,6 +144,7 @@ export async function POST(request: Request) {
             cartId: cart.id,
             listingId: listing.id,
             productId: listing.productId,
+            source: "MARKETPLACE",
             quantity,
             unitPriceSnapshot: listing.price,
           },

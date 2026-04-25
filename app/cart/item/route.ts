@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 import { parseNonNegativeQuantity, parseRouteId } from "@/lib/route-validation";
@@ -21,6 +21,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
 
   const formData = await request.formData();
@@ -45,6 +51,11 @@ export async function POST(request: Request) {
     include: {
       cart: true,
       listing: true,
+      product: {
+        include: {
+          marketState: true,
+        },
+      },
     },
   });
 
@@ -55,29 +66,37 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/cart", request.url), 303);
   }
 
+  const availableQuantity =
+    cartItem.source === "SUPPLIER"
+      ? cartItem.product.marketState?.supplierStock ?? 0
+      : cartItem.listing?.quantity ?? 0;
+
   const shouldRemove =
     quantity <= 0 ||
-    !cartItem.listing.active ||
-    cartItem.listing.quantity <= 0;
+    availableQuantity <= 0 ||
+    (cartItem.source === "MARKETPLACE" && (!cartItem.listing || !cartItem.listing.active));
 
   if (shouldRemove) {
     await prisma.cartItem.delete({
       where: { id: cartItemId },
     });
   } else {
-    const safeQuantity = clamp(quantity, 1, cartItem.listing.quantity);
-    if (safeQuantity <= 0) {
-      await prisma.cartItem.delete({
-        where: { id: cartItemId },
+      const safeQuantity = clamp(quantity, 1, availableQuantity);
+      if (safeQuantity <= 0) {
+        await prisma.cartItem.delete({
+          where: { id: cartItemId },
       });
     } else {
-      await prisma.cartItem.update({
-        where: { id: cartItemId },
-        data: {
-          quantity: safeQuantity,
-          unitPriceSnapshot: cartItem.listing.price,
-        },
-      });
+        await prisma.cartItem.update({
+          where: { id: cartItemId },
+          data: {
+            quantity: safeQuantity,
+            unitPriceSnapshot:
+              cartItem.source === "SUPPLIER"
+                ? cartItem.product.marketState?.currentSupplierPrice ?? cartItem.unitPriceSnapshot
+                : cartItem.listing?.price ?? cartItem.unitPriceSnapshot,
+          },
+        });
     }
   }
 

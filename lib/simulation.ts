@@ -7,6 +7,7 @@ import {
 import { subMinutes } from "date-fns";
 
 import { INITIAL_BOTS } from "@/lib/catalog";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ type BotCandidateListing = {
   id: string;
   shopId: string;
   price: number;
+  currencyCode: string;
   quantity: number;
   productId: string;
   shop: {
@@ -34,6 +36,11 @@ type BotCandidateListing = {
     name: string;
     category: ProductCategory;
     basePrice: number;
+    priceProfiles: Array<{
+      currencyCode: string;
+      marketAveragePrice: number;
+      basePrice: number;
+    }>;
     marketState: {
       demandScore: number;
       marketAveragePrice: number;
@@ -305,8 +312,17 @@ function getTrendLabel(demandScore: number) {
 }
 
 function getListingReferencePrice(listing: BotCandidateListing) {
+  const regionalProfile = listing.product.priceProfiles.find(
+    (profile) => profile.currencyCode === listing.currencyCode,
+  );
   const marketAveragePrice = listing.product.marketState?.marketAveragePrice ?? 0;
-  return Math.max(listing.product.basePrice, marketAveragePrice, 1);
+  return Math.max(
+    regionalProfile?.marketAveragePrice ?? 0,
+    regionalProfile?.basePrice ?? 0,
+    listing.product.basePrice,
+    marketAveragePrice,
+    1,
+  );
 }
 
 function getOverpriceRatio(listing: BotCandidateListing) {
@@ -482,6 +498,7 @@ function getDesiredBotQuantity(
 
 export async function runMarketSimulation(force = false, debug = false) {
   const now = new Date();
+  const currencyCode = await getActiveCurrencyCode();
   const bots = await ensureActiveBotPool(now);
   const worldState =
     (await prisma.worldState.findUnique({ where: { id: "global" } })) ??
@@ -526,7 +543,13 @@ export async function runMarketSimulation(force = false, debug = false) {
 
   const productStates = await prisma.marketProductState.findMany({
     include: {
-      product: true,
+      product: {
+        include: {
+          priceProfiles: {
+            where: { currencyCode },
+          },
+        },
+      },
     },
   });
 
@@ -563,8 +586,10 @@ export async function runMarketSimulation(force = false, debug = false) {
       1.45,
     );
 
+    const regionalProfile = state.product.priceProfiles[0];
+    const regionalBasePrice = regionalProfile?.basePrice ?? state.product.basePrice;
     const nextSupplierPrice = Math.round(
-      state.product.basePrice *
+      regionalBasePrice *
         clamp(0.58 + nextDemand * 0.18 + state.popularityScore * 0.03, 0.52, 0.88),
     );
 
@@ -573,7 +598,7 @@ export async function runMarketSimulation(force = false, debug = false) {
       data: {
         demandScore: Number(nextDemand.toFixed(2)),
         currentSupplierPrice: nextSupplierPrice,
-        marketAveragePrice,
+        marketAveragePrice: marketAveragePrice || regionalProfile?.marketAveragePrice || regionalBasePrice,
         trendLabel: getTrendLabel(nextDemand),
         supplierStock: clamp(state.supplierStock + 8, 120, 700),
       },
@@ -655,6 +680,7 @@ export async function runMarketSimulation(force = false, debug = false) {
       id: true,
       shopId: true,
       price: true,
+      currencyCode: true,
       quantity: true,
       productId: true,
       shop: {
@@ -671,6 +697,14 @@ export async function runMarketSimulation(force = false, debug = false) {
           name: true,
           category: true,
           basePrice: true,
+          priceProfiles: {
+            where: { currencyCode },
+            select: {
+              currencyCode: true,
+              marketAveragePrice: true,
+              basePrice: true,
+            },
+          },
           marketState: {
             select: {
               demandScore: true,

@@ -13,6 +13,13 @@ import {
   PRODUCT_CATALOG,
 } from "../lib/catalog";
 import { hashPassword } from "../lib/password";
+import {
+  getBankNumberLookupHash,
+  getCheckoutPinLookupHash,
+  hashBankNumber,
+  hashCheckoutPin,
+} from "../lib/pin";
+import { buildCatalogPriceProfiles } from "../lib/price-profiles";
 
 const prisma = new PrismaClient();
 const shouldReset = process.env.SEED_MODE === "reset";
@@ -64,6 +71,18 @@ function unitCost(product: ProductRef, multiplier = 0.74) {
 
 function livePrice(product: ProductRef, multiplier = 1.14) {
   return Math.max(product.basePrice, Math.round(product.basePrice * multiplier));
+}
+
+function seededSecurityDetails(index: number) {
+  const pin = String(4100 + index);
+  const bankNumber = String(900000000 + index);
+
+  return {
+    checkoutPinHash: hashCheckoutPin(pin),
+    checkoutPinLookupHash: getCheckoutPinLookupHash(pin),
+    bankNumberHash: hashBankNumber(bankNumber),
+    bankNumberLookupHash: getBankNumberLookupHash(bankNumber),
+  };
 }
 
 function requireProduct(productMap: Map<string, ProductRef>, name: string) {
@@ -168,6 +187,7 @@ async function seedDemoInventoryAndListings({
           ...(updateExisting
             ? {
                 price,
+                currencyCode: "AUD",
                 quantity: item.quantity,
                 active: item.active ?? true,
               }
@@ -177,6 +197,7 @@ async function seedDemoInventoryAndListings({
           shopId: user.shopId,
           productId: product.id,
           price,
+          currencyCode: "AUD",
           quantity: item.quantity,
           active: item.active ?? true,
         },
@@ -327,6 +348,19 @@ async function main() {
   const products = new Map<string, ProductRef>();
 
   for (const product of PRODUCT_CATALOG) {
+    const priceProfiles = buildCatalogPriceProfiles({
+      name: product.name,
+      category: product.category,
+      subcategory: product.subcategory,
+      unitLabel: product.unitLabel,
+      basePrice: product.basePrice,
+      supplierRatio: product.supplierPrice / product.basePrice,
+    });
+    const audProfile = priceProfiles.find((profile) => profile.currencyCode === "AUD") ?? {
+      basePrice: product.basePrice,
+      supplierPrice: product.supplierPrice,
+      marketAveragePrice: product.basePrice,
+    };
     const createdProduct = await prisma.product.upsert({
       where: { sku: product.sku },
       update: {
@@ -335,7 +369,7 @@ async function main() {
         subcategory: product.subcategory ?? null,
         unitLabel: product.unitLabel,
         description: product.description,
-        basePrice: product.basePrice,
+        basePrice: audProfile.basePrice,
         spoilable: product.spoilable,
         shelfLife: product.shelfLife,
         imageUrl: product.imageUrl,
@@ -348,7 +382,7 @@ async function main() {
         subcategory: product.subcategory ?? null,
         unitLabel: product.unitLabel,
         description: product.description,
-        basePrice: product.basePrice,
+        basePrice: audProfile.basePrice,
         spoilable: product.spoilable,
         shelfLife: product.shelfLife,
         imageUrl: product.imageUrl,
@@ -360,14 +394,39 @@ async function main() {
       id: createdProduct.id,
       name: createdProduct.name,
       sku: createdProduct.sku,
-      basePrice: product.basePrice,
-      supplierPrice: product.supplierPrice,
+      basePrice: audProfile.basePrice,
+      supplierPrice: audProfile.supplierPrice,
     });
+
+    for (const profile of priceProfiles) {
+      await prisma.productPriceProfile.upsert({
+        where: {
+          productId_currencyCode: {
+            productId: createdProduct.id,
+            currencyCode: profile.currencyCode,
+          },
+        },
+        update: {
+          unitLabel: profile.unitLabel,
+          basePrice: profile.basePrice,
+          supplierPrice: profile.supplierPrice,
+          marketAveragePrice: profile.marketAveragePrice,
+        },
+        create: {
+          productId: createdProduct.id,
+          currencyCode: profile.currencyCode,
+          unitLabel: profile.unitLabel,
+          basePrice: profile.basePrice,
+          supplierPrice: profile.supplierPrice,
+          marketAveragePrice: profile.marketAveragePrice,
+        },
+      });
+    }
 
     await prisma.marketProductState.upsert({
       where: { productId: createdProduct.id },
       update: {
-        currentSupplierPrice: product.supplierPrice,
+        currentSupplierPrice: audProfile.supplierPrice,
         demandScore: product.demandScore,
         popularityScore: product.popularityScore,
         trendLabel: product.trendLabel,
@@ -376,16 +435,16 @@ async function main() {
           : {
               increment: 40,
             },
-        marketAveragePrice: product.basePrice,
+        marketAveragePrice: audProfile.marketAveragePrice,
       },
       create: {
         productId: createdProduct.id,
-        currentSupplierPrice: product.supplierPrice,
+        currentSupplierPrice: audProfile.supplierPrice,
         demandScore: product.demandScore,
         popularityScore: product.popularityScore,
         trendLabel: product.trendLabel,
         supplierStock: 450,
-        marketAveragePrice: product.basePrice,
+        marketAveragePrice: audProfile.marketAveragePrice,
       },
     });
   }
@@ -395,7 +454,8 @@ async function main() {
     SeededUserRef
   >();
 
-  for (const entry of INITIAL_USERS) {
+  for (const [index, entry] of INITIAL_USERS.entries()) {
+    const securityDetails = seededSecurityDetails(index + 1);
     const user = await prisma.user.upsert({
       where: { username: entry.username },
       update: {
@@ -403,6 +463,7 @@ async function main() {
         displayName: entry.displayName,
         hasCompletedOnboarding: true,
         passwordHash: hashPassword(SEEDED_ACCOUNT_PASSWORD),
+        ...securityDetails,
       },
       create: {
         username: entry.username,
@@ -411,6 +472,7 @@ async function main() {
         passwordHash: hashPassword(SEEDED_ACCOUNT_PASSWORD),
         balance: entry.balance,
         hasCompletedOnboarding: true,
+        ...securityDetails,
       },
     });
 
@@ -453,6 +515,7 @@ async function main() {
       displayName: "Bazaarly Bot Market",
       hasCompletedOnboarding: true,
       passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
+      ...seededSecurityDetails(99),
     },
     create: {
       username: "bot_market",
@@ -461,6 +524,7 @@ async function main() {
       passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
       balance: 500000,
       hasCompletedOnboarding: true,
+      ...seededSecurityDetails(99),
     },
   });
 

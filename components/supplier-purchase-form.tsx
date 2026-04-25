@@ -26,7 +26,7 @@ export function SupplierPurchaseForm({
     }, 60);
   }
 
-  async function handlePurchase() {
+  async function handleAddToCart() {
     const parsedQuantity = Number.parseInt(quantity, 10);
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
       setError("Please buy at least 1");
@@ -58,18 +58,14 @@ export function SupplierPurchaseForm({
       };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Supplier purchase failed");
+        throw new Error(payload.error ?? "Unable to add supplier item to cart");
       }
 
-      setFeedback(
-        payload.restockedListing
-          ? "Restocked your existing listing"
-          : "Added to inventory",
-      );
+      setFeedback("Added to cart");
       refreshInPlace();
     } catch (purchaseError) {
       setError(
-        purchaseError instanceof Error ? purchaseError.message : "Supplier purchase failed",
+        purchaseError instanceof Error ? purchaseError.message : "Unable to add supplier item to cart",
       );
     } finally {
       setSubmitting(false);
@@ -103,10 +99,10 @@ export function SupplierPurchaseForm({
       </label>
       <button
         type="button"
-        onClick={() => void handlePurchase()}
+        onClick={() => void handleAddToCart()}
         disabled={supplierStock <= 0 || submitting}
       >
-        {supplierStock > 0 ? (submitting ? "Buying..." : "Buy now") : "Out of stock"}
+        {supplierStock > 0 ? (submitting ? "Adding..." : "Add to cart") : "Out of stock"}
       </button>
       {feedback ? <span className="muted">{feedback}</span> : null}
       {error ? <span className="status-text status-text--error">{error}</span> : null}

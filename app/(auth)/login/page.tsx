@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand-logo";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -11,6 +11,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getSessionUser();
 
   if (user) {
+    if (!hasCompletedSecuritySetup(user)) {
+      redirect("/security-setup" as never);
+    }
     redirect(user.shop ? "/dashboard" : "/onboarding/shop");
   }
 
@@ -65,7 +68,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="card">
             <h2>Create a new player</h2>
             <p className="muted">
-              New accounts start with shop setup so you can immediately enter the economy.
+              New accounts start with PIN setup, then shop setup, so checkout is protected.
             </p>
             <form action="/auth/register" method="post" className="stack-sm">
               <label>

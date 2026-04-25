@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type InlineCartActionsProps = {
@@ -9,13 +8,12 @@ type InlineCartActionsProps = {
 };
 
 export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsProps) {
-  const router = useRouter();
   const [quantity, setQuantity] = useState("1");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function submitCartAction(mode: "add" | "buy") {
+  async function submitCartAction() {
     const parsedQuantity = Number.parseInt(quantity, 10);
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
       setError("Please buy at least 1");
@@ -46,11 +44,7 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
         throw new Error(payload.error ?? "Unable to add to cart");
       }
 
-      setFeedback(mode === "buy" ? "Added. Opening cart..." : "Added to cart");
-
-      if (mode === "buy") {
-        router.push("/cart");
-      }
+      setFeedback("Added to cart");
     } catch (submissionError) {
       setError(
         submissionError instanceof Error ? submissionError.message : "Unable to add to cart",
@@ -83,16 +77,8 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
           }}
           disabled={submitting}
         />
-        <button type="button" onClick={() => void submitCartAction("add")} disabled={submitting}>
+        <button type="button" onClick={() => void submitCartAction()} disabled={submitting}>
           {submitting ? "Adding..." : "Add to cart"}
-        </button>
-        <button
-          type="button"
-          className="ghost-button"
-          onClick={() => void submitCartAction("buy")}
-          disabled={submitting}
-        >
-          Buy now
         </button>
       </div>
       {feedback ? <span className="muted">{feedback}</span> : null}

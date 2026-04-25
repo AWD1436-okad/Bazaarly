@@ -2,7 +2,7 @@ import { ProductCategory, NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -20,6 +20,9 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+  if (!hasCompletedSecuritySetup(user)) {
+    return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
   if (user.shop) {
     return NextResponse.redirect(new URL("/dashboard", request.url), 303);

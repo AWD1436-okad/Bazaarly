@@ -26,12 +26,14 @@ type ListingCardProps = {
   };
   showShopLink?: boolean;
   shopNameOverride?: string;
+  currencyCode?: string;
 };
 
 export function ListingCard({
   listing,
   showShopLink = true,
   shopNameOverride,
+  currencyCode = "AUD",
 }: ListingCardProps) {
   const shopLabel = shopNameOverride ?? listing.shop.name;
 
@@ -49,7 +51,7 @@ export function ListingCard({
         </div>
 
         <div className="listing-card__price">
-          <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel)}</strong>
+          <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)}</strong>
           <span>{getStockAvailabilityLabel(listing.quantity)}</span>
         </div>
       </div>

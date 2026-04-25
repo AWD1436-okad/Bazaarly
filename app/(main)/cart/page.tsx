@@ -1,6 +1,9 @@
+import Link from "next/link";
+
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount } from "@/lib/stock";
 
@@ -10,6 +13,7 @@ type CartProps = {
 
 export default async function CartPage({ searchParams }: CartProps) {
   const user = await requireUser();
+  const currencyCode = await getActiveCurrencyCode();
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
   const added = params.added === "1";
@@ -23,7 +27,11 @@ export default async function CartPage({ searchParams }: CartProps) {
       shop: true,
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              marketState: true,
+            },
+          },
           listing: true,
         },
       },
@@ -37,9 +45,7 @@ export default async function CartPage({ searchParams }: CartProps) {
     <div className="page-grid">
       <section className="page-header">
         <h1>Your cart</h1>
-        <p>
-          Bazaarly Version 1 checks out one seller at a time. Your cart preserves the shop each item came from.
-        </p>
+        <p>Review marketplace and supplier items before moving to secure checkout.</p>
       </section>
 
       {added ? (
@@ -61,38 +67,47 @@ export default async function CartPage({ searchParams }: CartProps) {
       ) : null}
 
       {!cart || cart.items.length === 0 ? (
-        <div className="empty-state">Your cart is empty. Browse the marketplace to add something.</div>
+        <div className="empty-state">Your cart is empty. Browse the marketplace or supplier to add something.</div>
       ) : (
         <>
           <section className="card">
             <div className="section-row">
               <div>
-                <h2>Seller</h2>
-                <p>{cart.shop?.name}</p>
+                <h2>Cart total</h2>
+                <p>{cart.shop?.name ?? "Bazaarly Supplier"}</p>
               </div>
-              <strong>{formatCurrency(total)}</strong>
+              <strong>{formatCurrency(total, currencyCode)}</strong>
             </div>
 
             <div className="table-list">
-              {cart.items.map((item) => (
-                <div key={item.id} className="table-row">
-                  <div className="table-row__meta">
-                    <strong>{item.product.name}</strong>
-                    <span className="muted">
-                      {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel)} ·{" "}
-                      {sanitizeStockCount(item.listing.quantity)} available
-                    </span>
+              {cart.items.map((item) => {
+                const availableQuantity =
+                  item.source === "SUPPLIER"
+                    ? item.product.marketState?.supplierStock ?? 0
+                    : item.listing?.quantity ?? 0;
+                const sourceName =
+                  item.source === "SUPPLIER" ? "Bazaarly Supplier" : cart.shop?.name ?? "Marketplace shop";
+
+                return (
+                  <div key={item.id} className="table-row">
+                    <div className="table-row__meta">
+                      <strong>{item.product.name}</strong>
+                      <span className="muted">
+                        {sourceName} · {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)} ·{" "}
+                        {sanitizeStockCount(availableQuantity)} available
+                      </span>
+                    </div>
+                    <div className="table-row__actions">
+                      <CartItemQuantityForm
+                        cartItemId={item.id}
+                        quantity={item.quantity}
+                        maxQuantity={sanitizeStockCount(availableQuantity)}
+                      />
+                      <strong>{formatCurrency(item.quantity * item.unitPriceSnapshot, currencyCode)}</strong>
+                    </div>
                   </div>
-                  <div className="table-row__actions">
-                    <CartItemQuantityForm
-                      cartItemId={item.id}
-                      quantity={item.quantity}
-                      maxQuantity={sanitizeStockCount(item.listing.quantity)}
-                    />
-                    <strong>{formatCurrency(item.quantity * item.unitPriceSnapshot)}</strong>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -100,13 +115,11 @@ export default async function CartPage({ searchParams }: CartProps) {
             <div className="section-row">
               <div>
                 <h2>Checkout</h2>
-                <p>
-                  We re-check balance and stock inside a database transaction before the order is completed.
-                </p>
+                <p>Continue to the secure checkout screen to confirm with your password and PIN.</p>
               </div>
-              <form action="/checkout" method="post">
-                <button type="submit">Checkout {formatCurrency(total)}</button>
-              </form>
+              <Link className="button-link" href={"/checkout" as never}>
+                Checkout {formatCurrency(total, currencyCode)}
+              </Link>
             </div>
           </section>
         </>
