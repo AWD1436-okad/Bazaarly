@@ -15,8 +15,8 @@ export type CatalogSourceSection = {
 
 const dollars = (value: number) => Math.round(value * 100);
 
-const muslimClothingMen = "Men's Muslim Clothing";
-const muslimClothingWomen = "Women's Muslim Clothing";
+const muslimClothingMen = "Men Muslim Clothes";
+const muslimClothingWomen = "Female Muslim Clothes";
 
 export const CATALOG_SOURCE: CatalogSourceSection[] = [
   {

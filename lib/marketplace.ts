@@ -215,7 +215,9 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       ? {
           product: {
             category: categoryFilter.category ?? (categoryFilter.value as ProductCategory),
-            ...(categoryFilter.subcategory ? { subcategory: categoryFilter.subcategory } : {}),
+            ...(categoryFilter.subcategory !== undefined
+              ? { subcategory: categoryFilter.subcategory }
+              : {}),
           },
         }
       : {}),

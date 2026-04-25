@@ -37,11 +37,11 @@ export type CategoryOption = {
   label: string;
   emoji: string;
   category?: ProductCategory;
-  subcategory?: string;
+  subcategory?: string | null;
 };
 
-export const MUSLIM_CLOTHING_MEN = "Men's Muslim Clothing";
-export const MUSLIM_CLOTHING_WOMEN = "Women's Muslim Clothing";
+export const MUSLIM_CLOTHING_MEN = "Men Muslim Clothes";
+export const MUSLIM_CLOTHING_WOMEN = "Female Muslim Clothes";
 
 export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> = {
   [ProductCategory.FRUIT_AND_VEGETABLES]: {
@@ -129,7 +129,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
     keywords: ["cleaning", "personal care", "household"],
   },
   [ProductCategory.CLOTHING]: {
-    label: "Clothing",
+    label: "Other Clothes",
     prefix: "clothing",
     demandScore: 0.98,
     popularityScore: 1,
@@ -213,20 +213,22 @@ export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
   },
   {
     value: ProductCategory.CLOTHING,
-    label: "Clothing",
-    emoji: "👕",
+    label: "Other Clothes",
+    emoji: "👟",
+    category: ProductCategory.CLOTHING,
+    subcategory: null,
   },
   {
     value: "CLOTHING_MUSLIM_MEN",
-    label: "Men's Muslim Clothing",
-    emoji: "👕",
+    label: "Men Muslim Clothes",
+    emoji: "👞",
     category: ProductCategory.CLOTHING,
     subcategory: MUSLIM_CLOTHING_MEN,
   },
   {
     value: "CLOTHING_MUSLIM_WOMEN",
-    label: "Women's Muslim Clothing",
-    emoji: "👕",
+    label: "Female Muslim Clothes",
+    emoji: "👡",
     category: ProductCategory.CLOTHING,
     subcategory: MUSLIM_CLOTHING_WOMEN,
   },
@@ -380,6 +382,10 @@ export function getProductCategoryLabel(
   subcategory?: string | null,
 ) {
   const label = getCategoryLabel(category);
+  if (category === ProductCategory.CLOTHING && subcategory) {
+    return subcategory;
+  }
+
   return subcategory ? `${label} / ${subcategory}` : label;
 }
 

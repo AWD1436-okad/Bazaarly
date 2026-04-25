@@ -142,7 +142,9 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       ...(selectedCategory
         ? {
             category: selectedCategory.category ?? (selectedCategory.value as ProductCategory),
-            ...(selectedCategory.subcategory ? { subcategory: selectedCategory.subcategory } : {}),
+            ...(selectedCategory.subcategory !== undefined
+              ? { subcategory: selectedCategory.subcategory }
+              : {}),
           }
         : {}),
     },
