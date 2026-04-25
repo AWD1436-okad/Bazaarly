@@ -33,6 +33,7 @@ type BotCandidateListing = {
     id: string;
     name: string;
     category: ProductCategory;
+    basePrice: number;
     marketState: {
       demandScore: number;
       marketAveragePrice: number;
@@ -303,6 +304,79 @@ function getTrendLabel(demandScore: number) {
   return "Stable";
 }
 
+function getListingReferencePrice(listing: BotCandidateListing) {
+  const marketAveragePrice = listing.product.marketState?.marketAveragePrice ?? 0;
+  return Math.max(listing.product.basePrice, marketAveragePrice, 1);
+}
+
+function getOverpriceRatio(listing: BotCandidateListing) {
+  return listing.price / getListingReferencePrice(listing);
+}
+
+function getPriceSensitivityMultiplier(
+  personality: BotPersonality,
+  listing: BotCandidateListing,
+  loyaltyShopId: string | null,
+) {
+  const ratingGrace =
+    personality === BotPersonality.QUALITY && listing.shop.rating >= 4.6
+      ? 0.08
+      : personality === BotPersonality.LOYAL && loyaltyShopId === listing.shop.id
+        ? 0.05
+        : personality === BotPersonality.RANDOM
+          ? 0.03
+          : 0;
+  const ratio = Math.max(0.6, getOverpriceRatio(listing) - ratingGrace);
+
+  if (ratio <= 0.94) {
+    return personality === BotPersonality.BUDGET || personality === BotPersonality.BULK ? 1.3 : 1.16;
+  }
+
+  if (ratio <= 1.05) {
+    return 1;
+  }
+
+  if (ratio <= 1.25) {
+    switch (personality) {
+      case BotPersonality.BUDGET:
+        return 0.32;
+      case BotPersonality.BULK:
+        return 0.24;
+      case BotPersonality.QUALITY:
+        return 0.7;
+      case BotPersonality.LOYAL:
+        return 0.56;
+      default:
+        return 0.48;
+    }
+  }
+
+  if (ratio <= 1.5) {
+    switch (personality) {
+      case BotPersonality.BUDGET:
+        return 0.045;
+      case BotPersonality.BULK:
+        return 0.025;
+      case BotPersonality.QUALITY:
+        return listing.shop.rating >= 4.7 ? 0.24 : 0.16;
+      case BotPersonality.LOYAL:
+        return loyaltyShopId === listing.shop.id ? 0.16 : 0.08;
+      default:
+        return 0.1;
+    }
+  }
+
+  if (ratio <= 1.75 && personality === BotPersonality.RANDOM) {
+    return 0.018;
+  }
+
+  if (ratio <= 1.75 && personality === BotPersonality.QUALITY && listing.shop.rating >= 4.85) {
+    return 0.035;
+  }
+
+  return personality === BotPersonality.RANDOM ? 0.004 : 0.001;
+}
+
 function scoreBotCandidate(
   personality: BotPersonality,
   listing: BotCandidateListing,
@@ -311,12 +385,11 @@ function scoreBotCandidate(
   recentBotSalesForShop: number,
   shopBreadthScore: number,
 ) {
-  const affordability = 2200 / Math.max(listing.price, 120);
-  const relativeDealScore = clamp(
-    (listing.product.marketState?.marketAveragePrice ?? listing.price) / Math.max(listing.price, 1),
-    0.74,
-    1.26,
-  );
+  const referencePrice = getListingReferencePrice(listing);
+  const overpriceRatio = getOverpriceRatio(listing);
+  const priceSensitivity = getPriceSensitivityMultiplier(personality, listing, loyaltyShopId);
+  const affordability = referencePrice / Math.max(listing.price, 120);
+  const relativeDealScore = clamp(referencePrice / Math.max(listing.price, 1), 0.18, 1.5);
   const ratingFactor = listing.shop.rating * 3.1;
   const stockFactor = Math.min(listing.quantity, 14);
   const loyaltyFactor = loyaltyShopId && loyaltyShopId === listing.shop.id ? 16 : 0;
@@ -333,45 +406,46 @@ function scoreBotCandidate(
     1.16,
   );
   const randomnessBoost = 1 + Math.random() * 0.12;
+  const overpriceDrag = overpriceRatio > 1 ? clamp(1 / overpriceRatio ** 2.2, 0.1, 1) : 1.08;
 
   switch (personality) {
     case BotPersonality.BUDGET:
       return (
-        affordability * 15 +
-        relativeDealScore * 24 +
+        affordability * 24 +
+        relativeDealScore * 34 +
         stockFactor +
         demandBoost +
         assortmentBoost +
         loyaltyFactor * 0.35
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
     case BotPersonality.QUALITY:
       return (
         ratingFactor * 3.4 +
         stockFactor * 0.5 +
         affordability * 4 +
-        relativeDealScore * 18 +
+        relativeDealScore * 20 +
         demandBoost +
         assortmentBoost +
         loyaltyFactor * 0.65
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
     case BotPersonality.LOYAL:
       return (
         loyaltyFactor +
         ratingFactor * 1.8 +
         stockFactor +
-        relativeDealScore * 12 +
+        relativeDealScore * 16 +
         demandBoost * 0.6 +
         assortmentBoost
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
     case BotPersonality.BULK:
       return (
         stockFactor * 3 +
-        affordability * 9 +
-        relativeDealScore * 10 +
+        affordability * 16 +
+        relativeDealScore * 22 +
         demandBoost * 0.7 +
         assortmentBoost * 1.15 +
         loyaltyFactor
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
     default:
       return (
         affordability * 9 +
@@ -381,7 +455,7 @@ function scoreBotCandidate(
         demandBoost +
         assortmentBoost +
         Math.random() * 12
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * priceSensitivity * overpriceDrag;
   }
 }
 
@@ -596,6 +670,7 @@ export async function runMarketSimulation(force = false, debug = false) {
           id: true,
           name: true,
           category: true,
+          basePrice: true,
           marketState: {
             select: {
               demandScore: true,
@@ -631,18 +706,15 @@ export async function runMarketSimulation(force = false, debug = false) {
       const affordableListings = candidateListings.filter((listing) => listing.price <= bot.budget);
       const weightedSelection = affordableListings.map((listing) => ({
         value: listing,
-        score: Math.max(
-          1,
-          scoreBotCandidate(
-            bot.type,
-            listing,
-            effectiveLoyaltyShopId,
-            bot.preferenceCategory,
-            recentBotSalesByShop.get(listing.shopId) ?? 0,
-            shopBreadthByShop.get(listing.shopId) ?? 0,
-          ),
+        score: scoreBotCandidate(
+          bot.type,
+          listing,
+          effectiveLoyaltyShopId,
+          bot.preferenceCategory,
+          recentBotSalesByShop.get(listing.shopId) ?? 0,
+          shopBreadthByShop.get(listing.shopId) ?? 0,
         ),
-      }));
+      })).filter((option) => option.score >= 0.25);
       const averageCandidateScore =
         weightedSelection.length > 0
           ? weightedSelection.reduce((sum, option) => sum + option.score, 0) / weightedSelection.length
@@ -686,15 +758,8 @@ export async function runMarketSimulation(force = false, debug = false) {
     .sort((left, right) => right.attemptProbability - left.attemptProbability);
 
   const selectedBotPlans = botPlans.filter(
-    (plan) => plan.affordableListings.length > 0 && Math.random() < plan.attemptProbability,
+    (plan) => plan.weightedSelection.length > 0 && Math.random() < plan.attemptProbability,
   );
-
-  if (selectedBotPlans.length === 0 && botPlans.some((plan) => plan.affordableListings.length > 0)) {
-    const fallbackPlan = botPlans.find((plan) => plan.affordableListings.length > 0);
-    if (fallbackPlan) {
-      selectedBotPlans.push(fallbackPlan);
-    }
-  }
 
   for (const plan of selectedBotPlans) {
     const { bot, effectiveLoyaltyShopId, affordableListings, weightedSelection, attemptProbability } = plan;
