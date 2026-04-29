@@ -857,6 +857,65 @@ textarea {
   width: 96px;
 }
 
+.cart-page {
+  padding-bottom: 6rem;
+}
+
+.cart-summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.clear-cart-action {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.sticky-checkout-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  z-index: 40;
+  width: min(calc(100% - 2rem), var(--max-width));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(221, 215, 200, 0.95);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 48px rgba(31, 41, 51, 0.18);
+  transform: translateX(-50%);
+  backdrop-filter: blur(14px);
+}
+
+.sticky-checkout-bar strong {
+  display: block;
+  font-size: 1.2rem;
+}
+
+.sticky-checkout-bar form {
+  flex: 0 0 auto;
+}
+
+.bulk-listing-visibility {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.bulk-listing-visibility__buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .auth-layout {
   min-height: 100vh;
   display: grid;
@@ -973,6 +1032,36 @@ textarea {
   gap: 0.35rem;
 }
 
+.currency-results {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+}
+
+.currency-option {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) minmax(8rem, 0.8fr);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  text-align: left;
+}
+
+.currency-option:hover,
+.currency-option--selected {
+  border-color: rgba(45, 106, 79, 0.38);
+  background: rgba(45, 106, 79, 0.08);
+}
+
+.currency-option small {
+  color: var(--muted);
+  text-align: right;
+}
+
 .settings-card--danger {
   border-color: rgba(180, 35, 24, 0.28);
   background:
@@ -1067,9 +1156,36 @@ textarea {
   .inline-actions,
   .card-toolbar,
   .bulk-sold-out-cleanup__trigger,
+  .bulk-listing-visibility__buttons,
   .table-row__actions {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .cart-summary-actions,
+  .clear-cart-action,
+  .bulk-listing-visibility {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .sticky-checkout-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sticky-checkout-bar form,
+  .sticky-checkout-bar button {
+    width: 100%;
+  }
+
+  .currency-option {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .currency-option small {
+    text-align: left;
   }
 
   .inline-cart-form input,

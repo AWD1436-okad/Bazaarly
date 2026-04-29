@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BulkListingVisibilityControls } from "@/components/bulk-listing-visibility-controls";
 import { BulkSoldOutCleanup } from "@/components/bulk-sold-out-cleanup";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
@@ -95,6 +96,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     inventoryPresence,
     todayRevenueSummary,
     soldOutListingCount,
+    activeListingCount,
+    pausedListingCount,
   ] =
     await Promise.all([
       prisma.inventory.findMany({
@@ -304,6 +307,20 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           quantity: { lte: 0 },
         },
       }),
+      prisma.listing.count({
+        where: {
+          shopId: user.shop.id,
+          quantity: { gt: 0 },
+          active: true,
+        },
+      }),
+      prisma.listing.count({
+        where: {
+          shopId: user.shop.id,
+          quantity: { gt: 0 },
+          active: false,
+        },
+      }),
     ]);
 
   const listingOptionRows = listingOptions
@@ -357,7 +374,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)
       : "2.50";
   const todayRevenue = todayRevenueSummary._sum.totalPrice ?? 0;
-  const currencyFractionDigits = getPriceProfileMetadata(currencyCode).fractionDigits;
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
@@ -526,6 +542,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 <p>Manage live listings, clean out sold-out rows, and keep your shop tidy.</p>
               </div>
               <div className="card-toolbar">
+                <BulkListingVisibilityControls
+                  activeListingCount={activeListingCount}
+                  pausedListingCount={pausedListingCount}
+                />
                 <BulkSoldOutCleanup soldOutCount={soldOutListingCount} />
               </div>
             </div>

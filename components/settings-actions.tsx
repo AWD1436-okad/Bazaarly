@@ -15,6 +15,9 @@ type SettingsActionsProps = {
     currencyCode: string;
     label: string;
     regionName: string;
+    currencyName: string;
+    countryName: string;
+    searchTerms?: string[];
   }>;
 };
 
@@ -59,10 +62,37 @@ export function SettingsActions({
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
+  const currentCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currentCurrencyCode);
+  const initialCurrencySearch = currentCurrencyProfile
+    ? `${currentCurrencyProfile.currencyCode} - ${currentCurrencyProfile.countryName}`
+    : currentCurrencyCode;
+  const [currencySearch, setCurrencySearch] = useState(initialCurrencySearch);
   const [submitting, setSubmitting] = useState<
     null | "username" | "displayName" | "rename" | "bank" | "logout" | "delete" | "currency"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
+  const selectedCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currencyCode);
+  const normalizedCurrencySearch = currencySearch.trim().toLowerCase();
+  const filteredPriceProfiles = priceProfiles
+    .filter((profile) => {
+      if (!normalizedCurrencySearch) {
+        return profile.currencyCode === currencyCode || profile.currencyCode === currentCurrencyCode;
+      }
+
+      const haystack = [
+        profile.currencyCode,
+        profile.currencyName,
+        profile.countryName,
+        profile.label,
+        profile.regionName,
+        ...(profile.searchTerms ?? []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(normalizedCurrencySearch);
+    })
+    .slice(0, 8);
 
   function resetMessages() {
     setState(initialState);
@@ -349,8 +379,8 @@ export function SettingsActions({
           <div className="card-header__copy">
             <h2>Display Currency</h2>
             <p>
-              Choose how money is shown to you. Stored prices, checkout, balances, and bot logic
-              still calculate in AUD behind the scenes.
+              Prices are stored in a base value. Your selected currency only changes how prices
+              appear on your screen. Other users may see the same item in their own currency.
             </p>
           </div>
           <button
@@ -362,28 +392,69 @@ export function SettingsActions({
           </button>
         </div>
         <label>
-          Search/select display currency
+          Search currency by code, name, or country
           <input
-            list="price-profile-options"
-            value={currencyCode}
+            value={currencySearch}
             onChange={(event) => {
-              setCurrencyCode(event.target.value.toUpperCase());
+              const nextSearch = event.target.value;
+              const exactProfile = priceProfiles.find((profile) => {
+                const normalized = nextSearch.trim().toLowerCase();
+                return (
+                  profile.currencyCode.toLowerCase() === normalized ||
+                  profile.currencyName.toLowerCase() === normalized ||
+                  profile.countryName.toLowerCase() === normalized
+                );
+              });
+
+              setCurrencySearch(nextSearch);
+              if (exactProfile) {
+                setCurrencyCode(exactProfile.currencyCode);
+              }
               resetMessages();
             }}
             disabled={submitting !== null}
-            placeholder="AUD, PKR, USD..."
+            placeholder="Pakistan, Australian Dollar, USD..."
           />
-          <datalist id="price-profile-options">
-            {priceProfiles.map((profile) => (
-              <option key={profile.currencyCode} value={profile.currencyCode}>
-                {profile.label}
-              </option>
-            ))}
-          </datalist>
         </label>
+        <div className="currency-results" role="listbox" aria-label="Currency search results">
+          {filteredPriceProfiles.length > 0 ? (
+            filteredPriceProfiles.map((profile) => (
+              <button
+                key={profile.currencyCode}
+                type="button"
+                className={
+                  profile.currencyCode === currencyCode
+                    ? "currency-option currency-option--selected"
+                    : "currency-option"
+                }
+                onClick={() => {
+                  setCurrencyCode(profile.currencyCode);
+                  setCurrencySearch(`${profile.currencyCode} - ${profile.countryName}`);
+                  resetMessages();
+                }}
+                disabled={submitting !== null}
+                role="option"
+                aria-selected={profile.currencyCode === currencyCode}
+              >
+                <strong>{profile.currencyCode}</strong>
+                <span>{profile.currencyName}</span>
+                <small>{profile.countryName}</small>
+              </button>
+            ))
+          ) : (
+            <p className="muted">No matching currency found. Try a currency code, country, or currency name.</p>
+          )}
+        </div>
+        {selectedCurrencyProfile ? (
+          <p className="muted">
+            Selected: <strong>{selectedCurrencyProfile.currencyCode}</strong> -{" "}
+            {selectedCurrencyProfile.currencyName} for {selectedCurrencyProfile.countryName}.
+          </p>
+        ) : null}
         <p className="muted">
-          Current currency: {currentCurrencyCode}. The same listing can display differently for
-          different users without changing the seller&apos;s stored AUD price.
+          Current currency: {currentCurrencyCode}. Sellers and buyers can use different display
+          currencies, so one listing may appear as PKR to the seller, AUD to one buyer, and USD to
+          another buyer while checkout still uses the stored AUD value.
         </p>
       </section>
 

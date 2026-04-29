@@ -1,4 +1,5 @@
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
+import { ClearCartButton } from "@/components/clear-cart-button";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -40,7 +41,7 @@ export default async function CartPage({ searchParams }: CartProps) {
     cart?.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0) ?? 0;
 
   return (
-    <div className="page-grid">
+    <div className="page-grid cart-page">
       <section className="page-header">
         <h1>Your cart</h1>
         <p>Review marketplace and supplier items before moving to secure checkout.</p>
@@ -74,7 +75,10 @@ export default async function CartPage({ searchParams }: CartProps) {
                 <h2>Cart total</h2>
                 <p>{cart.shop?.name ?? "Tradex Supplier"}</p>
               </div>
-              <strong>{formatCurrency(total, currencyCode)}</strong>
+              <div className="cart-summary-actions">
+                <strong>{formatCurrency(total, currencyCode)}</strong>
+                <ClearCartButton />
+              </div>
             </div>
 
             <div className="table-list">
@@ -120,6 +124,16 @@ export default async function CartPage({ searchParams }: CartProps) {
               </form>
             </div>
           </section>
+
+          <aside className="sticky-checkout-bar" aria-label="Cart checkout">
+            <div>
+              <span className="muted">Cart total</span>
+              <strong>{formatCurrency(total, currencyCode)}</strong>
+            </div>
+            <form action="/checkout" method="get">
+              <button type="submit">Checkout</button>
+            </form>
+          </aside>
         </>
       )}
     </div>

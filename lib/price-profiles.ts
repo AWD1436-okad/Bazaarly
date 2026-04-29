@@ -4,7 +4,41 @@ import { CATALOG_SOURCE } from "@/lib/catalog-source";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
-export const SUPPORTED_CURRENCY_CODES = ["AUD", "USD", "GBP", "EUR", "PKR", "INR", "AED", "SAR", "TRY"] as const;
+export const SUPPORTED_CURRENCY_CODES = [
+  "AUD",
+  "USD",
+  "GBP",
+  "EUR",
+  "PKR",
+  "INR",
+  "AED",
+  "SAR",
+  "TRY",
+  "NZD",
+  "CAD",
+  "SGD",
+  "MYR",
+  "IDR",
+  "PHP",
+  "THB",
+  "BDT",
+  "LKR",
+  "NPR",
+  "QAR",
+  "KWD",
+  "BHD",
+  "OMR",
+  "JPY",
+  "CNY",
+  "KRW",
+  "CHF",
+  "SEK",
+  "NOK",
+  "DKK",
+  "ZAR",
+  "EGP",
+  "NGN",
+] as const;
 
 export type SupportedCurrencyCode = (typeof SUPPORTED_CURRENCY_CODES)[number];
 
@@ -12,9 +46,12 @@ type PriceProfileMetadata = {
   currencyCode: SupportedCurrencyCode;
   label: string;
   regionName: string;
+  currencyName: string;
+  countryName: string;
   locale: string;
   fractionDigits: number;
   supplierRatio: number;
+  searchTerms?: string[];
 };
 
 type CatalogPriceInput = {
@@ -37,75 +74,343 @@ type RegionalPricing = {
 const profileMetadata: Record<SupportedCurrencyCode, PriceProfileMetadata> = {
   AUD: {
     currencyCode: "AUD",
-    label: "AUD - Australia",
+    label: "AUD - Australian Dollar - Australia",
     regionName: "Australian",
+    currencyName: "Australian Dollar",
+    countryName: "Australia",
     locale: "en-AU",
     fractionDigits: 2,
     supplierRatio: 0.72,
   },
   USD: {
     currencyCode: "USD",
-    label: "USD - United States",
+    label: "USD - United States Dollar - United States",
     regionName: "US",
+    currencyName: "United States Dollar",
+    countryName: "United States",
     locale: "en-US",
     fractionDigits: 2,
     supplierRatio: 0.68,
+    searchTerms: ["America", "USA"],
   },
   GBP: {
     currencyCode: "GBP",
-    label: "GBP - United Kingdom",
+    label: "GBP - Pound Sterling - United Kingdom",
     regionName: "UK",
+    currencyName: "Pound Sterling",
+    countryName: "United Kingdom",
     locale: "en-GB",
     fractionDigits: 2,
     supplierRatio: 0.68,
+    searchTerms: ["Britain", "England", "Scotland", "Wales"],
   },
   EUR: {
     currencyCode: "EUR",
-    label: "EUR - Europe",
+    label: "EUR - Euro - Europe",
     regionName: "European",
+    currencyName: "Euro",
+    countryName: "European Union",
     locale: "de-DE",
     fractionDigits: 2,
     supplierRatio: 0.68,
+    searchTerms: ["Germany", "France", "Italy", "Spain", "Netherlands"],
   },
   PKR: {
     currencyCode: "PKR",
-    label: "PKR - Pakistan",
+    label: "PKR - Pakistani Rupee - Pakistan",
     regionName: "Pakistani",
+    currencyName: "Pakistani Rupee",
+    countryName: "Pakistan",
     locale: "en-PK",
     fractionDigits: 0,
     supplierRatio: 0.76,
   },
   INR: {
     currencyCode: "INR",
-    label: "INR - India",
+    label: "INR - Indian Rupee - India",
     regionName: "Indian",
+    currencyName: "Indian Rupee",
+    countryName: "India",
     locale: "en-IN",
     fractionDigits: 0,
     supplierRatio: 0.76,
   },
   AED: {
     currencyCode: "AED",
-    label: "AED - UAE / Gulf",
+    label: "AED - UAE Dirham - United Arab Emirates",
     regionName: "Gulf",
+    currencyName: "UAE Dirham",
+    countryName: "United Arab Emirates",
     locale: "en-AE",
     fractionDigits: 2,
     supplierRatio: 0.7,
+    searchTerms: ["UAE", "Dubai", "Abu Dhabi", "Gulf"],
   },
   SAR: {
     currencyCode: "SAR",
-    label: "SAR - Saudi Arabia / Gulf",
+    label: "SAR - Saudi Riyal - Saudi Arabia",
     regionName: "Saudi",
+    currencyName: "Saudi Riyal",
+    countryName: "Saudi Arabia",
     locale: "en-SA",
     fractionDigits: 2,
     supplierRatio: 0.7,
+    searchTerms: ["Saudi", "KSA", "Gulf"],
   },
   TRY: {
     currencyCode: "TRY",
-    label: "TRY - Turkiye",
+    label: "TRY - Turkish Lira - Turkiye",
     regionName: "Turkish",
+    currencyName: "Turkish Lira",
+    countryName: "Turkiye",
     locale: "tr-TR",
     fractionDigits: 2,
     supplierRatio: 0.74,
+    searchTerms: ["Turkey"],
+  },
+  NZD: {
+    currencyCode: "NZD",
+    label: "NZD - New Zealand Dollar - New Zealand",
+    regionName: "New Zealand",
+    currencyName: "New Zealand Dollar",
+    countryName: "New Zealand",
+    locale: "en-NZ",
+    fractionDigits: 2,
+    supplierRatio: 0.7,
+  },
+  CAD: {
+    currencyCode: "CAD",
+    label: "CAD - Canadian Dollar - Canada",
+    regionName: "Canadian",
+    currencyName: "Canadian Dollar",
+    countryName: "Canada",
+    locale: "en-CA",
+    fractionDigits: 2,
+    supplierRatio: 0.69,
+  },
+  SGD: {
+    currencyCode: "SGD",
+    label: "SGD - Singapore Dollar - Singapore",
+    regionName: "Singapore",
+    currencyName: "Singapore Dollar",
+    countryName: "Singapore",
+    locale: "en-SG",
+    fractionDigits: 2,
+    supplierRatio: 0.69,
+  },
+  MYR: {
+    currencyCode: "MYR",
+    label: "MYR - Malaysian Ringgit - Malaysia",
+    regionName: "Malaysian",
+    currencyName: "Malaysian Ringgit",
+    countryName: "Malaysia",
+    locale: "ms-MY",
+    fractionDigits: 2,
+    supplierRatio: 0.72,
+  },
+  IDR: {
+    currencyCode: "IDR",
+    label: "IDR - Indonesian Rupiah - Indonesia",
+    regionName: "Indonesian",
+    currencyName: "Indonesian Rupiah",
+    countryName: "Indonesia",
+    locale: "id-ID",
+    fractionDigits: 0,
+    supplierRatio: 0.75,
+  },
+  PHP: {
+    currencyCode: "PHP",
+    label: "PHP - Philippine Peso - Philippines",
+    regionName: "Philippine",
+    currencyName: "Philippine Peso",
+    countryName: "Philippines",
+    locale: "en-PH",
+    fractionDigits: 2,
+    supplierRatio: 0.74,
+  },
+  THB: {
+    currencyCode: "THB",
+    label: "THB - Thai Baht - Thailand",
+    regionName: "Thai",
+    currencyName: "Thai Baht",
+    countryName: "Thailand",
+    locale: "th-TH",
+    fractionDigits: 2,
+    supplierRatio: 0.73,
+  },
+  BDT: {
+    currencyCode: "BDT",
+    label: "BDT - Bangladeshi Taka - Bangladesh",
+    regionName: "Bangladeshi",
+    currencyName: "Bangladeshi Taka",
+    countryName: "Bangladesh",
+    locale: "en-BD",
+    fractionDigits: 0,
+    supplierRatio: 0.76,
+  },
+  LKR: {
+    currencyCode: "LKR",
+    label: "LKR - Sri Lankan Rupee - Sri Lanka",
+    regionName: "Sri Lankan",
+    currencyName: "Sri Lankan Rupee",
+    countryName: "Sri Lanka",
+    locale: "en-LK",
+    fractionDigits: 0,
+    supplierRatio: 0.76,
+  },
+  NPR: {
+    currencyCode: "NPR",
+    label: "NPR - Nepalese Rupee - Nepal",
+    regionName: "Nepalese",
+    currencyName: "Nepalese Rupee",
+    countryName: "Nepal",
+    locale: "ne-NP",
+    fractionDigits: 0,
+    supplierRatio: 0.76,
+  },
+  QAR: {
+    currencyCode: "QAR",
+    label: "QAR - Qatari Riyal - Qatar",
+    regionName: "Qatari",
+    currencyName: "Qatari Riyal",
+    countryName: "Qatar",
+    locale: "en-QA",
+    fractionDigits: 2,
+    supplierRatio: 0.7,
+    searchTerms: ["Gulf"],
+  },
+  KWD: {
+    currencyCode: "KWD",
+    label: "KWD - Kuwaiti Dinar - Kuwait",
+    regionName: "Kuwaiti",
+    currencyName: "Kuwaiti Dinar",
+    countryName: "Kuwait",
+    locale: "en-KW",
+    fractionDigits: 3,
+    supplierRatio: 0.7,
+    searchTerms: ["Gulf"],
+  },
+  BHD: {
+    currencyCode: "BHD",
+    label: "BHD - Bahraini Dinar - Bahrain",
+    regionName: "Bahraini",
+    currencyName: "Bahraini Dinar",
+    countryName: "Bahrain",
+    locale: "en-BH",
+    fractionDigits: 3,
+    supplierRatio: 0.7,
+    searchTerms: ["Gulf"],
+  },
+  OMR: {
+    currencyCode: "OMR",
+    label: "OMR - Omani Rial - Oman",
+    regionName: "Omani",
+    currencyName: "Omani Rial",
+    countryName: "Oman",
+    locale: "en-OM",
+    fractionDigits: 3,
+    supplierRatio: 0.7,
+    searchTerms: ["Gulf"],
+  },
+  JPY: {
+    currencyCode: "JPY",
+    label: "JPY - Japanese Yen - Japan",
+    regionName: "Japanese",
+    currencyName: "Japanese Yen",
+    countryName: "Japan",
+    locale: "ja-JP",
+    fractionDigits: 0,
+    supplierRatio: 0.7,
+  },
+  CNY: {
+    currencyCode: "CNY",
+    label: "CNY - Chinese Yuan - China",
+    regionName: "Chinese",
+    currencyName: "Chinese Yuan",
+    countryName: "China",
+    locale: "zh-CN",
+    fractionDigits: 2,
+    supplierRatio: 0.72,
+  },
+  KRW: {
+    currencyCode: "KRW",
+    label: "KRW - South Korean Won - South Korea",
+    regionName: "Korean",
+    currencyName: "South Korean Won",
+    countryName: "South Korea",
+    locale: "ko-KR",
+    fractionDigits: 0,
+    supplierRatio: 0.7,
+  },
+  CHF: {
+    currencyCode: "CHF",
+    label: "CHF - Swiss Franc - Switzerland",
+    regionName: "Swiss",
+    currencyName: "Swiss Franc",
+    countryName: "Switzerland",
+    locale: "de-CH",
+    fractionDigits: 2,
+    supplierRatio: 0.68,
+  },
+  SEK: {
+    currencyCode: "SEK",
+    label: "SEK - Swedish Krona - Sweden",
+    regionName: "Swedish",
+    currencyName: "Swedish Krona",
+    countryName: "Sweden",
+    locale: "sv-SE",
+    fractionDigits: 2,
+    supplierRatio: 0.68,
+  },
+  NOK: {
+    currencyCode: "NOK",
+    label: "NOK - Norwegian Krone - Norway",
+    regionName: "Norwegian",
+    currencyName: "Norwegian Krone",
+    countryName: "Norway",
+    locale: "nb-NO",
+    fractionDigits: 2,
+    supplierRatio: 0.68,
+  },
+  DKK: {
+    currencyCode: "DKK",
+    label: "DKK - Danish Krone - Denmark",
+    regionName: "Danish",
+    currencyName: "Danish Krone",
+    countryName: "Denmark",
+    locale: "da-DK",
+    fractionDigits: 2,
+    supplierRatio: 0.68,
+  },
+  ZAR: {
+    currencyCode: "ZAR",
+    label: "ZAR - South African Rand - South Africa",
+    regionName: "South African",
+    currencyName: "South African Rand",
+    countryName: "South Africa",
+    locale: "en-ZA",
+    fractionDigits: 2,
+    supplierRatio: 0.74,
+  },
+  EGP: {
+    currencyCode: "EGP",
+    label: "EGP - Egyptian Pound - Egypt",
+    regionName: "Egyptian",
+    currencyName: "Egyptian Pound",
+    countryName: "Egypt",
+    locale: "ar-EG",
+    fractionDigits: 2,
+    supplierRatio: 0.75,
+  },
+  NGN: {
+    currencyCode: "NGN",
+    label: "NGN - Nigerian Naira - Nigeria",
+    regionName: "Nigerian",
+    currencyName: "Nigerian Naira",
+    countryName: "Nigeria",
+    locale: "en-NG",
+    fractionDigits: 0,
+    supplierRatio: 0.76,
   },
 };
 
@@ -118,7 +423,7 @@ const unitOverrides: Partial<Record<SupportedCurrencyCode, Partial<Record<string
   },
 };
 
-const regionalOverrides: Record<SupportedCurrencyCode, Record<string, number>> = {
+const regionalOverrides: Partial<Record<SupportedCurrencyCode, Record<string, number>>> = {
   AUD: {
     Apples: 5.2,
     Bananas: 4.4,
@@ -300,9 +605,8 @@ const regionalOverrides: Record<SupportedCurrencyCode, Record<string, number>> =
   },
 };
 
-const categoryMajorPriceRanges: Record<
-  SupportedCurrencyCode,
-  Record<ProductCategory, [number, number]>
+const categoryMajorPriceRanges: Partial<
+  Record<SupportedCurrencyCode, Record<ProductCategory, [number, number]>>
 > = {
   AUD: {
     FRUIT_AND_VEGETABLES: [0.99, 20],
@@ -432,7 +736,7 @@ const categoryMajorPriceRanges: Record<
   },
 };
 
-const categoryFallbackMultiplier: Record<SupportedCurrencyCode, Record<ProductCategory, number>> = {
+const categoryFallbackMultiplier: Partial<Record<SupportedCurrencyCode, Record<ProductCategory, number>>> = {
   AUD: makeMultiplierProfile(1),
   USD: makeMultiplierProfile(0.68),
   GBP: makeMultiplierProfile(0.55),
@@ -442,6 +746,30 @@ const categoryFallbackMultiplier: Record<SupportedCurrencyCode, Record<ProductCa
   AED: makeMultiplierProfile(2.45),
   SAR: makeMultiplierProfile(2.4),
   TRY: makeMultiplierProfile(20),
+  NZD: makeMultiplierProfile(1.08),
+  CAD: makeMultiplierProfile(0.88),
+  SGD: makeMultiplierProfile(0.9),
+  MYR: makeMultiplierProfile(3.0),
+  IDR: makeMultiplierProfile(10500),
+  PHP: makeMultiplierProfile(38),
+  THB: makeMultiplierProfile(23),
+  BDT: makeMultiplierProfile(78),
+  LKR: makeMultiplierProfile(190),
+  NPR: makeMultiplierProfile(106),
+  QAR: makeMultiplierProfile(2.45),
+  KWD: makeMultiplierProfile(0.2),
+  BHD: makeMultiplierProfile(0.25),
+  OMR: makeMultiplierProfile(0.25),
+  JPY: makeMultiplierProfile(105),
+  CNY: makeMultiplierProfile(4.8),
+  KRW: makeMultiplierProfile(920),
+  CHF: makeMultiplierProfile(0.58),
+  SEK: makeMultiplierProfile(6.6),
+  NOK: makeMultiplierProfile(7.0),
+  DKK: makeMultiplierProfile(4.5),
+  ZAR: makeMultiplierProfile(12.5),
+  EGP: makeMultiplierProfile(32),
+  NGN: makeMultiplierProfile(1050),
 };
 
 function makeMultiplierProfile(multiplier: number) {
@@ -487,7 +815,10 @@ function roundMajorPrice(value: number, currencyCode: SupportedCurrencyCode) {
 }
 
 function clampMajorPrice(value: number, category: ProductCategory, currencyCode: SupportedCurrencyCode) {
-  const [minimum, maximum] = categoryMajorPriceRanges[currencyCode][category];
+  const directRange = categoryMajorPriceRanges[currencyCode]?.[category];
+  const audRange = categoryMajorPriceRanges.AUD![category];
+  const fallbackMultiplier = categoryFallbackMultiplier[currencyCode]?.[category] ?? 1;
+  const [minimum, maximum] = directRange ?? [audRange[0] * fallbackMultiplier, audRange[1] * fallbackMultiplier];
   return clamp(value, minimum, maximum);
 }
 
@@ -509,9 +840,9 @@ export function getSupportedPriceProfiles() {
 export function getRegionalCatalogPricing(input: CatalogPriceInput, currencyCodeInput: string): RegionalPricing {
   const currencyCode = normalizeCurrencyCode(currencyCodeInput);
   const profile = profileMetadata[currencyCode];
-  const override = regionalOverrides[currencyCode][input.name];
+  const override = regionalOverrides[currencyCode]?.[input.name];
   const fallbackMajor =
-    fromMinorUnits(input.basePrice) * categoryFallbackMultiplier[currencyCode][input.category];
+    fromMinorUnits(input.basePrice) * (categoryFallbackMultiplier[currencyCode]?.[input.category] ?? 1);
   const baseMajor = override ?? fallbackMajor;
   const roundedBaseMajor = roundMajorPrice(
     clampMajorPrice(baseMajor, input.category, currencyCode),
