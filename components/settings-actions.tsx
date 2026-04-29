@@ -73,6 +73,10 @@ export function SettingsActions({
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
   const selectedCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currencyCode);
+  const canSubmitDelete =
+    deleteConfirmation === "DELETE" &&
+    deleteUsername.trim().toLowerCase() === username.toLowerCase() &&
+    deletePassword.trim().length > 0;
   const normalizedCurrencySearch = currencySearch.trim().toLowerCase();
   const filteredPriceProfiles = priceProfiles
     .filter((profile) => {
@@ -654,7 +658,7 @@ export function SettingsActions({
               <button
                 type="button"
                 onClick={() => void handleUsernameChange()}
-                disabled={submitting !== null}
+                disabled={submitting !== null || nextUsername.trim().length < 3 || usernamePassword.trim().length === 0}
               >
                 {submitting === "username" ? "Changing..." : "Change Username"}
               </button>
@@ -712,7 +716,7 @@ export function SettingsActions({
               <button
                 type="button"
                 onClick={() => void handleDisplayNameChange()}
-                disabled={submitting !== null}
+                disabled={submitting !== null || nextDisplayName.trim().length < 2 || displayNamePassword.trim().length === 0}
               >
                 {submitting === "displayName" ? "Changing..." : "Change Display Name"}
               </button>
@@ -762,7 +766,11 @@ export function SettingsActions({
               >
                 Cancel
               </button>
-              <button type="button" onClick={() => void handleRename()} disabled={submitting !== null}>
+              <button
+                type="button"
+                onClick={() => void handleRename()}
+                disabled={submitting !== null || renameName.trim().length < 2 || renamePassword.trim().length === 0}
+              >
                 {submitting === "rename" ? "Renaming..." : `Pay ${renameStoreCostLabel} and rename`}
               </button>
             </div>
@@ -845,7 +853,7 @@ export function SettingsActions({
                   <button
                     type="button"
                     onClick={() => void handleRevealBankNumber()}
-                    disabled={submitting !== null}
+                    disabled={submitting !== null || bankPassword.trim().length === 0 || bankPin.trim().length === 0}
                   >
                     {submitting === "bank" ? "Verifying..." : "Reveal Bank Number"}
                   </button>
@@ -892,7 +900,7 @@ export function SettingsActions({
               <button
                 type="button"
                 onClick={() => void handleLogout()}
-                disabled={submitting !== null}
+                disabled={submitting !== null || logoutPassword.trim().length === 0}
               >
                 {submitting === "logout" ? "Logging out..." : "Logout"}
               </button>
@@ -915,6 +923,10 @@ export function SettingsActions({
               <p>
                 This cannot be undone. Your shop and listings will be deactivated, active carts
                 will be abandoned, and you will be signed out.
+              </p>
+              <p className="muted">
+                This action removes your access and disables selling data visibility for your account.
+                Historical marketplace order records are kept for transaction integrity.
               </p>
             </div>
             <label className="modal-card__field">
@@ -959,7 +971,7 @@ export function SettingsActions({
                 type="button"
                 className="danger-button"
                 onClick={() => void handleDeleteAccount()}
-                disabled={submitting !== null}
+                disabled={submitting !== null || !canSubmitDelete}
               >
                 {submitting === "delete" ? "Deleting..." : "Delete account"}
               </button>
