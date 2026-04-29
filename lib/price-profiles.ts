@@ -151,7 +151,7 @@ const regionalOverrides: Partial<Record<SupportedCurrencyCode, Record<string, nu
     Chicken: 13.5,
     Beef: 22.5,
     "Beef Mince": 14.0,
-    Lamb: 15.0,
+    Lamb: 11.0,
     "Lamb Chops": 24.5,
     Shampoo: 7.0,
     "Basic Thobe": 44.99,

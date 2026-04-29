@@ -129,7 +129,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
     keywords: ["cleaning", "personal care", "household"],
   },
   [ProductCategory.CLOTHING]: {
-    label: "Other Clothes",
+    label: "Clothing",
     prefix: "clothing",
     demandScore: 0.98,
     popularityScore: 1,
@@ -213,21 +213,21 @@ export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
   },
   {
     value: ProductCategory.CLOTHING,
-    label: "Other Clothes",
+    label: "👟 Other Clothes",
     emoji: "👟",
     category: ProductCategory.CLOTHING,
     subcategory: null,
   },
   {
     value: "CLOTHING_MUSLIM_MEN",
-    label: "Men Muslim Clothes",
+    label: "👞 Men Muslim Clothes",
     emoji: "👞",
     category: ProductCategory.CLOTHING,
     subcategory: MUSLIM_CLOTHING_MEN,
   },
   {
     value: "CLOTHING_MUSLIM_WOMEN",
-    label: "Female Muslim Clothes",
+    label: "👡 Female Muslim Clothes",
     emoji: "👡",
     category: ProductCategory.CLOTHING,
     subcategory: MUSLIM_CLOTHING_WOMEN,
@@ -471,6 +471,12 @@ function describeProduct(name: string, category: ProductCategory) {
     if (/Parsley|Coriander|Mint/.test(name)) {
       return `${name} used to add fresh flavour to salads, meals, and home cooking.`;
     }
+    if (/Lettuce|Spinach|Cucumbers|Tomatoes/.test(name)) {
+      return `${name} used in fresh salads, wraps, sandwiches, and light side dishes.`;
+    }
+    if (/Potatoes|Sweet Potato|Onions|Garlic|Ginger/.test(name)) {
+      return `${name} used as a base ingredient for curries, roasts, soups, and everyday cooking.`;
+    }
     return `${name} used for fresh eating, cooking, salads, snacks, or family meals.`;
   }
 
@@ -487,6 +493,15 @@ function describeProduct(name: string, category: ProductCategory) {
   }
 
   if (category === ProductCategory.MEAT_DAIRY_AND_PROTEIN) {
+    if (/Lamb/.test(name)) {
+      return `${name} used for curries, slow-cooked dishes, grills, and protein-rich family meals.`;
+    }
+    if (/Eggs/.test(name)) {
+      return `${name} used for breakfast, baking, and quick protein meals at home.`;
+    }
+    if (/Cheese|Butter|Cream|Yogurt|Paneer/.test(name)) {
+      return `${name} used for cooking, baking, sauces, and everyday dairy-based meals.`;
+    }
     return `${name} used for cooking meals, adding protein, or preparing family dinners.`;
   }
 
