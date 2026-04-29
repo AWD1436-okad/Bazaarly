@@ -95,7 +95,7 @@ export default async function CartPage({ searchParams }: CartProps) {
                     <div className="table-row__meta">
                       <strong>{item.product.name}</strong>
                       <span className="muted">
-                        {sourceName} · {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)} ·{" "}
+                        {sourceName} - {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)} -{" "}
                         {sanitizeStockCount(availableQuantity)} available
                       </span>
                     </div>

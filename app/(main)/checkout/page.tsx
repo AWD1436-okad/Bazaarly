@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
+import { sanitizeStockCount } from "@/lib/stock";
 
 type CheckoutPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -25,7 +27,11 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
       shop: true,
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              marketState: true,
+            },
+          },
           listing: {
             include: {
               shop: true,
@@ -69,6 +75,10 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
 
         <div className="table-list">
           {cart.items.map((item) => {
+            const availableQuantity =
+              item.source === "SUPPLIER"
+                ? item.product.marketState?.supplierStock ?? 0
+                : item.listing?.quantity ?? 0;
             const sourceName =
               item.source === "SUPPLIER"
                 ? "Tradex Supplier"
@@ -79,11 +89,18 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
                 <div className="table-row__meta">
                   <strong>{item.product.name}</strong>
                   <span className="muted">
-                    {sourceName} · Qty {item.quantity} ·{" "}
+                    {sourceName} - Qty {item.quantity} -{" "}
                     {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)}
                   </span>
                 </div>
-                <strong>{formatCurrency(item.quantity * item.unitPriceSnapshot, currencyCode)}</strong>
+                <div className="table-row__actions">
+                  <CartItemQuantityForm
+                    cartItemId={item.id}
+                    quantity={item.quantity}
+                    maxQuantity={sanitizeStockCount(availableQuantity)}
+                  />
+                  <strong>{formatCurrency(item.quantity * item.unitPriceSnapshot, currencyCode)}</strong>
+                </div>
               </div>
             );
           })}

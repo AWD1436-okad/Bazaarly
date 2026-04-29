@@ -379,9 +379,20 @@ export async function POST(request: Request) {
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-              message: `${buyer.displayName} bought ${saleSummary.join(", ")} for ${formatCurrency(
+            message: `${buyer.displayName} bought ${saleSummary.join(", ")} for ${formatCurrency(
               marketplaceTotal,
               seller.currencyCode,
+            )}.`,
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: buyer.id,
+            type: NotificationType.SYSTEM,
+            message: `Marketplace checkout completed from ${cart.shop.name}: ${saleSummary.join(", ")} for ${formatCurrency(
+              marketplaceTotal,
+              currencyCode,
             )}.`,
           },
         });

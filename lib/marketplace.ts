@@ -66,6 +66,8 @@ type ListingWithRelations = {
 function tokenize(query: string) {
   return query
     .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s]+/g, " ")
     .split(/\s+/)
     .map((token) => token.trim())
     .filter(Boolean);
@@ -77,7 +79,7 @@ type SearchContext = {
 };
 
 function buildSearchContext(query: string): SearchContext | null {
-  const normalized = query.trim().toLowerCase();
+  const normalized = tokenize(query).join(" ");
 
   if (!normalized) {
     return null;
@@ -87,6 +89,56 @@ function buildSearchContext(query: string): SearchContext | null {
     normalized,
     tokens: tokenize(query),
   };
+}
+
+function levenshteinDistance(left: string, right: string) {
+  if (left === right) return 0;
+  if (!left) return right.length;
+  if (!right) return left.length;
+
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let i = 1; i <= left.length; i += 1) {
+    let diagonal = i - 1;
+    row[0] = i;
+
+    for (let j = 1; j <= right.length; j += 1) {
+      const previous = row[j];
+      const substitutionCost = left[i - 1] === right[j - 1] ? 0 : 1;
+
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + substitutionCost);
+      diagonal = previous;
+    }
+  }
+
+  return row[right.length];
+}
+
+function getFuzzyTokenScore(searchContext: SearchContext, values: string[]) {
+  const searchableTokens = Array.from(
+    new Set(values.flatMap((value) => tokenize(value))),
+  ).filter(Boolean);
+  const compactQuery = searchContext.normalized.replace(/\s+/g, "");
+  let bestScore = 0;
+
+  for (const token of searchableTokens) {
+    const compactToken = token.replace(/\s+/g, "");
+
+    if (!compactToken) continue;
+    if (compactToken === compactQuery) bestScore = Math.max(bestScore, 80);
+    if (compactToken.includes(compactQuery) || compactQuery.includes(compactToken)) {
+      bestScore = Math.max(bestScore, 54 - Math.abs(compactToken.length - compactQuery.length) * 4);
+    }
+
+    const distance = levenshteinDistance(compactQuery, compactToken);
+    const maxDistance = compactQuery.length <= 4 ? 1 : compactQuery.length <= 8 ? 2 : 3;
+
+    if (distance <= maxDistance) {
+      bestScore = Math.max(bestScore, 46 - distance * 10);
+    }
+  }
+
+  return bestScore;
 }
 
 function scoreListing(listing: ListingWithRelations, searchContext: SearchContext | null) {
@@ -127,6 +179,15 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
     if (categoryDisplay.includes(token)) score += 18;
     if (keywords.some((keyword: string) => keyword.includes(token))) score += 20;
   }
+
+  score += getFuzzyTokenScore(searchContext, [
+    name,
+    shopName,
+    description,
+    category,
+    categoryDisplay,
+    ...keywords,
+  ]);
 
   score += Math.min(listing.quantity, 25);
   score += listing.shop.rating * 10;
@@ -196,7 +257,6 @@ export async function getMarketplaceData(params: MarketplaceParams) {
   const maxPrice = params.maxPrice ? convertCurrencyInputToAudCents(params.maxPrice, params.currencyCode) : null;
   const minRating = params.minRating ? Number(params.minRating) : null;
   const inStockOnly = params.stock === "in";
-  const normalizedQuery = query.toLowerCase();
   const searchContext = buildSearchContext(query);
   const categoryFilter = getCategoryFilterOption(params.category);
 
@@ -228,24 +288,6 @@ export async function getMarketplaceData(params: MarketplaceParams) {
         }
       : {}),
   };
-
-  if (query) {
-    const categoryMatches = Object.values(ProductCategory)
-      .filter((value) => {
-        const enumText = value.toLowerCase().replace(/_/g, " ");
-        const labelText = getCategoryLabel(value).toLowerCase();
-        return enumText.includes(normalizedQuery) || labelText.includes(normalizedQuery);
-      })
-      .map((value) => ({ product: { category: value } as Prisma.ProductWhereInput }));
-
-    where.OR = [
-      { product: { name: { contains: query, mode: "insensitive" } } },
-      { product: { description: { contains: query, mode: "insensitive" } } },
-      { product: { subcategory: { contains: query, mode: "insensitive" } } },
-      { shop: { name: { contains: query, mode: "insensitive" } } },
-      ...categoryMatches,
-    ];
-  }
 
   const sort = params.sort ?? "relevance";
   const usesRelevanceSearch = Boolean(query) && sort === "relevance";

@@ -254,12 +254,20 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
           ) : null}
 
           <section className="page-header">
-            <h2>{selectedCategory ? selectedCategory.label : "All supplier items"}</h2>
-            <p>
-              {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} shown
-              {selectedCategory ? ` in ${selectedCategory.label}` : ""}.
-              {searchQuery ? ` Search: "${searchQuery}".` : ""}
-            </p>
+            <div>
+              <h2>{selectedCategory ? selectedCategory.label : "All supplier items"}</h2>
+              <p>
+                {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} shown
+                {selectedCategory ? ` in ${selectedCategory.label}` : ""}.
+                {searchQuery ? ` Search: "${searchQuery}".` : ""}
+              </p>
+            </div>
+            {selectedCategory ? (
+              <form action="/supplier/add-category" method="post">
+                <input type="hidden" name="category" value={selectedCategory.value} />
+                <button type="submit">Add category to cart</button>
+              </form>
+            ) : null}
           </section>
 
           {filteredProducts.length === 0 ? (
