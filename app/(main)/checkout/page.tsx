@@ -131,7 +131,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
             Bank number
             <input name="bankNumber" type="password" inputMode="numeric" required />
           </label>
-          <button type="submit">Confirm checkout {formatCurrency(total, currencyCode)}</button>
+          <button type="submit">Confirm Purchase {formatCurrency(total, currencyCode)}</button>
         </form>
       </section>
     </div>

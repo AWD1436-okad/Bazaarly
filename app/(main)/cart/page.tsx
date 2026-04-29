@@ -31,7 +31,11 @@ export default async function CartPage({ searchParams }: CartProps) {
               marketState: true,
             },
           },
-          listing: true,
+          listing: {
+            include: {
+              shop: true,
+            },
+          },
         },
       },
     },
@@ -88,7 +92,9 @@ export default async function CartPage({ searchParams }: CartProps) {
                     ? item.product.marketState?.supplierStock ?? 0
                     : item.listing?.quantity ?? 0;
                 const sourceName =
-                  item.source === "SUPPLIER" ? "Tradex Supplier" : cart.shop?.name ?? "Marketplace shop";
+                  item.source === "SUPPLIER"
+                    ? "Tradex Supplier"
+                    : item.listing?.shop.name ?? cart.shop?.name ?? "Marketplace shop";
 
                 return (
                   <div key={item.id} className="table-row">

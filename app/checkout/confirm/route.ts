@@ -213,11 +213,19 @@ export async function POST(request: Request) {
           where: { id: item.listingId },
           include: {
             product: true,
+            shop: {
+              select: {
+                ownerId: true,
+              },
+            },
           },
         });
 
         if (!listing || !listing.active || listing.isPaused || listing.quantity < item.quantity) {
           throw new Error("Listing stock changed");
+        }
+        if (listing.shop.ownerId === user.id) {
+          throw new Error("You cannot buy your own listing");
         }
         if (listing.shopId !== cart.shopId || listing.productId !== item.productId) {
           throw new Error("Cart item no longer matches its listing");

@@ -68,6 +68,41 @@ export function CartItemQuantityForm({
     }
   }
 
+  async function nudgeQuantity(delta: -1 | 1) {
+    const parsedQuantity = Number.parseInt(nextQuantity || String(quantity), 10);
+    const baseline = Number.isFinite(parsedQuantity) ? parsedQuantity : quantity;
+    const target = Math.max(0, Math.min(maxQuantity, baseline + delta));
+    setNextQuantity(String(target));
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("cartItemId", cartItemId);
+      formData.set("quantity", String(target));
+
+      const response = await fetch("/cart/item", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "x-tradex-async": "1",
+        },
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Unable to update cart item");
+      }
+
+      refreshInPlace();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Unable to update cart item");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function removeItem() {
     setSubmitting(true);
     setError(null);
@@ -101,6 +136,15 @@ export function CartItemQuantityForm({
   return (
     <div className="cart-item-quantity-form">
       <div className="inline-form">
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => void nudgeQuantity(-1)}
+          disabled={submitting}
+          aria-label="Decrease quantity"
+        >
+          -
+        </button>
         <input
           type="number"
           min={0}
@@ -123,6 +167,15 @@ export function CartItemQuantityForm({
         />
         <button type="button" onClick={() => void updateItem()} disabled={submitting}>
           {submitting ? "Updating..." : "Update"}
+        </button>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => void nudgeQuantity(1)}
+          disabled={submitting || maxQuantity <= 0}
+          aria-label="Increase quantity"
+        >
+          +
         </button>
         <button
           type="button"
