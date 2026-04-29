@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 import { hashPassword, verifyPassword } from "@/lib/password";
 
@@ -6,7 +6,13 @@ const PIN_PATTERN = /^\d{4,8}$/;
 const BANK_NUMBER_PATTERN = /^\d{6,12}$/;
 
 function getPinPepper() {
-  return process.env.CHECKOUT_PIN_PEPPER ?? process.env.SESSION_COOKIE_NAME ?? "bazaarly-pin";
+  return process.env.CHECKOUT_PIN_PEPPER ?? process.env.SESSION_COOKIE_NAME ?? "tradex-pin";
+}
+
+function getBankEncryptionKey() {
+  return createHash("sha256")
+    .update(process.env.BANK_NUMBER_ENCRYPTION_KEY ?? getPinPepper())
+    .digest();
 }
 
 export function validateCheckoutPin(pin: string) {
@@ -71,4 +77,48 @@ export function getCheckoutPinLookupHash(pin: string) {
 
 export function getBankNumberLookupHash(bankNumber: string) {
   return createHash("sha256").update(`${getPinPepper()}:bank:${bankNumber}`).digest("hex");
+}
+
+export function encryptBankNumber(bankNumber: string) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", getBankEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(bankNumber, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+
+  return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
+}
+
+export function decryptBankNumber(encryptedBankNumber: string | null | undefined) {
+  if (!encryptedBankNumber) {
+    return null;
+  }
+
+  const [ivHex, tagHex, encryptedHex] = encryptedBankNumber.split(":");
+  if (!ivHex || !tagHex || !encryptedHex) {
+    return null;
+  }
+
+  try {
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      getBankEncryptionKey(),
+      Buffer.from(ivHex, "hex"),
+    );
+    decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+
+    return Buffer.concat([
+      decipher.update(Buffer.from(encryptedHex, "hex")),
+      decipher.final(),
+    ]).toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+export function maskBankNumber(bankNumber: string | null | undefined) {
+  if (!bankNumber) {
+    return "Not recoverable";
+  }
+
+  return `****${bankNumber.slice(-4)}`;
 }

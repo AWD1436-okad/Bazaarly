@@ -166,7 +166,7 @@ export async function createShopAction(formData: FormData) {
       data: {
         userId: user.id,
         type: NotificationType.SYSTEM,
-        message: `Welcome to Bazaarly. ${shop.name} is ready. Review your starter stock and publish your first listing.`,
+        message: `Welcome to Tradex. ${shop.name} is ready. Review your starter stock and publish your first listing.`,
       },
     });
   });

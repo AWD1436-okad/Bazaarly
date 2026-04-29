@@ -14,6 +14,7 @@ import {
 } from "../lib/catalog";
 import { hashPassword } from "../lib/password";
 import {
+  encryptBankNumber,
   getBankNumberLookupHash,
   getCheckoutPinLookupHash,
   hashBankNumber,
@@ -23,7 +24,7 @@ import { buildCatalogPriceProfiles } from "../lib/price-profiles";
 
 const prisma = new PrismaClient();
 const shouldReset = process.env.SEED_MODE === "reset";
-const SEEDED_ACCOUNT_PASSWORD = "Bazaarly123!";
+const SEEDED_ACCOUNT_PASSWORD = "Tradex123!";
 
 type CatalogProduct = (typeof PRODUCT_CATALOG)[number];
 
@@ -82,6 +83,8 @@ function seededSecurityDetails(index: number) {
     checkoutPinLookupHash: getCheckoutPinLookupHash(pin),
     bankNumberHash: hashBankNumber(bankNumber),
     bankNumberLookupHash: getBankNumberLookupHash(bankNumber),
+    bankNumberEncrypted: encryptBankNumber(bankNumber),
+    bankNumberLast4: bankNumber.slice(-4),
   };
 }
 
@@ -511,16 +514,16 @@ async function main() {
   const botWalletUser = await prisma.user.upsert({
     where: { username: "bot_market" },
     update: {
-      email: "bot-market@bazaarly.local",
-      displayName: "Bazaarly Bot Market",
+      email: "bot-market@tradex.local",
+      displayName: "Tradex Bot Market",
       hasCompletedOnboarding: true,
       passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
       ...seededSecurityDetails(99),
     },
     create: {
       username: "bot_market",
-      email: "bot-market@bazaarly.local",
-      displayName: "Bazaarly Bot Market",
+      email: "bot-market@tradex.local",
+      displayName: "Tradex Bot Market",
       passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
       balance: 500000,
       hasCompletedOnboarding: true,
@@ -531,8 +534,8 @@ async function main() {
   const botWalletShop = await prisma.shop.upsert({
     where: { ownerId: botWalletUser.id },
     update: {
-      name: "Bazaarly Bot Ledger",
-      slug: "bazaarly-bot-ledger",
+      name: "Tradex Bot Ledger",
+      slug: "tradex-bot-ledger",
       description: "Internal wallet for automated marketplace customers.",
       accentColor: "#6B7280",
       status: "INACTIVE",
@@ -540,8 +543,8 @@ async function main() {
     },
     create: {
       ownerId: botWalletUser.id,
-      name: "Bazaarly Bot Ledger",
-      slug: "bazaarly-bot-ledger",
+      name: "Tradex Bot Ledger",
+      slug: "tradex-bot-ledger",
       description: "Internal wallet for automated marketplace customers.",
       accentColor: "#6B7280",
       status: "INACTIVE",
@@ -807,7 +810,7 @@ async function main() {
         {
           userId: users.get("jordan")!.id,
           type: NotificationType.MARKET,
-          message: "Heatwave event is active. Drinks demand is up across Bazaarly.",
+          message: "Heatwave event is active. Drinks demand is up across Tradex.",
           createdAt: subHours(new Date(), 1),
         },
         {

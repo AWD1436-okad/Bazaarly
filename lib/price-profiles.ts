@@ -4,7 +4,7 @@ import { CATALOG_SOURCE } from "@/lib/catalog-source";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
-export const SUPPORTED_CURRENCY_CODES = ["AUD", "USD", "GBP", "PKR", "INR", "AED", "SAR", "TRY"] as const;
+export const SUPPORTED_CURRENCY_CODES = ["AUD", "USD", "GBP", "EUR", "PKR", "INR", "AED", "SAR", "TRY"] as const;
 
 export type SupportedCurrencyCode = (typeof SUPPORTED_CURRENCY_CODES)[number];
 
@@ -56,6 +56,14 @@ const profileMetadata: Record<SupportedCurrencyCode, PriceProfileMetadata> = {
     label: "GBP - United Kingdom",
     regionName: "UK",
     locale: "en-GB",
+    fractionDigits: 2,
+    supplierRatio: 0.68,
+  },
+  EUR: {
+    currencyCode: "EUR",
+    label: "EUR - Europe",
+    regionName: "European",
+    locale: "de-DE",
     fractionDigits: 2,
     supplierRatio: 0.68,
   },
@@ -168,6 +176,24 @@ const regionalOverrides: Record<SupportedCurrencyCode, Record<string, number>> =
     "Premium Abaya": 82.99,
     Phone: 649,
     Laptop: 899,
+  },
+  EUR: {
+    Apples: 2.4,
+    Bananas: 1.25,
+    Oranges: 2.2,
+    Milk: 1.35,
+    Bread: 1.79,
+    Eggs: 3.5,
+    Chicken: 7.1,
+    Beef: 11.2,
+    "Beef Mince": 7.2,
+    Lamb: 10.8,
+    "Basic Thobe": 36.99,
+    "Premium Thobe": 82.99,
+    "Basic Abaya": 46.99,
+    "Premium Abaya": 92.99,
+    Phone: 699,
+    Laptop: 999,
   },
   PKR: {
     Apples: 520,
@@ -320,6 +346,20 @@ const categoryMajorPriceRanges: Record<
     ELECTRONICS: [7, 1000],
     SCHOOL_AND_MISC: [0.5, 25],
   },
+  EUR: {
+    FRUIT_AND_VEGETABLES: [0.8, 6],
+    BAKERY_AND_GRAINS: [0.95, 6],
+    PANTRY_AND_COOKING: [0.85, 9],
+    DRINKS: [0.9, 7],
+    MEAT_DAIRY_AND_PROTEIN: [2.2, 15],
+    SNACKS_AND_SWEETS: [0.8, 8],
+    KITCHEN_AND_COOKWARE: [3.5, 30],
+    CLEANING_AND_PERSONAL_CARE: [1.2, 14],
+    CLOTHING: [6, 150],
+    HOME_AND_STORAGE: [5, 55],
+    ELECTRONICS: [8, 1100],
+    SCHOOL_AND_MISC: [0.6, 30],
+  },
   PKR: {
     FRUIT_AND_VEGETABLES: [80, 2200],
     BAKERY_AND_GRAINS: [120, 1200],
@@ -396,6 +436,7 @@ const categoryFallbackMultiplier: Record<SupportedCurrencyCode, Record<ProductCa
   AUD: makeMultiplierProfile(1),
   USD: makeMultiplierProfile(0.68),
   GBP: makeMultiplierProfile(0.55),
+  EUR: makeMultiplierProfile(0.61),
   PKR: makeMultiplierProfile(150),
   INR: makeMultiplierProfile(55),
   AED: makeMultiplierProfile(2.45),
@@ -497,99 +538,31 @@ export function buildCatalogPriceProfiles(
   return SUPPORTED_CURRENCY_CODES.map((currencyCode) => getRegionalCatalogPricing(input, currencyCode));
 }
 
-export async function getActiveCurrencyCode() {
-  const worldState =
-    (await prisma.worldState.findUnique({
-      where: { id: "global" },
-      select: { currencyCode: true },
-    })) ??
-    (await prisma.worldState.create({
-      data: { id: "global" },
-      select: { currencyCode: true },
-    }));
+export async function getActiveCurrencyCode(userId?: string) {
+  if (!userId) {
+    return "AUD";
+  }
 
-  return normalizeCurrencyCode(worldState.currencyCode);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { currencyCode: true },
+  });
+
+  return normalizeCurrencyCode(user?.currencyCode);
 }
 
-export async function applyWorldCurrencyProfile(currencyCodeInput: string) {
+export async function updateUserCurrencyPreference(userId: string, currencyCodeInput: string) {
   const currencyCode = normalizeCurrencyCode(currencyCodeInput);
-  const worldState =
-    (await prisma.worldState.findUnique({ where: { id: "global" } })) ??
-    (await prisma.worldState.create({ data: { id: "global" } }));
-  const oldCurrencyCode = normalizeCurrencyCode(worldState.currencyCode);
-
-  await prisma.$transaction(async (tx) => {
-    const products = await tx.product.findMany({
-      select: {
-        id: true,
-        priceProfiles: true,
-      },
-    });
-
-    for (const product of products) {
-      const nextProfile = product.priceProfiles.find((profile) => profile.currencyCode === currencyCode);
-      if (!nextProfile) continue;
-
-      await tx.marketProductState.updateMany({
-        where: { productId: product.id },
-        data: {
-          currentSupplierPrice: nextProfile.supplierPrice,
-          marketAveragePrice: nextProfile.marketAveragePrice,
-        },
-      });
-    }
-
-    const listings = await tx.listing.findMany({
-      select: {
-        id: true,
-        price: true,
-        product: {
-          select: {
-            priceProfiles: true,
-          },
-        },
-      },
-    });
-
-    for (const listing of listings) {
-      const oldProfile = listing.product.priceProfiles.find((profile) => profile.currencyCode === oldCurrencyCode);
-      const nextProfile = listing.product.priceProfiles.find((profile) => profile.currencyCode === currencyCode);
-      if (!nextProfile) continue;
-
-      const ratio = oldProfile
-        ? clamp(listing.price / Math.max(oldProfile.marketAveragePrice, 1), 0.7, 1.9)
-        : 1.12;
-      const nextMajor = roundMajorPrice(fromMinorUnits(nextProfile.marketAveragePrice * ratio), currencyCode);
-
-      await tx.listing.update({
-        where: { id: listing.id },
-        data: {
-          price: toMinorUnits(nextMajor),
-          currencyCode,
-        },
-      });
-    }
-
-    await tx.cartItem.deleteMany({
-      where: {
-        cart: {
-          status: "ACTIVE",
-        },
-      },
-    });
-
-    await tx.cart.updateMany({
-      where: { status: "ACTIVE" },
-      data: { shopId: null },
-    });
-
-    await tx.worldState.update({
-      where: { id: "global" },
-      data: { currencyCode },
-    });
+  await prisma.user.update({
+    where: { id: userId },
+    data: { currencyCode },
   });
 
   return currencyCode;
+}
+
+export async function applyWorldCurrencyProfile(currencyCodeInput: string) {
+  return normalizeCurrencyCode(currencyCodeInput);
 }
 
 export function getCatalogSourceItem(name: string) {

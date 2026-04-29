@@ -8,7 +8,7 @@ export const preferredRegion = "syd1";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const profile = getPriceProfileMetadata(currencyCode);
 
   return (
@@ -30,9 +30,9 @@ export default async function SettingsPage() {
           <p className="muted">Store rename cost: {formatCurrency(20000, currencyCode)}</p>
         </article>
         <article className="metric-card">
-          <span className="metric-card__eyebrow">Price profile</span>
+          <span className="metric-card__eyebrow">Display currency</span>
           <strong>{profile.currencyCode}</strong>
-          <p className="muted">{profile.regionName}-style catalog prices</p>
+          <p className="muted">{profile.label}</p>
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Store</span>
@@ -48,6 +48,8 @@ export default async function SettingsPage() {
         canRenameStore={Boolean(user.shop)}
         currentCurrencyCode={currencyCode}
         priceProfiles={getSupportedPriceProfiles()}
+        maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
+        renameStoreCostLabel={formatCurrency(20000, currencyCode)}
       />
     </div>
   );

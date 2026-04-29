@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { verifyPassword } from "@/lib/password";
-import { verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
+import { encryptBankNumber, verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { isSafePositiveQuantity } from "@/lib/route-validation";
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const password = String(formData.get("password") ?? "");
   const checkoutPin = String(formData.get("checkoutPin") ?? "").trim();
   const bankNumber = String(formData.get("bankNumber") ?? "").trim();
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       passwordHash: true,
       checkoutPinHash: true,
       bankNumberHash: true,
+      bankNumberEncrypted: true,
     },
   });
 
@@ -53,6 +54,16 @@ export async function POST(request: Request) {
     !verifyBankNumber(bankNumber, authUser.bankNumberHash)
   ) {
     return redirectWithError(request, "Incorrect password, PIN, or bank number");
+  }
+
+  if (!authUser.bankNumberEncrypted) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        bankNumberEncrypted: encryptBankNumber(bankNumber),
+        bankNumberLast4: bankNumber.slice(-4),
+      },
+    });
   }
 
   const activeCart = await prisma.cart.findFirst({
@@ -276,6 +287,7 @@ export async function POST(request: Request) {
           select: {
             id: true,
             balance: true,
+            currencyCode: true,
           },
         });
 
@@ -367,9 +379,9 @@ export async function POST(request: Request) {
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-            message: `${buyer.displayName} bought ${saleSummary.join(", ")} for ${formatCurrency(
+              message: `${buyer.displayName} bought ${saleSummary.join(", ")} for ${formatCurrency(
               marketplaceTotal,
-              currencyCode,
+              seller.currencyCode,
             )}.`,
           },
         });

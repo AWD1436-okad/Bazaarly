@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div>
             <div className="brand-lockup">
               <BrandLogo size={64} />
-              <span className="tag">Bazaarly</span>
+              <span className="tag">Tradex</span>
             </div>
             <h1>Enter the global marketplace.</h1>
             <p className="muted">

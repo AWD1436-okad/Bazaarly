@@ -596,7 +596,7 @@ export const SHOP_THEMES = [
 export const INITIAL_USERS = [
   {
     username: "avery",
-    email: "avery@bazaarly.local",
+    email: "avery@tradex.local",
     displayName: "Avery",
     balance: 28400,
     shop: {
@@ -612,7 +612,7 @@ export const INITIAL_USERS = [
   },
   {
     username: "jordan",
-    email: "jordan@bazaarly.local",
+    email: "jordan@tradex.local",
     displayName: "Jordan",
     balance: 25150,
     shop: {
@@ -628,7 +628,7 @@ export const INITIAL_USERS = [
   },
   {
     username: "mia",
-    email: "mia@bazaarly.local",
+    email: "mia@tradex.local",
     displayName: "Mia",
     balance: 23920,
     shop: {
@@ -644,7 +644,7 @@ export const INITIAL_USERS = [
   },
   {
     username: "noah",
-    email: "noah@bazaarly.local",
+    email: "noah@tradex.local",
     displayName: "Noah",
     balance: 26270,
     shop: {

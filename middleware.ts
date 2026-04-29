@@ -28,7 +28,7 @@ export function middleware(request: NextRequest, event: NextFetchEvent) {
         method: "POST",
         cache: "no-store",
         headers: {
-          "x-bazaarly-simulation": "middleware",
+          "x-tradex-simulation": "middleware",
         },
       }).catch(() => undefined),
     );

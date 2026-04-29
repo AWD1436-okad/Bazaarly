@@ -1,8 +1,8 @@
-# Bazaarly Continuation Blueprint and Milestones
+# Tradex Continuation Blueprint and Milestones
 
 ## Continuation Blueprint
 
-The goal is to strengthen the existing Bazaarly app safely and incrementally. Work should preserve the current stack, keep the shared economy stable, and improve the app where the real codebase shows the most pressure.
+The goal is to strengthen the existing Tradex app safely and incrementally. Work should preserve the current stack, keep the shared economy stable, and improve the app where the real codebase shows the most pressure.
 
 ## Cost Guardrail
 
@@ -10,11 +10,11 @@ All current continuation work must remain compatible with zero-cost or free-tier
 
 ## Continuity Mapping
 
-- Product overview and run instructions live in [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\README.md)
-- System shape lives in [docs/ARCHITECTURE.md](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\ARCHITECTURE.md)
-- Live-state handoff lives in [docs/HANDOFF.md](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\HANDOFF.md)
-- Progress summary lives in [docs/PROGRESS.md](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\PROGRESS.md)
-- Known risks live in [docs/KNOWN_ISSUES.md](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\KNOWN_ISSUES.md)
+- Product overview and run instructions live in [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\README.md)
+- System shape lives in [docs/ARCHITECTURE.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\ARCHITECTURE.md)
+- Live-state handoff lives in [docs/HANDOFF.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\HANDOFF.md)
+- Progress summary lives in [docs/PROGRESS.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\PROGRESS.md)
+- Known risks live in [docs/KNOWN_ISSUES.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\KNOWN_ISSUES.md)
 - This project-memory folder tracks planning continuity and milestone-by-milestone execution
 
 ## Recommended Milestones

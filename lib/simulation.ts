@@ -7,7 +7,7 @@ import {
 import { subMinutes } from "date-fns";
 
 import { INITIAL_BOTS } from "@/lib/catalog";
-import { getActiveCurrencyCode } from "@/lib/price-profiles";
+import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
@@ -498,7 +498,7 @@ function getDesiredBotQuantity(
 
 export async function runMarketSimulation(force = false, debug = false) {
   const now = new Date();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = "AUD";
   const bots = await ensureActiveBotPool(now);
   const worldState =
     (await prisma.worldState.findUnique({ where: { id: "global" } })) ??
@@ -840,6 +840,7 @@ export async function runMarketSimulation(force = false, debug = false) {
           where: { id: freshListing.shop.ownerId },
           select: {
             id: true,
+            currencyCode: true,
           },
         });
 
@@ -955,9 +956,10 @@ export async function runMarketSimulation(force = false, debug = false) {
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-            message: `${bot.displayName} bought ${selectedQuantity}x ${freshListing.product.name} for $${(
-              totalPrice / 100
-            ).toFixed(2)}.`,
+            message: `${bot.displayName} bought ${selectedQuantity}x ${freshListing.product.name} for ${formatCurrency(
+              totalPrice,
+              seller.currencyCode,
+            )}.`,
             createdAt: attemptedAt,
           },
         });

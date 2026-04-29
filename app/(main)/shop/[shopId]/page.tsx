@@ -23,8 +23,8 @@ function buildShopHref(shopId: string, page: number) {
 }
 
 export default async function ShopPage({ params, searchParams }: ShopPageProps) {
-  await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const user = await requireUser();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const { shopId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = parsePositivePage(resolvedSearchParams?.page);
@@ -56,7 +56,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
           >
             <strong>Shop live status</strong>
             <p className="muted">
-              Competes with other Bazaarly stores on price, stock, rating, and visibility.
+              Competes with other Tradex stores on price, stock, rating, and visibility.
             </p>
           </div>
         </div>

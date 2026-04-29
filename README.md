@@ -1,6 +1,6 @@
-# Bazaarly
+# Tradex
 
-Bazaarly is a full-stack online marketplace simulation built with Next.js and Prisma. Players share one persistent economy, each own one shop, buy stock from a supplier, publish listings, compete on price and rating, and sell to both human players and bots.
+Tradex is a full-stack online marketplace simulation built with Next.js and Prisma. Players share one persistent economy, each own one shop, buy stock from a supplier, publish listings, compete on price and rating, and sell to both human players and bots.
 
 ## Stack
 
@@ -50,14 +50,14 @@ Bazaarly is a full-stack online marketplace simulation built with Next.js and Pr
 
 ## Hosted Environment
 
-- GitHub repo: `AWD1436-okad/Bazaarly`
-- Production app URL: [https://bazaarly.vercel.app](https://bazaarly.vercel.app)
+- GitHub repo: `AWD1436-okad/Tradex`
+- Production app URL: [https://tradex.vercel.app](https://tradex.vercel.app)
 - Production database: Neon Postgres
 - Prisma datasource provider: `postgresql`
 
 ## V1 Launch Status
 
-Bazaarly is v1-ready pending:
+Tradex is v1-ready pending:
 
 - applying the latest Prisma migrations to the real database
 - redeploying with the migrated schema in place
@@ -79,8 +79,8 @@ Required launch migrations:
 
 ## Docs
 
-- [Architecture](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\ARCHITECTURE.md)
-- [Handoff](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\HANDOFF.md)
-- [Progress](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\PROGRESS.md)
-- [Known Issues](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\KNOWN_ISSUES.md)
-- [Project Memory](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\docs\project-memory\00%20Project%20Brief.md)
+- [Architecture](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\ARCHITECTURE.md)
+- [Handoff](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\HANDOFF.md)
+- [Progress](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\PROGRESS.md)
+- [Known Issues](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\KNOWN_ISSUES.md)
+- [Project Memory](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\project-memory\00%20Project%20Brief.md)

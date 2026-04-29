@@ -6,7 +6,7 @@ import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
 import { CATEGORY_OPTIONS, getCategoryFilterLabel, getDailyFeaturedProduct } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
-import { getActiveCurrencyCode, getRegionalCatalogPricing } from "@/lib/price-profiles";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 
 type MarketplacePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -35,10 +35,9 @@ function buildMarketplaceHref(
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const params = (await searchParams) ?? {};
   const featuredProduct = getDailyFeaturedProduct();
-  const featuredProductPricing = getRegionalCatalogPricing(featuredProduct, currencyCode);
   const hasActiveMarketplaceSearch =
     (typeof params.q === "string" && params.q.trim().length > 0) ||
     (typeof params.category === "string" && params.category !== "ALL") ||
@@ -59,6 +58,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     maxPrice: typeof params.maxPrice === "string" ? params.maxPrice : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
     excludeOwnerId: user.id,
+    currencyCode,
   });
 
   return (
@@ -87,8 +87,8 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
           <DailyFeatureCard
             product={featuredProduct}
-            displayPrice={featuredProductPricing.basePrice}
-            displayUnitLabel={featuredProductPricing.unitLabel}
+            displayPrice={featuredProduct.basePrice}
+            displayUnitLabel={featuredProduct.unitLabel}
             currencyCode={currencyCode}
             href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
             ctaLabel="See Offer"

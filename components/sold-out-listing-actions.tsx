@@ -59,7 +59,7 @@ export function SoldOutListingActions({
         method: "POST",
         body: formData,
         headers: {
-          "x-bazaarly-async": "1",
+          "x-tradex-async": "1",
         },
       });
       const payload = (await response.json()) as { ok?: boolean; error?: string };

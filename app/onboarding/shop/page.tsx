@@ -23,7 +23,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
       <section className="hero-card">
         <div className="stack">
           <span className="tag">Create Your Shop</span>
-          <h1>Set up your place in Bazaarly.</h1>
+          <h1>Set up your place in Tradex.</h1>
           <p>
             Every player gets one shop in the same shared world. Pick a strong name,
             write a short description, choose your focus, and we will send you
@@ -48,7 +48,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
           <div className="hero-card__panel">
             <strong>Allowed categories</strong>
             <p className="muted">
-              Pick from Bazaarly&apos;s 12 supplier categories, from fruit and vegetables to
+              Pick from Tradex&apos;s 12 supplier categories, from fruit and vegetables to
               electronics and school essentials.
             </p>
           </div>

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const newName = readFormString(formData, "name");
   const password = readFormString(formData, "password");
   const baseSlug = slugify(newName);

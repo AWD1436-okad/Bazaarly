@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
-import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { parsePositiveQuantity, parseRouteId } from "@/lib/route-validation";
 import { clamp } from "@/lib/utils";
@@ -12,7 +11,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 function isAsyncRequest(request: Request) {
-  return request.headers.get("x-bazaarly-async") === "1";
+  return request.headers.get("x-tradex-async") === "1";
 }
 
 export async function POST(request: Request) {
@@ -50,7 +49,6 @@ export async function POST(request: Request) {
 
   const productId = productIdResult.data;
   const quantity = clamp(quantityResult.data, 1, 99);
-  const currencyCode = await getActiveCurrencyCode();
 
   try {
     let purchasedProductName = "";
@@ -61,11 +59,6 @@ export async function POST(request: Request) {
         where: { id: productId },
         include: {
           marketState: true,
-          priceProfiles: {
-            where: {
-              currencyCode,
-            },
-          },
         },
       });
 
@@ -77,8 +70,7 @@ export async function POST(request: Request) {
         throw new Error("Supplier stock changed");
       }
 
-      const regionalProfile = product.priceProfiles[0];
-      const unitCost = regionalProfile?.supplierPrice ?? product.marketState.currentSupplierPrice;
+      const unitCost = product.marketState.currentSupplierPrice;
       const totalCost = unitCost * quantity;
       purchasedProductName = product.name;
       purchaseTotalCost = totalCost;

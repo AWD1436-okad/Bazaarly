@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 function isAsyncRequest(request: Request) {
-  return request.headers.get("x-bazaarly-async") === "1";
+  return request.headers.get("x-tradex-async") === "1";
 }
 
 export async function POST(request: Request) {

@@ -55,7 +55,7 @@ export function BulkSoldOutCleanup({ soldOutCount }: BulkSoldOutCleanupProps) {
         method: "POST",
         body: formData,
         headers: {
-          "x-bazaarly-async": "1",
+          "x-tradex-async": "1",
         },
       });
 

@@ -9,6 +9,8 @@ type SettingsActionsProps = {
   currentShopName: string | null;
   canRenameStore: boolean;
   currentCurrencyCode: string;
+  maskedBankNumber: string;
+  renameStoreCostLabel: string;
   priceProfiles: Array<{
     currencyCode: string;
     label: string;
@@ -32,12 +34,15 @@ export function SettingsActions({
   currentShopName,
   canRenameStore,
   currentCurrencyCode,
+  maskedBankNumber,
+  renameStoreCostLabel,
   priceProfiles,
 }: SettingsActionsProps) {
   const router = useRouter();
   const [usernameOpen, setUsernameOpen] = useState(false);
   const [displayNameOpen, setDisplayNameOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [nextUsername, setNextUsername] = useState(username);
@@ -46,13 +51,16 @@ export function SettingsActions({
   const [displayNamePassword, setDisplayNamePassword] = useState("");
   const [renameName, setRenameName] = useState(currentShopName ?? "");
   const [renamePassword, setRenamePassword] = useState("");
+  const [bankPassword, setBankPassword] = useState("");
+  const [bankPin, setBankPin] = useState("");
+  const [revealedBankNumber, setRevealedBankNumber] = useState<string | null>(null);
   const [logoutPassword, setLogoutPassword] = useState("");
   const [deleteUsername, setDeleteUsername] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
   const [submitting, setSubmitting] = useState<
-    null | "username" | "displayName" | "rename" | "logout" | "delete" | "currency"
+    null | "username" | "displayName" | "rename" | "bank" | "logout" | "delete" | "currency"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
 
@@ -210,6 +218,43 @@ export function SettingsActions({
     }
   }
 
+  async function handleRevealBankNumber() {
+    setSubmitting("bank");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("password", bankPassword);
+      formData.set("checkoutPin", bankPin);
+
+      const response = await fetch("/settings/reveal-bank-number", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        bankNumber?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.bankNumber) {
+        throw new Error(payload.error ?? "Bank number reveal failed");
+      }
+
+      setRevealedBankNumber(payload.bankNumber);
+      setBankPassword("");
+      setBankPin("");
+      setState({ message: "Bank number verified", error: null });
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Bank number reveal failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   async function handleLogout() {
     setSubmitting("logout");
     resetMessages();
@@ -263,16 +308,16 @@ export function SettingsActions({
       };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Price profile update failed");
+        throw new Error(payload.error ?? "Currency update failed");
       }
 
       setCurrencyCode(payload.currencyCode ?? currencyCode);
-      setState({ message: payload.message ?? "Regional price profile updated", error: null });
+      setState({ message: payload.message ?? "Display currency updated", error: null });
       router.refresh();
     } catch (error) {
       setState({
         message: null,
-        error: error instanceof Error ? error.message : "Price profile update failed",
+        error: error instanceof Error ? error.message : "Currency update failed",
       });
     } finally {
       setSubmitting(null);
@@ -302,10 +347,10 @@ export function SettingsActions({
       <section className="card settings-card">
         <div className="card-header">
           <div className="card-header__copy">
-            <h2>Regional Price Profile</h2>
+            <h2>Display Currency</h2>
             <p>
-              Choose the local catalog and currency style used for supplier prices, market averages,
-              listings, and bot price judgement.
+              Choose how money is shown to you. Stored prices, checkout, balances, and bot logic
+              still calculate in AUD behind the scenes.
             </p>
           </div>
           <button
@@ -313,11 +358,11 @@ export function SettingsActions({
             onClick={() => void handleCurrencyChange()}
             disabled={submitting !== null || currencyCode === currentCurrencyCode}
           >
-            {submitting === "currency" ? "Updating..." : "Update Price Profile"}
+            {submitting === "currency" ? "Updating..." : "Update Currency"}
           </button>
         </div>
         <label>
-          Search/select currency region
+          Search/select display currency
           <input
             list="price-profile-options"
             value={currencyCode}
@@ -337,8 +382,33 @@ export function SettingsActions({
           </datalist>
         </label>
         <p className="muted">
-          Current profile: {currentCurrencyCode}. This is not a simple converted display;
-          catalog prices are re-profiled for the selected region.
+          Current currency: {currentCurrencyCode}. The same listing can display differently for
+          different users without changing the seller&apos;s stored AUD price.
+        </p>
+      </section>
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
+            <h2>Bank Details</h2>
+            <p>Bank number is masked by default and can be revealed after password and PIN checks.</p>
+          </div>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              resetMessages();
+              setBankPassword("");
+              setBankPin("");
+              setBankOpen(true);
+            }}
+            disabled={submitting !== null}
+          >
+            View Bank Number
+          </button>
+        </div>
+        <p className="muted">
+          Bank number: <strong>{revealedBankNumber ?? maskedBankNumber}</strong>
         </p>
       </section>
 
@@ -390,7 +460,7 @@ export function SettingsActions({
         <div className="card-header">
           <div className="card-header__copy">
             <h2>Rename Store</h2>
-            <p>Cost: $200.00. This updates your public shop name after password confirmation.</p>
+            <p>Cost: {renameStoreCostLabel}. This updates your public shop name after password confirmation.</p>
           </div>
           <button
             type="button"
@@ -525,7 +595,7 @@ export function SettingsActions({
           >
             <div className="modal-card__copy">
               <h3 id="change-display-name-title">Change Display Name</h3>
-              <p>Enter the name people should see across Bazaarly.</p>
+              <p>Enter the name people should see across Tradex.</p>
             </div>
             <label className="modal-card__field">
               New display name
@@ -579,7 +649,7 @@ export function SettingsActions({
           >
             <div className="modal-card__copy">
               <h3 id="rename-store-title">Rename Store</h3>
-              <p>Enter a new unique store name and your password. The charge is exactly $200.00.</p>
+              <p>Enter a new unique store name and your password. The charge is exactly {renameStoreCostLabel}.</p>
             </div>
             <label className="modal-card__field">
               New store name
@@ -610,7 +680,66 @@ export function SettingsActions({
                 Cancel
               </button>
               <button type="button" onClick={() => void handleRename()} disabled={submitting !== null}>
-                {submitting === "rename" ? "Renaming..." : "Pay $200 and rename"}
+                {submitting === "rename" ? "Renaming..." : `Pay ${renameStoreCostLabel} and rename`}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bankOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setBankOpen(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bank-details-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-card__copy">
+              <h3 id="bank-details-title">View Bank Number</h3>
+              <p>Enter your password and checkout PIN to reveal your bank number.</p>
+            </div>
+            <label className="modal-card__field">
+              Password
+              <input
+                value={bankPassword}
+                onChange={(event) => setBankPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                disabled={submitting !== null}
+              />
+            </label>
+            <label className="modal-card__field">
+              Checkout PIN
+              <input
+                value={bankPin}
+                onChange={(event) => setBankPin(event.target.value)}
+                inputMode="numeric"
+                type="password"
+                autoComplete="off"
+                disabled={submitting !== null}
+              />
+            </label>
+            {revealedBankNumber ? (
+              <p className="status-text status-text--success">Bank number: {revealedBankNumber}</p>
+            ) : null}
+            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+            <div className="modal-card__actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setBankOpen(false)}
+                disabled={submitting !== null}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRevealBankNumber()}
+                disabled={submitting !== null}
+              >
+                {submitting === "bank" ? "Verifying..." : "Reveal Bank Number"}
               </button>
             </div>
           </div>

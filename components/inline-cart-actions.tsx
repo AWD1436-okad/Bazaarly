@@ -34,7 +34,7 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
         method: "POST",
         body: formData,
         headers: {
-          "x-bazaarly-async": "1",
+          "x-tradex-async": "1",
         },
       });
 

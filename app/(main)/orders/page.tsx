@@ -52,7 +52,7 @@ function buildOrdersHref({
 
 export default async function OrdersPage({ searchParams }: OrdersProps) {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const params = (await searchParams) ?? {};
   const checkout = getSingleParam(params.checkout) === "1";
   const buyerPage = parsePositivePage(params.buyerPage);
@@ -129,7 +129,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
     <div className="page-grid">
       <section className="page-header">
         <h1>Order history</h1>
-        <p>Review both sides of your Bazaarly economy: what you bought and what you sold.</p>
+        <p>Review both sides of your Tradex economy: what you bought and what you sold.</p>
       </section>
 
       {checkout ? (

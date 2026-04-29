@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import {
-  applyWorldCurrencyProfile,
   getPriceProfileMetadata,
   normalizeCurrencyCode,
   SUPPORTED_CURRENCY_CODES,
+  updateUserCurrencyPreference,
 } from "@/lib/price-profiles";
 
 export const runtime = "nodejs";
@@ -25,10 +25,10 @@ export async function POST(request: Request) {
   const requestedCurrencyCode = String(formData.get("currencyCode") ?? "").trim().toUpperCase();
 
   if (!SUPPORTED_CURRENCY_CODES.includes(requestedCurrencyCode as never)) {
-    return NextResponse.json({ ok: false, error: "Choose a supported currency profile" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Choose a supported currency" }, { status: 400 });
   }
 
-  const currencyCode = await applyWorldCurrencyProfile(requestedCurrencyCode);
+  const currencyCode = await updateUserCurrencyPreference(user.id, requestedCurrencyCode);
   const profile = getPriceProfileMetadata(currencyCode);
 
   revalidatePath("/");
@@ -42,6 +42,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     currencyCode: normalizeCurrencyCode(currencyCode),
-    message: `Regional price profile changed to ${profile.label}`,
+    message: `Display currency changed to ${profile.label}`,
   });
 }

@@ -1,8 +1,8 @@
-# Bazaarly Current Status
+# Tradex Current Status
 
 ## Current State Summary
 
-Bazaarly is live and functioning as a real shared marketplace app. The core onboarding, listing management, marketplace browsing, checkout, orders, notifications, and simulation systems are already in place. The visible old supplier flow has now been removed from normal app use and replaced with a simple catalog browser.
+Tradex is live and functioning as a real shared marketplace app. The core onboarding, listing management, marketplace browsing, checkout, orders, notifications, and simulation systems are already in place. The visible old supplier flow has now been removed from normal app use and replaced with a simple catalog browser.
 
 Release posture:
 
@@ -13,11 +13,11 @@ Release posture:
 
 - Prisma schema defines persistent users, shops, listings, carts, orders, notifications, bots, events, and world state
 - Prisma schema now includes a compact 12-category product enum and a dedicated `Product.unitLabel` field for unit-aware pricing
-- Authentication is database-backed and now uses a Prisma-backed session token model in [lib/auth.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\auth.ts)
-- Checkout uses a Prisma transaction in [app/checkout/route.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\app\checkout\route.ts)
-- Marketplace search and ranking live in [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\marketplace.ts)
-- Economy simulation lives in [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\simulation.ts)
-- Deployment is pinned to Sydney through [vercel.json](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\vercel.json)
+- Authentication is database-backed and now uses a Prisma-backed session token model in [lib/auth.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\auth.ts)
+- Checkout uses a Prisma transaction in [app/checkout/route.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\app\checkout\route.ts)
+- Marketplace search and ranking live in [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\marketplace.ts)
+- Economy simulation lives in [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\simulation.ts)
+- Deployment is pinned to Sydney through [vercel.json](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\vercel.json)
 - The old seeded catalog has been replaced in code with a new 107-item Australian-market catalog sourced from the user-provided master list
 
 ## Current Audit Takeaways
@@ -103,7 +103,7 @@ Immediate Milestone 2 follow-up:
 
 ## Small Polish Update
 
-- the Bazaarly logo display is now larger and better framed in the shared brand mark
+- the Tradex logo display is now larger and better framed in the shared brand mark
 - marketplace and supplier pages now show a deterministic daily featured product
 - the supplier page now supports category filtering from the header area
 - four premium products were added to the catalog in realistic AUD price ranges

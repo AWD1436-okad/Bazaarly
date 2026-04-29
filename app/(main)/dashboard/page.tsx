@@ -10,8 +10,8 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
-import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
-import { getActiveCurrencyCode } from "@/lib/price-profiles";
+import { convertAudCentsToCurrencyMinorUnits, formatCurrency, formatPriceWithUnit } from "@/lib/money";
+import { getActiveCurrencyCode, getPriceProfileMetadata } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { getFreeInventoryQuantity, getLiveStockStatusMessage } from "@/lib/stock";
 
@@ -65,7 +65,7 @@ function buildDashboardHref(
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
 
   if (!user.shop) {
     redirect("/onboarding/shop");
@@ -351,9 +351,13 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const hasNextListingsPage = listings.length > LISTING_PAGE_SIZE;
   const defaultListingPrice =
     listingOptionRows.length > 0
-      ? (listingOptionRows[0].marketAveragePrice / 100).toFixed(2)
+      ? (
+          convertAudCentsToCurrencyMinorUnits(listingOptionRows[0].marketAveragePrice, currencyCode) /
+          10 ** getPriceProfileMetadata(currencyCode).fractionDigits
+        ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)
       : "2.50";
   const todayRevenue = todayRevenueSummary._sum.totalPrice ?? 0;
+  const currencyFractionDigits = getPriceProfileMetadata(currencyCode).fractionDigits;
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
@@ -431,7 +435,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="card-header__copy">
                 <h2>Create or update a listing</h2>
                 <p>
-                  Pick an inventory item you own and publish it live. Bazaarly will move
+                  Pick an inventory item you own and publish it live. Tradex will move
                   all free units for that product into your active listing automatically.
                 </p>
               </div>
@@ -441,11 +445,13 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 </Link>
               </div>
             </div>
-            {listingOptionRows.length > 0 ? (
+              {listingOptionRows.length > 0 ? (
               <DashboardListingCreateForm
-                listingOptions={listingOptionRows}
+                listingOptions={listingOptionRows.map((item) => ({
+                  ...item,
+                  displayMarketAverageLabel: formatCurrency(item.marketAveragePrice, currencyCode),
+                }))}
                 defaultListingPrice={defaultListingPrice}
-                currencyCode={currencyCode}
               />
             ) : (
               <div className="empty-state">
@@ -548,7 +554,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                           <DashboardListingManageForm
                             listingId={listing.id}
                             productId={listing.productId}
-                            defaultPrice={(listing.price / 100).toFixed(2)}
+                            defaultPrice={(
+                              convertAudCentsToCurrencyMinorUnits(listing.price, currencyCode) /
+                              10 ** getPriceProfileMetadata(currencyCode).fractionDigits
+                            ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)}
                           />
                         </>
                       ) : (

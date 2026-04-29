@@ -7,6 +7,7 @@ import {
   getCheckoutPinLookupHash,
   hashBankNumber,
   hashCheckoutPin,
+  encryptBankNumber,
   validateBankNumber,
   validateCheckoutPin,
 } from "@/lib/pin";
@@ -90,6 +91,8 @@ export async function POST(request: Request) {
         checkoutPinLookupHash,
         bankNumberHash: hashBankNumber(bankNumberResult.bankNumber),
         bankNumberLookupHash,
+        bankNumberEncrypted: encryptBankNumber(bankNumberResult.bankNumber),
+        bankNumberLast4: bankNumberResult.bankNumber.slice(-4),
         securitySetupCompleted: true,
       },
     });

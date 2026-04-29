@@ -1,7 +1,7 @@
 {
-  "name": "bazaarly",
+  "name": "tradex",
   "version": "1.0.0",
-  "description": "Bazaarly is a shared-economy online marketplace simulator built with Next.js and Prisma.",
+  "description": "Tradex is a shared-economy online marketplace simulator built with Next.js and Prisma.",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -23,7 +23,7 @@
     "postgresql",
     "marketplace",
     "simulation",
-    "bazaarly"
+    "tradex"
   ],
   "author": "OpenAI Codex",
   "license": "ISC",

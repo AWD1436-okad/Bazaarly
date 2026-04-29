@@ -1,6 +1,7 @@
 import { Prisma, ProductCategory, ShopStatus, type MarketEvent } from "@prisma/client";
 
 import { getCategoryFilterOption, getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
+import { convertCurrencyInputToAudCents } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 export type MarketplaceParams = {
@@ -13,6 +14,7 @@ export type MarketplaceParams = {
   maxPrice?: string;
   page?: string;
   excludeOwnerId?: string;
+  currencyCode?: string;
 };
 
 const SHOP_LISTINGS_PAGE_SIZE = 12;
@@ -187,8 +189,8 @@ async function getMarketplaceSupportData() {
 
 export async function getMarketplaceData(params: MarketplaceParams) {
   const query = params.q?.trim() ?? "";
-  const minPrice = params.minPrice ? Number(params.minPrice) * 100 : null;
-  const maxPrice = params.maxPrice ? Number(params.maxPrice) * 100 : null;
+  const minPrice = params.minPrice ? convertCurrencyInputToAudCents(params.minPrice, params.currencyCode) : null;
+  const maxPrice = params.maxPrice ? convertCurrencyInputToAudCents(params.maxPrice, params.currencyCode) : null;
   const minRating = params.minRating ? Number(params.minRating) : null;
   const inStockOnly = params.stock === "in";
   const normalizedQuery = query.toLowerCase();

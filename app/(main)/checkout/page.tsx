@@ -12,7 +12,7 @@ type CheckoutPageProps = {
 
 export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
 
@@ -71,7 +71,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           {cart.items.map((item) => {
             const sourceName =
               item.source === "SUPPLIER"
-                ? "Bazaarly Supplier"
+                ? "Tradex Supplier"
                 : item.listing?.shop.name ?? cart.shop?.name ?? "Marketplace shop";
 
             return (

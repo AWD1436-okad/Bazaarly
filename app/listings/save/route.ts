@@ -3,16 +3,17 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { convertCurrencyInputToAudCents } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
-import { parsePriceInput, parseRouteId } from "@/lib/route-validation";
+import { parseRouteId } from "@/lib/route-validation";
 import { getFreeInventoryQuantity, sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 function isAsyncRequest(request: Request) {
-  return request.headers.get("x-bazaarly-async") === "1";
+  return request.headers.get("x-tradex-async") === "1";
 }
 
 export async function POST(request: Request) {
@@ -40,9 +41,9 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const productIdResult = parseRouteId(formData, "productId");
-  const priceResult = parsePriceInput(formData, "price");
+  const priceInput = String(formData.get("price") ?? "").trim();
 
-  if (!productIdResult.success || !priceResult.success) {
+  if (!productIdResult.success || !/^\d+(\.\d{1,2})?$/.test(priceInput)) {
     if (asyncRequest) {
       return NextResponse.json(
         { ok: false, error: "Enter a valid product and price" },
@@ -56,8 +57,21 @@ export async function POST(request: Request) {
   }
 
   const productId = productIdResult.data;
-  const priceCents = priceResult.data;
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
+  const priceCents = convertCurrencyInputToAudCents(priceInput, currencyCode);
+
+  if (!priceCents || priceCents <= 0 || priceCents > 1_000_000) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Enter a valid product and price" },
+        { status: 400 },
+      );
+    }
+    return NextResponse.redirect(
+      new URL("/dashboard?error=Enter%20a%20valid%20product%20and%20price", request.url),
+      303,
+    );
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -103,7 +117,7 @@ export async function POST(request: Request) {
           where: { id: listing.id },
           data: {
             price: priceCents,
-            currencyCode,
+            currencyCode: "AUD",
             quantity: nextListingQuantity,
             active: nextListingQuantity > 0,
           },
@@ -114,7 +128,7 @@ export async function POST(request: Request) {
             shopId: shop.id,
             productId,
             price: priceCents,
-            currencyCode,
+            currencyCode: "AUD",
             quantity: quantityToList,
             active: true,
           },

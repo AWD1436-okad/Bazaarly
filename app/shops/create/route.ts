@@ -102,7 +102,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         type: NotificationType.SYSTEM,
-        message: `Welcome to Bazaarly. ${shop.name} is ready. Review your starter stock and publish your first listing.`,
+        message: `Welcome to Tradex. ${shop.name} is ready. Review your starter stock and publish your first listing.`,
       },
     });
   });

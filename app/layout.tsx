@@ -6,12 +6,12 @@ export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 export const metadata: Metadata = {
-  title: "Bazaarly",
+  title: "Tradex",
   description: "A shared online marketplace simulation with player-owned shops and a living economy.",
   icons: {
-    icon: "/bazaarly-logo.png",
-    shortcut: "/bazaarly-logo.png",
-    apple: "/bazaarly-logo.png",
+    icon: "/tradex-logo.png",
+    shortcut: "/tradex-logo.png",
+    apple: "/tradex-logo.png",
   },
 };
 

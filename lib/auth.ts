@@ -6,7 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
 const SESSION_COOKIE_NAME =
-  process.env.SESSION_COOKIE_NAME ?? "bazaarly_session";
+  process.env.SESSION_COOKIE_NAME ?? "tradex_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
 

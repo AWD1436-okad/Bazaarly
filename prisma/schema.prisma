@@ -76,7 +76,10 @@ model User {
   checkoutPinLookupHash  String?        @unique
   bankNumberHash         String?
   bankNumberLookupHash   String?        @unique
+  bankNumberEncrypted    String?
+  bankNumberLast4        String?
   securitySetupCompleted Boolean        @default(false)
+  currencyCode           String         @default("AUD")
   balance                Int            @default(0)
   deletedAt              DateTime?
   createdAt              DateTime       @default(now())

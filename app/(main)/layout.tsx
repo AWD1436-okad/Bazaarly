@@ -27,7 +27,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
   const [unreadNotifications, liveStateVersion, currencyCode] = await Promise.all([
     getUnreadNotificationBadge(user.id),
     getLiveStateVersion(user.id),
-    getActiveCurrencyCode(),
+    getActiveCurrencyCode(user.id),
   ]);
 
   return (

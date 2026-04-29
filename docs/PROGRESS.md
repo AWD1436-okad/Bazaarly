@@ -1,4 +1,4 @@
-# Bazaarly Progress
+# Tradex Progress
 
 ## Completed
 
@@ -34,7 +34,7 @@
 - Updated product/category handling to the new category set and kept unit-aware AUD pricing visible across catalog, dashboard, marketplace, cart, and listings
 - Removed pagination from the catalog browsing area and made search apply only inside the currently selected category there
 - Updated onboarding and shop creation so new shops start with starter stock instead of being sent into the old supplier flow
-- Replaced the placeholder `B` branding with the provided Bazaarly logo asset in the main app brand areas
+- Replaced the placeholder `B` branding with the provided Tradex logo asset in the main app brand areas
 - Replaced the old mixed catalog with a single 859-item source-of-truth catalog across 15 exact categories
 - Added a dedicated product `unitLabel` field so prices are stored and shown by basis like `/kg`, `each`, `per punnet`, `per 100g`, `per pair`, and `per set`
 - Switched product/category UI to the new category set and updated marketplace, supplier, dashboard, cart, and shop displays to show unit-aware AUD pricing
@@ -84,7 +84,7 @@ Third hardening step completed:
 
 ## Launch Readiness
 
-Bazaarly is now v1-ready pending:
+Tradex is now v1-ready pending:
 - applying the latest Prisma migrations in the real database
 - confirming deployment against the migrated schema
 - completing final manual verification of the core flows
@@ -107,7 +107,7 @@ Small leftover items only:
 
 ## Small Polish Update
 
-- polished the shared Bazaarly logo display so the uploaded logo fills the brand mark more cleanly
+- polished the shared Tradex logo display so the uploaded logo fills the brand mark more cleanly
 - added a deterministic daily featured item panel on marketplace and supplier pages using the existing catalog only
 - added a category selector to the supplier header for quick category browsing
 - added a few premium catalog items in realistic AUD price bands without changing the stack or adding infrastructure

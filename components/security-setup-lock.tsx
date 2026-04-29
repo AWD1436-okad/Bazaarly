@@ -11,11 +11,11 @@ export function SecuritySetupLock({ error }: SecuritySetupLockProps) {
         <div>
           <div className="brand-lockup">
             <BrandLogo size={64} />
-            <span className="tag">Bazaarly</span>
+            <span className="tag">Tradex</span>
           </div>
           <h1>Security setup required</h1>
           <p className="muted">
-            Set your checkout PIN and bank number before entering Bazaarly.
+            Set your checkout PIN and bank number before entering Tradex.
           </p>
         </div>
 

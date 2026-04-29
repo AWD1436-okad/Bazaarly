@@ -10,18 +10,17 @@ type ListingOption = {
   unitLabel: string;
   availableToList: number;
   marketAveragePrice: number;
+  displayMarketAverageLabel: string;
 };
 
 type DashboardListingCreateFormProps = {
   listingOptions: ListingOption[];
   defaultListingPrice: string;
-  currencyCode: string;
 };
 
 export function DashboardListingCreateForm({
   listingOptions,
   defaultListingPrice,
-  currencyCode,
 }: DashboardListingCreateFormProps) {
   const router = useRouter();
   const [productId, setProductId] = useState(listingOptions[0]?.productId ?? "");
@@ -63,7 +62,7 @@ export function DashboardListingCreateForm({
         method: "POST",
         body: formData,
         headers: {
-          "x-bazaarly-async": "1",
+          "x-tradex-async": "1",
         },
       });
       const payload = (await response.json()) as { ok?: boolean; error?: string };
@@ -97,10 +96,7 @@ export function DashboardListingCreateForm({
           {listingOptions.map((item) => (
             <option key={item.inventoryId} value={item.productId}>
               {item.productName} - {item.availableToList} available to list -{" "}
-              {new Intl.NumberFormat(undefined, {
-                style: "currency",
-                currency: currencyCode,
-              }).format(item.marketAveragePrice / 100)} {item.unitLabel}
+              {item.displayMarketAverageLabel} {item.unitLabel}
             </option>
           ))}
         </select>

@@ -1,4 +1,4 @@
-# Bazaarly Decisions and Assumptions
+# Tradex Decisions and Assumptions
 
 ## Current Decisions
 
@@ -16,7 +16,7 @@
 
 ## Current Assumptions
 
-- The production URL remains [https://bazaarly.vercel.app](https://bazaarly.vercel.app)
+- The production URL remains [https://tradex.vercel.app](https://tradex.vercel.app)
 - Neon remains the production database provider unless deliberately changed later
 - Single-seller checkout remains acceptable for the current product stage
 - The strongest short-term value comes from speed and responsiveness improvements rather than a deeper architecture change

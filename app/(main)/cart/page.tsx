@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
@@ -13,7 +11,7 @@ type CartProps = {
 
 export default async function CartPage({ searchParams }: CartProps) {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
   const added = params.added === "1";
@@ -74,7 +72,7 @@ export default async function CartPage({ searchParams }: CartProps) {
             <div className="section-row">
               <div>
                 <h2>Cart total</h2>
-                <p>{cart.shop?.name ?? "Bazaarly Supplier"}</p>
+                <p>{cart.shop?.name ?? "Tradex Supplier"}</p>
               </div>
               <strong>{formatCurrency(total, currencyCode)}</strong>
             </div>
@@ -86,7 +84,7 @@ export default async function CartPage({ searchParams }: CartProps) {
                     ? item.product.marketState?.supplierStock ?? 0
                     : item.listing?.quantity ?? 0;
                 const sourceName =
-                  item.source === "SUPPLIER" ? "Bazaarly Supplier" : cart.shop?.name ?? "Marketplace shop";
+                  item.source === "SUPPLIER" ? "Tradex Supplier" : cart.shop?.name ?? "Marketplace shop";
 
                 return (
                   <div key={item.id} className="table-row">
@@ -115,11 +113,11 @@ export default async function CartPage({ searchParams }: CartProps) {
             <div className="section-row">
               <div>
                 <h2>Checkout</h2>
-                <p>Continue to the secure checkout screen to confirm with your password and PIN.</p>
+                <p>Continue to the secure checkout screen to confirm with your password, PIN, and bank number.</p>
               </div>
-              <Link className="button-link" href={"/checkout" as never}>
-                Checkout {formatCurrency(total, currencyCode)}
-              </Link>
+              <form action="/checkout" method="get">
+                <button type="submit">Checkout {formatCurrency(total, currencyCode)}</button>
+              </form>
             </div>
           </section>
         </>

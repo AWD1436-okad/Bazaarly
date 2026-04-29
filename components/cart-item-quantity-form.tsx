@@ -51,7 +51,7 @@ export function CartItemQuantityForm({
         method: "POST",
         body: formData,
         headers: {
-          "x-bazaarly-async": "1",
+          "x-tradex-async": "1",
         },
       });
 
@@ -63,6 +63,36 @@ export function CartItemQuantityForm({
       refreshInPlace();
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Unable to update cart item");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function removeItem() {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("cartItemId", cartItemId);
+      formData.set("quantity", "0");
+
+      const response = await fetch("/cart/item", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "x-tradex-async": "1",
+        },
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Unable to remove cart item");
+      }
+
+      refreshInPlace();
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : "Unable to remove cart item");
     } finally {
       setSubmitting(false);
     }
@@ -93,6 +123,14 @@ export function CartItemQuantityForm({
         />
         <button type="button" onClick={() => void updateItem()} disabled={submitting}>
           {submitting ? "Updating..." : "Update"}
+        </button>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => void removeItem()}
+          disabled={submitting}
+        >
+          Remove
         </button>
       </div>
       {error ? <span className="status-text status-text--error">{error}</span> : null}

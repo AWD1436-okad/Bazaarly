@@ -1,8 +1,8 @@
-# Bazaarly Handoff
+# Tradex Handoff
 
 ## Project Status
 
-Bazaarly is live as a persistent multiplayer marketplace app with working buy/sell flow, stored users, real inventory updates, persistent orders, and shared economy simulation.
+Tradex is live as a persistent multiplayer marketplace app with working buy/sell flow, stored users, real inventory updates, persistent orders, and shared economy simulation.
 
 Current release posture:
 
@@ -30,8 +30,8 @@ Current release posture:
 - Database provider: Neon
 - Database engine: PostgreSQL
 - ORM: Prisma
-- GitHub repo: `AWD1436-okad/Bazaarly`
-- Production URL: [https://bazaarly.vercel.app](https://bazaarly.vercel.app)
+- GitHub repo: `AWD1436-okad/Tradex`
+- Production URL: [https://tradex.vercel.app](https://tradex.vercel.app)
 - Region preference: Sydney via `vercel.json`
 
 ## Operational Notes
@@ -57,13 +57,13 @@ Apply these in order:
 
 ## Files To Check First
 
-- [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\README.md)
-- [prisma/schema.prisma](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\prisma\schema.prisma)
-- [prisma/seed.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\prisma\seed.ts)
-- [app/(main)/dashboard/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\app\(main)\dashboard\page.tsx)
-- [app/(main)/marketplace/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\app\(main)\marketplace\page.tsx)
-- [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\marketplace.ts)
-- [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Bazaarly\lib\simulation.ts)
+- [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\README.md)
+- [prisma/schema.prisma](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\prisma\schema.prisma)
+- [prisma/seed.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\prisma\seed.ts)
+- [app/(main)/dashboard/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\app\(main)\dashboard\page.tsx)
+- [app/(main)/marketplace/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\app\(main)\marketplace\page.tsx)
+- [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\marketplace.ts)
+- [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\simulation.ts)
 
 ## Launch Blocking Caveat
 

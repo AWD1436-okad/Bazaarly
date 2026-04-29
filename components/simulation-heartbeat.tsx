@@ -14,8 +14,8 @@ export function SimulationHeartbeat({
   useEffect(() => {
     let active = true;
     let timeout: number | undefined;
-    const cooldownKey = "bazaarly:last-simulation-heartbeat";
-    const jitterKey = "bazaarly:simulation-heartbeat-jitter";
+    const cooldownKey = "tradex:last-simulation-heartbeat";
+    const jitterKey = "tradex:simulation-heartbeat-jitter";
 
     const getJitterMs = () => {
       const existing = Number(window.localStorage.getItem(jitterKey) ?? "0");

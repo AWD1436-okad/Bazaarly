@@ -130,8 +130,8 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
 }
 
 export default async function SupplierPage({ searchParams }: SupplierPageProps) {
-  await requireUser();
-  const currencyCode = await getActiveCurrencyCode();
+  const user = await requireUser();
+  const currencyCode = await getActiveCurrencyCode(user.id);
   const params = (await searchParams) ?? {};
   const selectedCategory = parseCategoryFilter(params.category);
   const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
@@ -163,15 +163,6 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
           supplierStock: true,
         },
       },
-      priceProfiles: {
-        where: {
-          currencyCode,
-        },
-        select: {
-          supplierPrice: true,
-          unitLabel: true,
-        },
-      },
     },
     orderBy: [{ name: "asc" }],
   });
@@ -181,9 +172,9 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     name: item.name,
     category: item.category,
     subcategory: item.subcategory,
-    unitLabel: item.priceProfiles[0]?.unitLabel ?? item.unitLabel,
+    unitLabel: item.unitLabel,
     description: item.description,
-    supplierPrice: item.priceProfiles[0]?.supplierPrice ?? item.marketState?.currentSupplierPrice ?? 0,
+    supplierPrice: item.marketState?.currentSupplierPrice ?? 0,
     supplierStock: item.marketState?.supplierStock ?? 0,
   }));
 
