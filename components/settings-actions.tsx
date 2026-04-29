@@ -17,6 +17,7 @@ type SettingsActionsProps = {
     regionName: string;
     currencyName: string;
     countryName: string;
+    symbol: string;
     searchTerms?: string[];
   }>;
 };
@@ -64,7 +65,7 @@ export function SettingsActions({
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
   const currentCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currentCurrencyCode);
   const initialCurrencySearch = currentCurrencyProfile
-    ? `${currentCurrencyProfile.currencyCode} - ${currentCurrencyProfile.countryName}`
+    ? `${currentCurrencyProfile.currencyCode} - ${currentCurrencyProfile.currencyName}`
     : currentCurrencyCode;
   const [currencySearch, setCurrencySearch] = useState(initialCurrencySearch);
   const [submitting, setSubmitting] = useState<
@@ -83,6 +84,7 @@ export function SettingsActions({
         profile.currencyCode,
         profile.currencyName,
         profile.countryName,
+        profile.symbol,
         profile.label,
         profile.regionName,
         ...(profile.searchTerms ?? []),
@@ -413,7 +415,7 @@ export function SettingsActions({
               resetMessages();
             }}
             disabled={submitting !== null}
-            placeholder="Pakistan, Australian Dollar, USD..."
+            placeholder="Pakistan, Australian Dollar, $, USD..."
           />
         </label>
         <div className="currency-results" role="listbox" aria-label="Currency search results">
@@ -429,7 +431,7 @@ export function SettingsActions({
                 }
                 onClick={() => {
                   setCurrencyCode(profile.currencyCode);
-                  setCurrencySearch(`${profile.currencyCode} - ${profile.countryName}`);
+                  setCurrencySearch(`${profile.currencyCode} - ${profile.currencyName}`);
                   resetMessages();
                 }}
                 disabled={submitting !== null}
@@ -438,7 +440,7 @@ export function SettingsActions({
               >
                 <strong>{profile.currencyCode}</strong>
                 <span>{profile.currencyName}</span>
-                <small>{profile.countryName}</small>
+                <small>{profile.symbol}</small>
               </button>
             ))
           ) : (
@@ -448,7 +450,7 @@ export function SettingsActions({
         {selectedCurrencyProfile ? (
           <p className="muted">
             Selected: <strong>{selectedCurrencyProfile.currencyCode}</strong> -{" "}
-            {selectedCurrencyProfile.currencyName} for {selectedCurrencyProfile.countryName}.
+            {selectedCurrencyProfile.currencyName} - {selectedCurrencyProfile.symbol}.
           </p>
         ) : null}
         <p className="muted">
