@@ -223,6 +223,37 @@ function getBotAttemptProbability({
   );
 }
 
+function getDynamicBotCooldownMs({
+  bot,
+  marketHeat,
+  averageDemand,
+  candidateCount,
+}: {
+  bot: ActiveBotRecord;
+  marketHeat: number;
+  averageDemand: number;
+  candidateCount: number;
+}) {
+  const baseByPersonality =
+    bot.type === BotPersonality.BULK
+      ? 95_000
+      : bot.type === BotPersonality.LOYAL
+        ? 105_000
+        : bot.type === BotPersonality.BUDGET
+          ? 88_000
+          : bot.type === BotPersonality.QUALITY
+            ? 115_000
+            : 100_000;
+  const activityModifier = clamp(bot.activityLevel / 100, 0.45, 1.35);
+  const marketHeatModifier = clamp(1 - marketHeat * 0.35, 0.62, 1.08);
+  const demandModifier = clamp(1 - (averageDemand - 1) * 0.28, 0.74, 1.14);
+  const assortmentModifier = clamp(1 - Math.min(candidateCount, 30) / 90, 0.7, 1.02);
+
+  return Math.round(
+    baseByPersonality * (1 / activityModifier) * marketHeatModifier * demandModifier * assortmentModifier,
+  );
+}
+
 function getEffectiveLoyaltyShopId(
   bot: {
     loyaltyShopId: string | null;
@@ -419,45 +450,55 @@ function scoreBotCandidate(
   );
   const randomnessBoost = 1 + Math.random() * 0.12;
   const overpriceDrag = overpriceRatio > 1 ? clamp(1 / overpriceRatio ** 3, 0.02, 1) : 1.08;
+  const popularityFactor = clamp(1 + Math.log10(Math.max(1, listing.shop.totalSales + 1)) * 0.22, 1, 1.75);
+  const premiumFit = clamp(1 - Math.abs(overpriceRatio - 1.18), 0.2, 1.1);
+  const valueFit = clamp(referencePrice / Math.max(listing.price, 1), 0.15, 1.4);
+  const bulkValueFit =
+    listing.quantity >= 4
+      ? clamp(valueFit * (1 + Math.min(listing.quantity, 18) / 36), 0.25, 2)
+      : clamp(valueFit * 0.75, 0.12, 1.35);
 
   switch (personality) {
     case BotPersonality.BUDGET:
       return (
-        affordability * 24 +
-        relativeDealScore * 34 +
-        stockFactor +
+        affordability * 30 +
+        relativeDealScore * 36 +
+        valueFit * 22 +
+        stockFactor * 0.9 +
         demandBoost +
-        assortmentBoost +
+        assortmentBoost * 0.8 +
         loyaltyFactor * 0.35
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
     case BotPersonality.QUALITY:
       return (
-        ratingFactor * 3.4 +
-        stockFactor * 0.5 +
-        affordability * 4 +
-        relativeDealScore * 20 +
+        ratingFactor * 4 +
+        stockFactor * 0.6 +
+        premiumFit * 34 +
+        relativeDealScore * 7 +
+        affordability * 2 +
         demandBoost +
-        assortmentBoost +
+        assortmentBoost * 0.8 +
         loyaltyFactor * 0.65
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
     case BotPersonality.LOYAL:
       return (
         loyaltyFactor +
         ratingFactor * 1.8 +
-        stockFactor +
+        stockFactor * 1.2 +
         relativeDealScore * 16 +
         demandBoost * 0.6 +
         assortmentBoost
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
     case BotPersonality.BULK:
       return (
-        stockFactor * 3 +
-        affordability * 16 +
-        relativeDealScore * 22 +
+        stockFactor * 3.4 +
+        bulkValueFit * 24 +
+        affordability * 18 +
+        relativeDealScore * 18 +
         demandBoost * 0.7 +
         assortmentBoost * 1.15 +
         loyaltyFactor
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
     default:
       return (
         affordability * 9 +
@@ -467,7 +508,7 @@ function scoreBotCandidate(
         demandBoost +
         assortmentBoost +
         Math.random() * 12
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * priceSensitivity * overpriceDrag;
+      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * priceSensitivity * overpriceDrag * popularityFactor;
   }
 }
 
@@ -807,7 +848,35 @@ export async function runMarketSimulation(force = false, debug = false) {
     .sort((left, right) => right.attemptProbability - left.attemptProbability);
 
   const selectedBotPlans = botPlans.filter(
-    (plan) => plan.weightedSelection.length > 0 && Math.random() < plan.attemptProbability,
+    (plan) => {
+      if (plan.weightedSelection.length === 0) {
+        return false;
+      }
+
+      const avgDemand =
+        plan.affordableListings.length > 0
+          ? plan.affordableListings.reduce(
+              (sum, listing) => sum + (listing.product.marketState?.demandScore ?? 1),
+              0,
+            ) / plan.affordableListings.length
+          : 1;
+      const dynamicCooldownMs = getDynamicBotCooldownMs({
+        bot: plan.bot,
+        marketHeat: clamp(recentMarketSalesCount / 10, 0, 1),
+        averageDemand: avgDemand,
+        candidateCount: plan.affordableListings.length,
+      });
+      const elapsedSinceLastAttemptMs = Math.max(
+        0,
+        now.getTime() - (plan.bot.lastAttemptedAt ?? plan.bot.createdAt).getTime(),
+      );
+
+      if (elapsedSinceLastAttemptMs < dynamicCooldownMs) {
+        return false;
+      }
+
+      return Math.random() < plan.attemptProbability;
+    },
   );
 
   for (const plan of selectedBotPlans) {
