@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/route-validation";
-import { sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -31,6 +30,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const listingIdResult = parseRouteId(formData, "listingId");
+  const action = String(formData.get("action") ?? "pause");
 
   if (!listingIdResult.success) {
     if (asyncRequest) {
@@ -59,28 +59,10 @@ export async function POST(request: Request) {
       await tx.listing.update({
         where: { id: listing.id },
         data: {
-          active: false,
-          quantity: 0,
+          isPaused: action === "resume" ? false : true,
+          active: listing.quantity > 0,
         },
       });
-
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          userId_productId: {
-            userId: user.id,
-            productId: listing.productId,
-          },
-        },
-      });
-
-      if (inventory) {
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: {
-            allocatedQuantity: sanitizeStockCount(inventory.allocatedQuantity - listing.quantity),
-          },
-        });
-      }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Listing update failed";
@@ -96,7 +78,7 @@ export async function POST(request: Request) {
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
   if (asyncRequest) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, action });
   }
   return NextResponse.redirect(new URL("/dashboard", request.url), 303);
 }

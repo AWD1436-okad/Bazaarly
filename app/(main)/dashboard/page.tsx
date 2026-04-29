@@ -183,7 +183,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       prisma.listing.findMany({
         where: {
           shopId: user.shop.id,
-          OR: [{ active: true }, { quantity: { lte: 0 } }],
+          OR: [{ active: true }, { quantity: { lte: 0 } }, { isPaused: true }],
         },
         select: {
           id: true,
@@ -192,6 +192,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           price: true,
           quantity: true,
           active: true,
+          isPaused: true,
           createdAt: true,
           updatedAt: true,
           product: {
@@ -312,13 +313,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           shopId: user.shop.id,
           quantity: { gt: 0 },
           active: true,
+          isPaused: false,
         },
       }),
       prisma.listing.count({
         where: {
           shopId: user.shop.id,
           quantity: { gt: 0 },
-          active: false,
+          isPaused: true,
         },
       }),
     ]);
@@ -565,7 +567,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                           listing.product.subcategory,
                         )} -{" "}
                         {formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)} -{" "}
-                        {getLiveStockStatusMessage(listing.quantity)}
+                        {listing.isPaused ? "Paused" : getLiveStockStatusMessage(listing.quantity)}
                       </span>
                     </div>
                     <div className="table-row__actions">
@@ -578,6 +580,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                               convertAudCentsToCurrencyMinorUnits(listing.price, currencyCode) /
                               10 ** getPriceProfileMetadata(currencyCode).fractionDigits
                             ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)}
+                            isPaused={listing.isPaused}
                           />
                         </>
                       ) : (

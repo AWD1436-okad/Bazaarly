@@ -24,6 +24,7 @@ const listingCardSelect = {
   shopId: true,
   price: true,
   quantity: true,
+  isPaused: true,
   product: {
     select: {
       name: true,
@@ -47,6 +48,7 @@ type ListingWithRelations = {
   shopId: string;
   price: number;
   quantity: number;
+  isPaused: boolean;
   product: {
     name: string;
     category: ProductCategory;
@@ -167,6 +169,7 @@ async function getMarketplaceSupportData() {
           listings: {
             some: {
               active: true,
+              isPaused: false,
             },
           },
         },
@@ -199,6 +202,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
 
   const where: Prisma.ListingWhereInput = {
     active: true,
+    isPaused: false,
     shop: {
       status: ShopStatus.ACTIVE,
       ...(params.excludeOwnerId ? { ownerId: { not: params.excludeOwnerId } } : {}),
@@ -351,12 +355,15 @@ export async function getShopPageData(shopId: string, page = 1) {
   const listings = await prisma.listing.findMany({
     where: {
       shopId,
+      active: true,
+      isPaused: false,
     },
     select: {
       id: true,
       price: true,
       quantity: true,
       active: true,
+      isPaused: true,
       product: {
         select: {
           name: true,

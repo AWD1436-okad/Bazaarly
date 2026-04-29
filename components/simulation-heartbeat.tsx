@@ -15,57 +15,51 @@ export function SimulationHeartbeat({
     let active = true;
     let timeout: number | undefined;
     const cooldownKey = "tradex:last-simulation-heartbeat";
-    const jitterKey = "tradex:simulation-heartbeat-jitter";
 
-    const getJitterMs = () => {
-      const existing = Number(window.localStorage.getItem(jitterKey) ?? "0");
-
-      if (existing > 0) {
-        return existing;
-      }
-
-      const next = Math.floor(Math.random() * 18000);
-      window.localStorage.setItem(jitterKey, String(next));
-      return next;
+    const getNextDelayMs = () => {
+      const marketPulse = Math.floor(Math.random() * intervalMs);
+      const baseDelay = Math.floor(intervalMs * 0.45);
+      return baseDelay + marketPulse;
     };
 
     const tick = async () => {
       if (!active) return;
-      if (document.visibilityState !== "visible") return;
-      if (typeof navigator !== "undefined" && !navigator.onLine) return;
-
-      const now = Date.now();
-      const lastRun = Number(window.localStorage.getItem(cooldownKey) ?? "0");
-      const jitterMs = getJitterMs();
-
-      if (now - lastRun < intervalMs + jitterMs - 5000) {
+      if (document.visibilityState !== "visible" || (typeof navigator !== "undefined" && !navigator.onLine)) {
+        timeout = window.setTimeout(() => {
+          void tick();
+        }, getNextDelayMs());
         return;
       }
 
-      try {
-        await fetch("/api/simulation", {
-          method: "POST",
-          cache: "no-store",
-        });
-        window.localStorage.setItem(cooldownKey, String(now));
-      } catch {
-        // Ignore transient dev-server failures.
+      const now = Date.now();
+      const lastRun = Number(window.localStorage.getItem(cooldownKey) ?? "0");
+
+      if (now - lastRun >= Math.floor(intervalMs * 0.35)) {
+        try {
+          await fetch("/api/simulation", {
+            method: "POST",
+            cache: "no-store",
+          });
+          window.localStorage.setItem(cooldownKey, String(now));
+        } catch {
+          // Ignore transient dev-server failures.
+        }
       }
+
+      timeout = window.setTimeout(() => {
+        void tick();
+      }, getNextDelayMs());
     };
 
     timeout = window.setTimeout(() => {
       void tick();
     }, initialDelayMs + Math.floor(Math.random() * 6000));
-    const interval = window.setInterval(() => {
-      void tick();
-    }, intervalMs);
 
     return () => {
       active = false;
       if (timeout) {
         window.clearTimeout(timeout);
       }
-      window.clearInterval(interval);
     };
   }, [initialDelayMs, intervalMs]);
 

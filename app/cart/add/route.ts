@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         },
       });
 
-      if (!listing || !listing.active || listing.quantity < quantity) {
+      if (!listing || !listing.active || listing.isPaused || listing.quantity < quantity) {
         throw new Error("Listing is not available");
       }
 

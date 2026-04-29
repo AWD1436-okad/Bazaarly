@@ -11,7 +11,6 @@ import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
-const TICK_SECONDS = Number(process.env.SIMULATION_TICK_SECONDS ?? 60);
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
@@ -212,18 +211,18 @@ function getBotAttemptProbability({
             : 0.1;
 
   return clamp(
-    0.06 +
-      elapsedFactor * 0.24 +
-      activityFactor * 0.12 +
-      assortmentFactor * 0.14 +
-      shopExposureFactor * 0.08 +
-      marketHeatFactor * 0.1 +
-      demandFactor * 0.1 +
-      candidateStrengthFactor * 0.12 +
+    0.025 +
+      elapsedFactor * 0.14 +
+      activityFactor * 0.08 +
+      assortmentFactor * 0.1 +
+      shopExposureFactor * 0.06 +
+      marketHeatFactor * 0.06 +
+      demandFactor * 0.08 +
+      candidateStrengthFactor * 0.08 +
       timeOfDayBoost +
       personalityBias,
-    0.05,
-    0.94,
+    0.02,
+    0.55,
   );
 }
 
@@ -507,11 +506,14 @@ export async function runMarketSimulation(force = false, debug = false) {
     ? now.getTime() - worldState.lastSimulatedAt.getTime()
     : DEFAULT_SIMULATION_ELAPSED_MS;
 
-  if (
-    !force &&
-    worldState.lastSimulatedAt &&
-    elapsedSinceLastSimulationMs < TICK_SECONDS * 1000
-  ) {
+  const marketReadinessScore = clamp(
+    elapsedSinceLastSimulationMs / (2.5 * 60 * 1000) +
+      Math.random() * 0.35,
+    0,
+    1.35,
+  );
+
+  if (!force && worldState.lastSimulatedAt && marketReadinessScore < 0.18) {
     return {
       skipped: true,
       ...(debug
@@ -558,6 +560,7 @@ export async function runMarketSimulation(force = false, debug = false) {
       where: {
         productId: state.productId,
         active: true,
+        isPaused: false,
         quantity: { gt: 0 },
         shop: {
           status: "ACTIVE",
@@ -651,6 +654,7 @@ export async function runMarketSimulation(force = false, debug = false) {
     by: ["shopId"],
     where: {
       active: true,
+      isPaused: false,
       quantity: { gt: 0 },
       shop: { status: "ACTIVE" },
     },
@@ -673,6 +677,7 @@ export async function runMarketSimulation(force = false, debug = false) {
   const candidateListings = (await prisma.listing.findMany({
     where: {
       active: true,
+      isPaused: false,
       quantity: { gt: 0 },
       shop: { status: "ACTIVE" },
     },
@@ -822,7 +827,12 @@ export async function runMarketSimulation(force = false, debug = false) {
           },
         });
 
-        if (!freshListing || !freshListing.active || freshListing.quantity < selectedQuantity) {
+        if (
+          !freshListing ||
+          !freshListing.active ||
+          freshListing.isPaused ||
+          freshListing.quantity < selectedQuantity
+        ) {
           return;
         }
 

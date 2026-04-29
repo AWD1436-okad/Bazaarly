@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const usernameOrEmail = String(formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const intent = String(formData.get("intent") ?? "shop") === "branch" ? "branch" : "shop";
 
   if (!usernameOrEmail || !password) {
     return NextResponse.redirect(
@@ -68,7 +69,9 @@ export async function POST(request: Request) {
         ? "/security-setup"
         : user.shop
           ? "/dashboard"
-          : "/onboarding/shop",
+          : intent === "branch"
+            ? "/branch/join"
+            : "/onboarding/shop",
       request.url,
     ),
     303,

@@ -216,7 +216,7 @@ export async function POST(request: Request) {
           },
         });
 
-        if (!listing || !listing.active || listing.quantity < item.quantity) {
+        if (!listing || !listing.active || listing.isPaused || listing.quantity < item.quantity) {
           throw new Error("Listing stock changed");
         }
         if (listing.shopId !== cart.shopId || listing.productId !== item.productId) {

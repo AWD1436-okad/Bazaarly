@@ -235,6 +235,7 @@ export async function createOrUpdateListingAction(formData: FormData) {
             price: priceCents,
             quantity,
             active: quantity > 0,
+            isPaused: false,
           },
         });
       } else {
@@ -245,6 +246,7 @@ export async function createOrUpdateListingAction(formData: FormData) {
             price: priceCents,
             quantity,
             active: true,
+            isPaused: false,
           },
         });
       }
@@ -307,7 +309,7 @@ export async function addToCartAction(formData: FormData) {
     },
   });
 
-  if (!listing || !listing.active || listing.quantity < quantity) {
+  if (!listing || !listing.active || listing.isPaused || listing.quantity < quantity) {
     redirect("/marketplace?error=Listing%20is%20not%20available");
   }
 

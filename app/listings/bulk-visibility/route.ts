@@ -57,10 +57,11 @@ export async function POST(request: Request) {
     where: {
       shopId: user.shop.id,
       quantity: { gt: 0 },
-      active: shouldResume ? false : true,
+      isPaused: shouldResume ? true : false,
     },
     data: {
-      active: shouldResume,
+      isPaused: !shouldResume,
+      active: true,
     },
   });
 

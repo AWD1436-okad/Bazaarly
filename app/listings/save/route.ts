@@ -120,6 +120,7 @@ export async function POST(request: Request) {
             currencyCode: "AUD",
             quantity: nextListingQuantity,
             active: nextListingQuantity > 0,
+            isPaused: false,
           },
         });
       } else {
@@ -131,6 +132,7 @@ export async function POST(request: Request) {
             currencyCode: "AUD",
             quantity: quantityToList,
             active: true,
+            isPaused: false,
           },
         });
       }

@@ -60,6 +60,15 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
       ) : null}
 
       <section className="card">
+        <div className="section-row">
+          <div>
+            <strong>Choose how to enter Tradex</strong>
+            <p className="muted">Create your own shop here, or request to join an existing shop as a branch.</p>
+          </div>
+          <a href="/branch/join" className="ghost-button">
+            Join as Branch
+          </a>
+        </div>
         <form action="/shops/create" method="post" className="stack">
           <div className="filters-grid">
             <label>

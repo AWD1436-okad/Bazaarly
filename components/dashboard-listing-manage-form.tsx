@@ -7,12 +7,14 @@ type DashboardListingManageFormProps = {
   listingId: string;
   productId: string;
   defaultPrice: string;
+  isPaused: boolean;
 };
 
 export function DashboardListingManageForm({
   listingId,
   productId,
   defaultPrice,
+  isPaused,
 }: DashboardListingManageFormProps) {
   const router = useRouter();
   const [price, setPrice] = useState(defaultPrice);
@@ -64,6 +66,7 @@ export function DashboardListingManageForm({
     try {
       const formData = new FormData();
       formData.set("listingId", listingId);
+      formData.set("action", isPaused ? "resume" : "pause");
 
       const response = await fetch("/listings/pause", {
         method: "POST",
@@ -75,12 +78,12 @@ export function DashboardListingManageForm({
       const payload = (await response.json()) as { ok?: boolean; error?: string };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Unable to remove listing");
+        throw new Error(payload.error ?? "Unable to update listing visibility");
       }
 
       refreshInPlace();
     } catch (pauseError) {
-      setError(pauseError instanceof Error ? pauseError.message : "Unable to remove listing");
+      setError(pauseError instanceof Error ? pauseError.message : "Unable to update listing visibility");
     } finally {
       setSubmitting(null);
     }
@@ -107,7 +110,7 @@ export function DashboardListingManageForm({
           onClick={() => void handlePause()}
           disabled={submitting !== null}
         >
-          {submitting === "pause" ? "Removing..." : "Remove"}
+          {submitting === "pause" ? "Updating..." : isPaused ? "Resume" : "Pause"}
         </button>
       </div>
       {error ? <span className="status-text status-text--error">{error}</span> : null}
