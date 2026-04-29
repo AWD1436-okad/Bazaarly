@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Route } from "next";
 
 import { SecuritySetupLock } from "@/components/security-setup-lock";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
@@ -14,7 +15,7 @@ export default async function SecuritySetupPage({ searchParams }: SecuritySetupP
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
   const reveal = params.reveal === "1";
-  const continueHref = user.shop ? "/dashboard" : "/onboarding/shop";
+  const continueHref: Route = user.shop ? "/dashboard" : "/onboarding/shop";
 
   if (hasCompletedSecuritySetup(user)) {
     if (!reveal) {

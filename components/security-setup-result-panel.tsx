@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useState } from "react";
 
 type SecuritySetupResultPanelProps = {
   bankNumber: string;
-  continueHref: string;
+  continueHref: Route;
 };
 
 export function SecuritySetupResultPanel({ bankNumber, continueHref }: SecuritySetupResultPanelProps) {

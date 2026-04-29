@@ -1,10 +1,11 @@
 import { BrandLogo } from "@/components/brand-logo";
 import { SecuritySetupResultPanel } from "@/components/security-setup-result-panel";
+import type { Route } from "next";
 
 type SecuritySetupLockProps = {
   error?: string | null;
   completedBankNumber?: string | null;
-  continueHref?: string;
+  continueHref?: Route;
 };
 
 export function SecuritySetupLock({
