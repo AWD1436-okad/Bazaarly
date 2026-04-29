@@ -352,6 +352,15 @@ textarea {
   gap: 0.8rem;
 }
 
+.marketplace-page--focused .marketplace-filters-card {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.marketplace-page--focused .marketplace-results-header {
+  margin-top: -0.2rem;
+}
+
 .page-header h1,
 .page-header h2,
 .page-header p {

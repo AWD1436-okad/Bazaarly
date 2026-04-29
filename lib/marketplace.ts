@@ -17,6 +17,14 @@ export type MarketplaceParams = {
   currencyCode?: string;
 };
 
+export type MarketplaceSearchSummary = {
+  query: string;
+  totalMatches: number;
+  exactMatchCount: number;
+  closestMatchCount: number;
+  showingClosestMatches: boolean;
+};
+
 const SHOP_LISTINGS_PAGE_SIZE = 12;
 
 const listingCardSelect = {
@@ -196,6 +204,25 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
   return score;
 }
 
+function hasExactQueryMatch(listing: ListingWithRelations, searchContext: SearchContext) {
+  const name = listing.product.name.toLowerCase();
+  const shopName = listing.shop.name.toLowerCase();
+  const category = getCategoryLabel(listing.product.category).toLowerCase();
+  const categoryDisplay = getProductCategoryLabel(
+    listing.product.category,
+    listing.product.subcategory,
+  ).toLowerCase();
+  const description = listing.product.description.toLowerCase();
+
+  return (
+    name.includes(searchContext.normalized) ||
+    shopName.includes(searchContext.normalized) ||
+    category.includes(searchContext.normalized) ||
+    categoryDisplay.includes(searchContext.normalized) ||
+    description.includes(searchContext.normalized)
+  );
+}
+
 async function getMarketplaceSupportData() {
   return Promise.all([
     prisma.marketEvent.findFirst({
@@ -322,6 +349,7 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       activeEvent,
       topShops,
       trendingProducts: productStates,
+      searchSummary: null,
     };
   }
 
@@ -339,6 +367,16 @@ export async function getMarketplaceData(params: MarketplaceParams) {
       activeEvent,
       topShops,
       trendingProducts: productStates,
+      searchSummary: {
+        query,
+        totalMatches: sortedSearchListings.length,
+        exactMatchCount:
+          searchContext === null
+            ? sortedSearchListings.length
+            : sortedSearchListings.filter((listing) => hasExactQueryMatch(listing, searchContext)).length,
+        closestMatchCount: 0,
+        showingClosestMatches: false,
+      } satisfies MarketplaceSearchSummary,
     };
   }
 
@@ -356,6 +394,11 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     .filter((listing) => listing.relevanceScore > 0);
 
   filtered.sort((a, b) => b.relevanceScore - a.relevanceScore);
+  const exactMatchCount =
+    searchContext === null
+      ? filtered.length
+      : filtered.filter((listing) => hasExactQueryMatch(listing, searchContext)).length;
+  const showingClosestMatches = filtered.length > 0 && exactMatchCount === 0;
 
   const [activeEvent, productStates, topShops] = await getMarketplaceSupportData();
 
@@ -364,6 +407,13 @@ export async function getMarketplaceData(params: MarketplaceParams) {
     activeEvent,
     topShops,
     trendingProducts: productStates,
+    searchSummary: {
+      query,
+      totalMatches: filtered.length,
+      exactMatchCount,
+      closestMatchCount: showingClosestMatches ? filtered.length : Math.max(0, filtered.length - exactMatchCount),
+      showingClosestMatches,
+    } satisfies MarketplaceSearchSummary,
   };
 }
 

@@ -51,6 +51,8 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     (typeof params.minRating === "string" && params.minRating.length > 0) ||
     (typeof params.minPrice === "string" && params.minPrice.length > 0) ||
     (typeof params.maxPrice === "string" && params.maxPrice.length > 0);
+  const queryText = typeof params.q === "string" ? params.q.trim() : "";
+  const hasQuery = selectedCategory === "ALL" && queryText.length > 0;
   const selectedCategoryLabel = getCategoryFilterLabel(selectedCategory);
   const marketplace = await getMarketplaceData({
     q: selectedCategory === "ALL" && typeof params.q === "string" ? params.q : undefined,
@@ -161,15 +163,24 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         <h2>{selectedCategoryLabel}</h2>
         <p>
           {marketplace.listings.length} matching listings
-          {selectedCategory === "ALL" && typeof params.q === "string" && params.q.trim().length > 0
-            ? ` for "${params.q.trim()}"`
+          {hasQuery
+            ? ` for "${queryText}"`
             : ""}
         </p>
       </section>
 
+      {hasQuery && marketplace.searchSummary?.showingClosestMatches ? (
+        <StatusBanner
+          tone="warning"
+          title="No exact match found"
+          body={`Showing closest matches for "${marketplace.searchSummary.query}".`}
+        />
+      ) : null}
+
       {marketplace.listings.length === 0 ? (
         <div className="empty-state">
-          No listings match those search terms or filters right now.
+          <p>No exact match found.</p>
+          <p className="muted">Try clearing filters, switching to All Categories, or searching with fewer words.</p>
         </div>
       ) : (
         <>
