@@ -1,10 +1,17 @@
 import { BrandLogo } from "@/components/brand-logo";
+import { SecuritySetupResultPanel } from "@/components/security-setup-result-panel";
 
 type SecuritySetupLockProps = {
   error?: string | null;
+  completedBankNumber?: string | null;
+  continueHref?: string;
 };
 
-export function SecuritySetupLock({ error }: SecuritySetupLockProps) {
+export function SecuritySetupLock({
+  error,
+  completedBankNumber,
+  continueHref = "/dashboard",
+}: SecuritySetupLockProps) {
   return (
     <section className="auth-card auth-card--single">
       <div className="stack">
@@ -28,59 +35,63 @@ export function SecuritySetupLock({ error }: SecuritySetupLockProps) {
           </div>
         ) : null}
 
-        <div className="card">
-          <h2>PIN and bank number</h2>
-          <p className="muted">
-            These details are required for secure checkout and must be unique.
-          </p>
-          <form action="/security-setup/submit" method="post" className="stack-sm">
-            <label>
-              New PIN
-              <input
-                name="pin"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]{4,8}"
-                placeholder="4-8 digits"
-                required
-              />
-            </label>
-            <label>
-              Confirm PIN
-              <input
-                name="confirmPin"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]{4,8}"
-                placeholder="Repeat PIN"
-                required
-              />
-            </label>
-            <label>
-              Bank number
-              <input
-                name="bankNumber"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]{6,12}"
-                placeholder="6-12 digits"
-                required
-              />
-            </label>
-            <label>
-              Confirm bank number
-              <input
-                name="confirmBankNumber"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]{6,12}"
-                placeholder="Repeat bank number"
-                required
-              />
-            </label>
-            <button type="submit">Save security details and unlock app</button>
-          </form>
-        </div>
+        {completedBankNumber ? (
+          <SecuritySetupResultPanel bankNumber={completedBankNumber} continueHref={continueHref} />
+        ) : (
+          <div className="card">
+            <h2>PIN and bank number</h2>
+            <p className="muted">
+              These details are required for secure checkout and must be unique.
+            </p>
+            <form action="/security-setup/submit" method="post" className="stack-sm">
+              <label>
+                New PIN
+                <input
+                  name="pin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{4,8}"
+                  placeholder="4-8 digits"
+                  required
+                />
+              </label>
+              <label>
+                Confirm PIN
+                <input
+                  name="confirmPin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{4,8}"
+                  placeholder="Repeat PIN"
+                  required
+                />
+              </label>
+              <label>
+                Bank number
+                <input
+                  name="bankNumber"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{6,12}"
+                  placeholder="6-12 digits"
+                  required
+                />
+              </label>
+              <label>
+                Confirm bank number
+                <input
+                  name="confirmBankNumber"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{6,12}"
+                  placeholder="Repeat bank number"
+                  required
+                />
+              </label>
+              <button type="submit">Save security details and unlock app</button>
+            </form>
+          </div>
+        )}
       </div>
     </section>
   );

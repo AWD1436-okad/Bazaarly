@@ -27,7 +27,10 @@ export function Navigation({
         <Link href="/marketplace" className="brand-link">
           <BrandLogo />
           <span>
-            <strong>Tradex</strong>
+            <strong className="brand-wordmark">
+              <span className="brand-wordmark__trade">trade</span>
+              <span className="brand-wordmark__x">x</span>
+            </strong>
             <small>Shared global marketplace</small>
           </span>
         </Link>

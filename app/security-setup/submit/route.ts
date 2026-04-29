@@ -24,6 +24,10 @@ function getPostSecurityRedirectPath(user: Awaited<ReturnType<typeof requireUser
   return "/onboarding/shop";
 }
 
+function getSecuritySetupRevealPath() {
+  return "/security-setup?reveal=1";
+}
+
 function redirectWithError(request: Request, message: string) {
   const url = new URL("/security-setup", request.url);
   url.searchParams.set("error", message);
@@ -116,7 +120,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.redirect(
-    new URL(getPostSecurityRedirectPath(user), request.url),
+    new URL(getSecuritySetupRevealPath(), request.url),
     303,
   );
 }

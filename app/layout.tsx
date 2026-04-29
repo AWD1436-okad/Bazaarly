@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   title: "Tradex",
   description: "A shared online marketplace simulation with player-owned shops and a living economy.",
   icons: {
-    icon: "/tradex-logo.png",
-    shortcut: "/tradex-logo.png",
-    apple: "/tradex-logo.png",
+    icon: "/tradex-logo4-icon.png",
+    shortcut: "/tradex-logo4-icon.png",
+    apple: "/tradex-logo4-icon.png",
   },
 };
 

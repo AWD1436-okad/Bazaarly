@@ -100,6 +100,13 @@ export function SettingsActions({
     setState(initialState);
   }
 
+  function closeBankModal() {
+    setBankOpen(false);
+    setBankPassword("");
+    setBankPin("");
+    setRevealedBankNumber(null);
+  }
+
   async function handleUsernameChange() {
     setSubmitting("username");
     resetMessages();
@@ -473,6 +480,7 @@ export function SettingsActions({
               resetMessages();
               setBankPassword("");
               setBankPin("");
+              setRevealedBankNumber(null);
               setBankOpen(true);
             }}
             disabled={submitting !== null}
@@ -481,7 +489,9 @@ export function SettingsActions({
           </button>
         </div>
         <p className="muted">
-          Bank number: <strong>{revealedBankNumber ?? maskedBankNumber}</strong>
+          Bank number is hidden by default for security.
+          {" "}
+          Stored value: <strong>{maskedBankNumber}</strong>
         </p>
       </section>
 
@@ -761,7 +771,7 @@ export function SettingsActions({
       ) : null}
 
       {bankOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setBankOpen(false)}>
+        <div className="modal-backdrop" role="presentation" onClick={closeBankModal}>
           <div
             className="modal-card"
             role="dialog"
@@ -769,52 +779,79 @@ export function SettingsActions({
             aria-labelledby="bank-details-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="modal-card__copy">
-              <h3 id="bank-details-title">View Bank Number</h3>
-              <p>Enter your password and checkout PIN to reveal your bank number.</p>
-            </div>
-            <label className="modal-card__field">
-              Password
-              <input
-                value={bankPassword}
-                onChange={(event) => setBankPassword(event.target.value)}
-                type="password"
-                autoComplete="current-password"
-                disabled={submitting !== null}
-              />
-            </label>
-            <label className="modal-card__field">
-              Checkout PIN
-              <input
-                value={bankPin}
-                onChange={(event) => setBankPin(event.target.value)}
-                inputMode="numeric"
-                type="password"
-                autoComplete="off"
-                disabled={submitting !== null}
-              />
-            </label>
             {revealedBankNumber ? (
-              <p className="status-text status-text--success">Bank number: {revealedBankNumber}</p>
-            ) : null}
-            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
-            <div className="modal-card__actions">
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => setBankOpen(false)}
-                disabled={submitting !== null}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleRevealBankNumber()}
-                disabled={submitting !== null}
-              >
-                {submitting === "bank" ? "Verifying..." : "Reveal Bank Number"}
-              </button>
-            </div>
+              <>
+                <div className="modal-card__copy">
+                  <h3 id="bank-details-title">Your Bank Number</h3>
+                  <p>Save this number securely. You will need it for transactions.</p>
+                </div>
+                <div className="security-result-card">
+                  <strong className="security-result-card__value">{revealedBankNumber}</strong>
+                </div>
+                <div className="modal-card__actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(revealedBankNumber);
+                      setState({ message: "Bank number copied", error: null });
+                    }}
+                    disabled={submitting !== null}
+                  >
+                    Copy
+                  </button>
+                  <button type="button" onClick={closeBankModal} disabled={submitting !== null}>
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="modal-card__copy">
+                  <h3 id="bank-details-title">View Bank Number</h3>
+                  <p>Enter your password and checkout PIN to reveal your bank number.</p>
+                </div>
+                <label className="modal-card__field">
+                  Password
+                  <input
+                    value={bankPassword}
+                    onChange={(event) => setBankPassword(event.target.value)}
+                    type="password"
+                    autoComplete="current-password"
+                    disabled={submitting !== null}
+                  />
+                </label>
+                <label className="modal-card__field">
+                  Checkout PIN
+                  <input
+                    value={bankPin}
+                    onChange={(event) => setBankPin(event.target.value)}
+                    inputMode="numeric"
+                    type="password"
+                    autoComplete="off"
+                    disabled={submitting !== null}
+                  />
+                </label>
+                {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+                <div className="modal-card__actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={closeBankModal}
+                    disabled={submitting !== null}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleRevealBankNumber()}
+                    disabled={submitting !== null}
+                  >
+                    {submitting === "bank" ? "Verifying..." : "Reveal Bank Number"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       ) : null}
