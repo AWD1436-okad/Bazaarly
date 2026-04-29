@@ -11,18 +11,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getSessionUser();
 
   if (user) {
-    const params = (await searchParams) ?? {};
-    const onboardingIntent = params.intent === "branch" ? "branch" : "shop";
-
     if (!hasCompletedSecuritySetup(user)) {
-      redirect(onboardingIntent === "branch" ? "/security-setup?intent=branch" : "/security-setup");
+      redirect("/security-setup");
     }
-    redirect(user.shop ? "/dashboard" : onboardingIntent === "branch" ? "/branch/join" : "/onboarding/shop");
+    redirect(user.shop ? "/dashboard" : "/onboarding/shop");
   }
 
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
-  const onboardingIntent = params.intent === "branch" ? "branch" : "shop";
 
   return (
     <main className="auth-layout">
@@ -38,20 +34,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Sign in with your own account or create a new player and open a shop in the
               shared world.
             </p>
-            <div className="inline-actions">
-              <a
-                href="/login?intent=shop"
-                className={onboardingIntent === "shop" ? "category-chip" : "ghost-button"}
-              >
-                New Shop
-              </a>
-              <a
-                href="/login?intent=branch"
-                className={onboardingIntent === "branch" ? "category-chip" : "ghost-button"}
-              >
-                Join as Branch
-              </a>
-            </div>
           </div>
 
           {error ? (
@@ -69,7 +51,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Use your username or email together with your password.
             </p>
             <form action="/auth/login" method="post" className="stack-sm">
-              <input type="hidden" name="intent" value={onboardingIntent} />
               <label>
                 Username or email
                 <input name="username" placeholder="your username or email" required />
@@ -90,7 +71,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               New accounts start with PIN setup, then shop setup, so checkout is protected.
             </p>
             <form action="/auth/register" method="post" className="stack-sm">
-              <input type="hidden" name="intent" value={onboardingIntent} />
               <label>
                 Display name
                 <input name="displayName" placeholder="Taylor" required />

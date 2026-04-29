@@ -16,11 +16,10 @@ export default async function SecuritySetupPage({ searchParams }: SecuritySetupP
 
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
-  const intent = params.intent === "branch" ? "branch" : "shop";
 
   return (
     <main className="auth-layout">
-      <SecuritySetupLock error={error} intent={intent} />
+      <SecuritySetupLock error={error} />
     </main>
   );
 }

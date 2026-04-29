@@ -22,7 +22,6 @@ export async function POST(request: Request) {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const intent = String(formData.get("intent") ?? "shop") === "branch" ? "branch" : "shop";
   const throttleKey = createRegisterThrottleKey(request);
 
   if (!displayName || !username || !email || password.length < 8) {
@@ -66,10 +65,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const response = NextResponse.redirect(
-    new URL(intent === "branch" ? "/security-setup?intent=branch" : "/security-setup", request.url),
-    303,
-  );
+  const response = NextResponse.redirect(new URL("/security-setup", request.url), 303);
   const sessionToken = await createSessionToken(user.id);
   response.cookies.set(getSessionCookieName(), sessionToken, getSessionCookieOptions());
 
