@@ -496,7 +496,10 @@ async function restockBuyerInventory(
   const nextBuyerAverageCost =
     nextBuyerQuantity > 0 ? Math.round(buyerCostTotal / nextBuyerQuantity) : unitPrice;
   const nextAllocatedQuantity =
-    (buyerInventory?.allocatedQuantity ?? 0) + (shouldRestockBuyerListing ? quantity : 0);
+    shouldRestockBuyerListing
+      ? sanitizeStockCount((buyerInventory?.allocatedQuantity ?? 0) + quantity)
+      : sanitizeStockCount(buyerInventory?.allocatedQuantity ?? 0);
+  const safeAllocatedQuantity = Math.min(nextAllocatedQuantity, nextBuyerQuantity);
 
   if (buyerInventory) {
     await tx.inventory.update({
@@ -505,7 +508,7 @@ async function restockBuyerInventory(
         quantity: {
           increment: quantity,
         },
-        allocatedQuantity: nextAllocatedQuantity,
+        allocatedQuantity: safeAllocatedQuantity,
         averageUnitCost: nextBuyerAverageCost,
       },
     });

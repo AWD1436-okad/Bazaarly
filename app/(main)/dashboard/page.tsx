@@ -14,7 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { convertAudCentsToCurrencyMinorUnits, formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode, getPriceProfileMetadata } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
-import { getFreeInventoryQuantity, getLiveStockStatusMessage } from "@/lib/stock";
+import { sanitizeStockCount, getLiveStockStatusMessage } from "@/lib/stock";
 
 const INVENTORY_PAGE_SIZE = 12;
 const LISTING_PAGE_SIZE = 12;
@@ -123,15 +123,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   marketAveragePrice: true,
                 },
               },
-              listings: {
-                where: {
-                  shopId: user.shop.id,
-                  active: true,
-                },
-                select: {
-                  quantity: true,
-                },
-              },
             },
           },
         },
@@ -161,15 +152,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               marketState: {
                 select: {
                   marketAveragePrice: true,
-                },
-              },
-              listings: {
-                where: {
-                  shopId: user.shop.id,
-                  active: true,
-                },
-                select: {
-                  quantity: true,
                 },
               },
             },
@@ -354,17 +336,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const listingOptionRows = listingOptions
     .map((item) => {
-      const activeListingQuantity = item.product.listings.reduce(
-        (total, listing) => total + listing.quantity,
-        0,
-      );
-
       return {
         inventoryId: item.id,
         productId: item.productId,
         productName: item.product.name,
         unitLabel: item.product.unitLabel,
-        availableToList: getFreeInventoryQuantity(item.quantity, activeListingQuantity),
+        availableToList: sanitizeStockCount(
+          sanitizeStockCount(item.quantity) - sanitizeStockCount(item.allocatedQuantity),
+        ),
         marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
       };
     })
@@ -372,17 +351,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     .slice(0, LISTING_OPTION_LIMIT);
   const freeInventoryRowList = freeInventoryRows
     .map((item) => {
-      const activeListingQuantity = item.product.listings.reduce(
-        (total, listing) => total + listing.quantity,
-        0,
-      );
-
       return {
         inventoryId: item.id,
         productId: item.productId,
         productName: item.product.name,
         unitLabel: item.product.unitLabel,
-        availableToList: getFreeInventoryQuantity(item.quantity, activeListingQuantity),
+        availableToList: sanitizeStockCount(
+          sanitizeStockCount(item.quantity) - sanitizeStockCount(item.allocatedQuantity),
+        ),
         marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
       };
     })

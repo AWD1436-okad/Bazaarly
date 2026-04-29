@@ -989,10 +989,11 @@ export async function runMarketSimulation(force = false, debug = false) {
             data: {
               userId: seller.id,
               type: NotificationType.LOW_STOCK,
-              message:
+              message: `${freshListing.product.name}: ${
                 remainingListingQuantity <= 0
-                  ? `${freshListing.product.name}: You don't have any of this item left.`
-                  : `${freshListing.product.name}: Low stock remaining: ${remainingListingQuantity} left.`,
+                  ? "You don't have any more of this left."
+                  : `Low stock remaining: ${remainingListingQuantity} left`
+              }.`,
               createdAt: attemptedAt,
             },
           });

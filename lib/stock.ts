@@ -19,7 +19,7 @@ export function getLiveStockStatusMessage(quantity: number | null | undefined) {
   const safeQuantity = sanitizeStockCount(quantity);
 
   if (safeQuantity <= 0) {
-    return "You don't have any of this item left";
+    return "You don't have any more of this left.";
   }
 
   if (safeQuantity <= 3) {

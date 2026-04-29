@@ -7,7 +7,7 @@ import { convertCurrencyInputToAudCents } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { parseRouteId } from "@/lib/route-validation";
-import { getFreeInventoryQuantity, sanitizeStockCount } from "@/lib/stock";
+import { sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -100,17 +100,16 @@ export async function POST(request: Request) {
         },
       });
 
-      const activeListingQuantity = listing?.active ? listing.quantity : 0;
-      const quantityToList = getFreeInventoryQuantity(
-        inventory.quantity,
-        activeListingQuantity,
-      );
+      const inventoryQuantity = sanitizeStockCount(inventory.quantity);
+      const allocatedQuantity = sanitizeStockCount(inventory.allocatedQuantity);
+      const quantityToList = sanitizeStockCount(inventoryQuantity - allocatedQuantity);
 
       if (quantityToList <= 0) {
         throw new Error("No free inventory is available to list");
       }
 
-      const nextListingQuantity = sanitizeStockCount(activeListingQuantity + quantityToList);
+      const existingListingQuantity = sanitizeStockCount(listing?.quantity);
+      const nextListingQuantity = sanitizeStockCount(existingListingQuantity + quantityToList);
 
       if (listing) {
         await tx.listing.update({
@@ -140,7 +139,7 @@ export async function POST(request: Request) {
       await tx.inventory.update({
         where: { id: inventory.id },
         data: {
-          allocatedQuantity: nextListingQuantity,
+          allocatedQuantity: sanitizeStockCount(allocatedQuantity + quantityToList),
         },
       });
 
