@@ -976,7 +976,7 @@ export async function runMarketSimulation(force = false, debug = false) {
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-            message: `${bot.displayName} bought ${selectedQuantity}x ${freshListing.product.name} for ${formatCurrency(
+            message: `${bot.displayName} purchased from ${freshListing.shop.name}: ${selectedQuantity}x ${freshListing.product.name}. Total ${formatCurrency(
               totalPrice,
               seller.currencyCode,
             )}.`,

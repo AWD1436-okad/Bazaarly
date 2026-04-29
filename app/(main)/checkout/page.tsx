@@ -47,6 +47,17 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   }
 
   const total = cart.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0);
+  const unavailableItems = cart.items.filter((item) => {
+    const availableQuantity =
+      item.source === "SUPPLIER"
+        ? item.product.marketState?.supplierStock ?? 0
+        : item.listing?.quantity ?? 0;
+    return (
+      availableQuantity <= 0 ||
+      (item.source === "MARKETPLACE" && (!item.listing || !item.listing.active || item.listing.isPaused))
+    );
+  });
+  const hasUnavailableItems = unavailableItems.length > 0;
 
   return (
     <div className="page-grid">
@@ -60,6 +71,17 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           <div>
             <h3>Checkout blocked</h3>
             <p>{error}</p>
+          </div>
+        </div>
+      ) : null}
+      {hasUnavailableItems ? (
+        <div className="status-banner status-banner--warning">
+          <div>
+            <h3>Some cart items are no longer available</h3>
+            <p>
+              Remove or update these items before checkout:{" "}
+              {unavailableItems.map((item) => item.product.name).join(", ")}.
+            </p>
           </div>
         </div>
       ) : null}
@@ -131,7 +153,11 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
             Bank number
             <input name="bankNumber" type="password" inputMode="numeric" required />
           </label>
-          <button type="submit">Confirm Purchase {formatCurrency(total, currencyCode)}</button>
+          <button type="submit" disabled={hasUnavailableItems}>
+            {hasUnavailableItems
+              ? "Update cart before confirming"
+              : `Confirm Purchase ${formatCurrency(total, currencyCode)}`}
+          </button>
         </form>
       </section>
     </div>

@@ -91,6 +91,9 @@ export default async function CartPage({ searchParams }: CartProps) {
                   item.source === "SUPPLIER"
                     ? item.product.marketState?.supplierStock ?? 0
                     : item.listing?.quantity ?? 0;
+                const itemUnavailable =
+                  availableQuantity <= 0 ||
+                  (item.source === "MARKETPLACE" && (!item.listing || !item.listing.active || item.listing.isPaused));
                 const sourceName =
                   item.source === "SUPPLIER"
                     ? "Tradex Supplier"
@@ -102,7 +105,9 @@ export default async function CartPage({ searchParams }: CartProps) {
                       <strong>{item.product.name}</strong>
                       <span className="muted">
                         {sourceName} - {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)} -{" "}
-                        {sanitizeStockCount(availableQuantity)} available
+                        {itemUnavailable
+                          ? "Sold out or unavailable since added to cart"
+                          : `${sanitizeStockCount(availableQuantity)} available`}
                       </span>
                     </div>
                     <div className="table-row__actions">

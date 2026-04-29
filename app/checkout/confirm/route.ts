@@ -387,7 +387,7 @@ export async function POST(request: Request) {
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-            message: `${buyer.displayName} bought ${saleSummary.join(", ")} for ${formatCurrency(
+            message: `${buyer.displayName} purchased from ${cart.shop.name}: ${saleSummary.join(", ")}. Total ${formatCurrency(
               marketplaceTotal,
               seller.currencyCode,
             )}.`,
