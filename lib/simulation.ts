@@ -58,7 +58,6 @@ type ActiveBotRecord = {
   active: boolean;
   lastAttemptedAt: Date | null;
   lastPurchasedAt: Date | null;
-  nextPurchaseAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -142,7 +141,6 @@ async function ensureActiveBotPool(now: Date) {
         preferenceCategory: botSeed.preferenceCategory,
         activityLevel: botSeed.activityLevel,
         active: true,
-        nextPurchaseAt: null,
       },
       create: {
         displayName: botSeed.displayName,
@@ -152,7 +150,6 @@ async function ensureActiveBotPool(now: Date) {
         loyaltyShopId: null,
         activityLevel: botSeed.activityLevel,
         active: true,
-        nextPurchaseAt: null,
       },
     });
 
@@ -354,42 +351,42 @@ function getPriceSensitivityMultiplier(
   if (ratio <= 1.25) {
     switch (personality) {
       case BotPersonality.BUDGET:
-        return 0.32;
+        return 0.18;
       case BotPersonality.BULK:
-        return 0.24;
+        return 0.14;
       case BotPersonality.QUALITY:
-        return 0.7;
+        return 0.55;
       case BotPersonality.LOYAL:
-        return 0.56;
+        return 0.42;
       default:
-        return 0.48;
+        return 0.32;
     }
   }
 
   if (ratio <= 1.5) {
     switch (personality) {
       case BotPersonality.BUDGET:
-        return 0.045;
+        return 0.015;
       case BotPersonality.BULK:
-        return 0.025;
+        return 0.01;
       case BotPersonality.QUALITY:
-        return listing.shop.rating >= 4.7 ? 0.24 : 0.16;
+        return listing.shop.rating >= 4.7 ? 0.12 : 0.07;
       case BotPersonality.LOYAL:
-        return loyaltyShopId === listing.shop.id ? 0.16 : 0.08;
+        return loyaltyShopId === listing.shop.id ? 0.08 : 0.035;
       default:
-        return 0.1;
+        return 0.05;
     }
   }
 
   if (ratio <= 1.75 && personality === BotPersonality.RANDOM) {
-    return 0.018;
+    return 0.002;
   }
 
   if (ratio <= 1.75 && personality === BotPersonality.QUALITY && listing.shop.rating >= 4.85) {
-    return 0.035;
+    return 0.01;
   }
 
-  return personality === BotPersonality.RANDOM ? 0.004 : 0.001;
+  return personality === BotPersonality.RANDOM ? 0.002 : 0.0005;
 }
 
 function scoreBotCandidate(
@@ -421,7 +418,7 @@ function scoreBotCandidate(
     1.16,
   );
   const randomnessBoost = 1 + Math.random() * 0.12;
-  const overpriceDrag = overpriceRatio > 1 ? clamp(1 / overpriceRatio ** 2.2, 0.1, 1) : 1.08;
+  const overpriceDrag = overpriceRatio > 1 ? clamp(1 / overpriceRatio ** 3, 0.02, 1) : 1.08;
 
   switch (personality) {
     case BotPersonality.BUDGET:
@@ -524,7 +521,6 @@ export async function runMarketSimulation(force = false, debug = false) {
                 .sort((left, right) => left.displayName.localeCompare(right.displayName))
                 .map((bot) => ({
                   bot: bot.displayName,
-                  nextPurchaseAt: bot.nextPurchaseAt?.toISOString() ?? null,
                   lastAttemptedAt: bot.lastAttemptedAt?.toISOString() ?? null,
                   lastPurchasedAt: bot.lastPurchasedAt?.toISOString() ?? null,
                 })),
@@ -743,17 +739,31 @@ export async function runMarketSimulation(force = false, debug = false) {
     .map((bot) => {
       const effectiveLoyaltyShopId = getEffectiveLoyaltyShopId(bot);
       const affordableListings = candidateListings.filter((listing) => listing.price <= bot.budget);
-      const weightedSelection = affordableListings.map((listing) => ({
-        value: listing,
-        score: scoreBotCandidate(
-          bot.type,
-          listing,
-          effectiveLoyaltyShopId,
-          bot.preferenceCategory,
-          recentBotSalesByShop.get(listing.shopId) ?? 0,
-          shopBreadthByShop.get(listing.shopId) ?? 0,
-        ),
-      })).filter((option) => option.score >= 0.25);
+      const weightedSelection = affordableListings
+        .map((listing) => ({
+          value: listing,
+          score: scoreBotCandidate(
+            bot.type,
+            listing,
+            effectiveLoyaltyShopId,
+            bot.preferenceCategory,
+            recentBotSalesByShop.get(listing.shopId) ?? 0,
+            shopBreadthByShop.get(listing.shopId) ?? 0,
+          ),
+        }))
+        .filter((option) => {
+          const overpriceRatio = getOverpriceRatio(option.value);
+          const hardCap =
+            bot.type === BotPersonality.RANDOM
+              ? 1.75
+              : bot.type === BotPersonality.QUALITY
+                ? 1.6
+                : bot.type === BotPersonality.LOYAL
+                  ? 1.55
+                  : 1.5;
+
+          return option.score >= 0.25 && overpriceRatio <= hardCap;
+        });
       const averageCandidateScore =
         weightedSelection.length > 0
           ? weightedSelection.reduce((sum, option) => sum + option.score, 0) / weightedSelection.length
@@ -993,7 +1003,6 @@ export async function runMarketSimulation(force = false, debug = false) {
           data: {
             lastAttemptedAt: attemptedAt,
             lastPurchasedAt: attemptedAt,
-            nextPurchaseAt: null,
             loyaltyShopId:
               bot.type === BotPersonality.LOYAL || bot.type === BotPersonality.QUALITY
                 ? freshListing.shopId
@@ -1010,7 +1019,6 @@ export async function runMarketSimulation(force = false, debug = false) {
         where: { id: bot.id },
         data: {
           lastAttemptedAt: attemptedAt,
-          nextPurchaseAt: null,
         },
       });
     } else {
@@ -1064,7 +1072,6 @@ export async function runMarketSimulation(force = false, debug = false) {
                 },
                 select: {
                   displayName: true,
-                  nextPurchaseAt: true,
                   lastAttemptedAt: true,
                   lastPurchasedAt: true,
                   loyaltyShopId: true,
@@ -1075,7 +1082,6 @@ export async function runMarketSimulation(force = false, debug = false) {
                 botStates.map((botState) => ({
                   bot: botState.displayName,
                   type: botState.type,
-                  nextPurchaseAt: botState.nextPurchaseAt?.toISOString() ?? null,
                   lastAttemptedAt: botState.lastAttemptedAt?.toISOString() ?? null,
                   lastPurchasedAt: botState.lastPurchasedAt?.toISOString() ?? null,
                   loyaltyShopId: botState.loyaltyShopId,

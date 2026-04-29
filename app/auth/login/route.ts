@@ -66,7 +66,9 @@ export async function POST(request: Request) {
   const response = NextResponse.redirect(
     new URL(
       !hasCompletedSecuritySetup(user)
-        ? "/security-setup"
+        ? intent === "branch"
+          ? "/security-setup?intent=branch"
+          : "/security-setup"
         : user.shop
           ? "/dashboard"
           : intent === "branch"

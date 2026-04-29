@@ -895,7 +895,6 @@ async function main() {
         loyaltyShopId: null,
         activityLevel: bot.activityLevel,
         active: true,
-        nextPurchaseAt: null,
       },
       create: {
         displayName: bot.displayName,
@@ -904,7 +903,6 @@ async function main() {
         preferenceCategory: bot.preferenceCategory,
         loyaltyShopId: null,
         activityLevel: bot.activityLevel,
-        nextPurchaseAt: null,
       },
     });
   }

@@ -37,26 +37,37 @@ export async function POST(request: Request) {
     );
   }
 
-  if (user.balance < BRANCH_SETUP_COST_CENTS) {
+  const shouldChargeSetupFee = !user.shop.availableToBranch;
+
+  if (shouldChargeSetupFee && user.balance < BRANCH_SETUP_COST_CENTS) {
     return NextResponse.redirect(new URL("/settings?error=Balance%20too%20low", request.url), 303);
   }
 
+  let chargedSetupFee = false;
   await prisma.$transaction(async (tx) => {
     const freshUser = await tx.user.findUnique({
       where: { id: user.id },
       select: { balance: true },
     });
+    const freshShop = await tx.shop.findUnique({
+      where: { id: user.shop!.id },
+      select: { availableToBranch: true },
+    });
+    const chargeThisEnable = !freshShop?.availableToBranch;
 
-    if (!freshUser || freshUser.balance < BRANCH_SETUP_COST_CENTS) {
+    if (!freshUser || (chargeThisEnable && freshUser.balance < BRANCH_SETUP_COST_CENTS)) {
       throw new Error("Balance too low");
     }
 
-    await tx.user.update({
-      where: { id: user.id },
-      data: {
-        balance: { decrement: BRANCH_SETUP_COST_CENTS },
-      },
-    });
+    if (chargeThisEnable) {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          balance: { decrement: BRANCH_SETUP_COST_CENTS },
+        },
+      });
+      chargedSetupFee = true;
+    }
 
     await tx.shop.update({
       where: { id: user.shop!.id },
@@ -70,7 +81,9 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         type: NotificationType.SYSTEM,
-        message: `Your shop is now available for branch requests in ${locationResult.location}.`,
+        message: chargedSetupFee
+          ? `Your shop is now available for branch requests in ${locationResult.location}.`
+          : `Your branch availability location was updated to ${locationResult.location}.`,
       },
     });
   });

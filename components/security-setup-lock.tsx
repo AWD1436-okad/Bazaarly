@@ -2,9 +2,13 @@ import { BrandLogo } from "@/components/brand-logo";
 
 type SecuritySetupLockProps = {
   error?: string | null;
+  intent?: "shop" | "branch";
 };
 
-export function SecuritySetupLock({ error }: SecuritySetupLockProps) {
+export function SecuritySetupLock({ error, intent = "shop" }: SecuritySetupLockProps) {
+  const formAction =
+    intent === "branch" ? "/security-setup/submit?intent=branch" : "/security-setup/submit";
+
   return (
     <section className="auth-card auth-card--single">
       <div className="stack">
@@ -33,7 +37,8 @@ export function SecuritySetupLock({ error }: SecuritySetupLockProps) {
           <p className="muted">
             These details are required for secure checkout and must be unique.
           </p>
-          <form action="/security-setup/submit" method="post" className="stack-sm">
+          <form action={formAction} method="post" className="stack-sm">
+            <input type="hidden" name="intent" value={intent} />
             <label>
               New PIN
               <input

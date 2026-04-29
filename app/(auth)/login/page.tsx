@@ -11,10 +11,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getSessionUser();
 
   if (user) {
+    const params = (await searchParams) ?? {};
+    const onboardingIntent = params.intent === "branch" ? "branch" : "shop";
+
     if (!hasCompletedSecuritySetup(user)) {
-      redirect("/security-setup" as never);
+      redirect(onboardingIntent === "branch" ? "/security-setup?intent=branch" : "/security-setup");
     }
-    redirect(user.shop ? "/dashboard" : "/onboarding/shop");
+    redirect(user.shop ? "/dashboard" : onboardingIntent === "branch" ? "/branch/join" : "/onboarding/shop");
   }
 
   const params = (await searchParams) ?? {};

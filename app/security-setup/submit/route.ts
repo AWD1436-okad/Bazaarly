@@ -16,24 +16,48 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
-function redirectWithError(request: Request, message: string) {
+function getSecurityIntent(request: Request, formData?: FormData) {
+  const url = new URL(request.url);
+  const queryIntent = url.searchParams.get("intent");
+  const formIntent = formData ? String(formData.get("intent") ?? "") : "";
+
+  return queryIntent === "branch" || formIntent === "branch" ? "branch" : "shop";
+}
+
+function getPostSecurityRedirectPath(user: Awaited<ReturnType<typeof requireUser>>, intent: "shop" | "branch") {
+  if (user.shop) {
+    return "/dashboard";
+  }
+
+  return intent === "branch" ? "/branch/join" : "/onboarding/shop";
+}
+
+function redirectWithError(request: Request, message: string, intent: "shop" | "branch") {
+  const url = new URL("/security-setup", request.url);
+  url.searchParams.set("error", message);
+  if (intent === "branch") {
+    url.searchParams.set("intent", "branch");
+  }
+
   return NextResponse.redirect(
-    new URL(`/security-setup?error=${encodeURIComponent(message)}`, request.url),
+    url,
     303,
   );
 }
 
 export async function POST(request: Request) {
   const user = await requireUser({ allowIncompleteSecurity: true });
+  const urlIntent = getSecurityIntent(request);
 
   if (hasCompletedSecuritySetup(user)) {
     return NextResponse.redirect(
-      new URL(user.shop ? "/dashboard" : "/onboarding/shop", request.url),
+      new URL(getPostSecurityRedirectPath(user, urlIntent), request.url),
       303,
     );
   }
 
   const formData = await request.formData();
+  const intent = getSecurityIntent(request, formData);
   const pin = String(formData.get("pin") ?? "").trim();
   const confirmPin = String(formData.get("confirmPin") ?? "").trim();
   const bankNumber = String(formData.get("bankNumber") ?? "").trim();
@@ -42,19 +66,19 @@ export async function POST(request: Request) {
   const bankNumberResult = validateBankNumber(bankNumber);
 
   if (!pinResult.success) {
-    return redirectWithError(request, pinResult.error);
+    return redirectWithError(request, pinResult.error, intent);
   }
 
   if (pinResult.pin !== confirmPin) {
-    return redirectWithError(request, "PINs do not match");
+    return redirectWithError(request, "PINs do not match", intent);
   }
 
   if (!bankNumberResult.success) {
-    return redirectWithError(request, bankNumberResult.error);
+    return redirectWithError(request, bankNumberResult.error, intent);
   }
 
   if (bankNumberResult.bankNumber !== confirmBankNumber) {
-    return redirectWithError(request, "Bank numbers do not match");
+    return redirectWithError(request, "Bank numbers do not match", intent);
   }
 
   const checkoutPinLookupHash = getCheckoutPinLookupHash(pinResult.pin);
@@ -68,7 +92,7 @@ export async function POST(request: Request) {
   });
 
   if (existingPinOwner) {
-    return redirectWithError(request, "PIN taken");
+    return redirectWithError(request, "PIN taken", intent);
   }
 
   const existingBankNumberOwner = await prisma.user.findFirst({
@@ -80,7 +104,7 @@ export async function POST(request: Request) {
   });
 
   if (existingBankNumberOwner) {
-    return redirectWithError(request, "Bank number taken");
+    return redirectWithError(request, "Bank number taken", intent);
   }
 
   try {
@@ -98,14 +122,14 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return redirectWithError(request, "PIN or bank number taken");
+      return redirectWithError(request, "PIN or bank number taken", intent);
     }
 
     throw error;
   }
 
   return NextResponse.redirect(
-    new URL(user.shop ? "/dashboard" : "/onboarding/shop", request.url),
+    new URL(getPostSecurityRedirectPath(user, intent), request.url),
     303,
   );
 }
