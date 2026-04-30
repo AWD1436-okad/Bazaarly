@@ -9,6 +9,10 @@ import { clamp } from "@/lib/utils";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
+function isAsyncRequest(request: Request) {
+  return request.headers.get("x-tradex-async") === "1";
+}
+
 function redirectWithError(request: Request, message: string) {
   return NextResponse.redirect(
     new URL(`/dashboard/supplier?error=${encodeURIComponent(message)}`, request.url),
@@ -17,11 +21,18 @@ function redirectWithError(request: Request, message: string) {
 }
 
 export async function POST(request: Request) {
+  const asyncRequest = isAsyncRequest(request);
   const user = await getSessionUser();
   if (!user) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
   if (!hasCompletedSecuritySetup(user)) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
 
@@ -39,6 +50,12 @@ export async function POST(request: Request) {
     .filter((entry) => entry.productId.length > 0 && entry.quantity > 0);
 
   if (selectedEntries.length === 0) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Select at least one product quantity greater than zero" },
+        { status: 400 },
+      );
+    }
     return redirectWithError(request, "Select at least one product quantity greater than zero");
   }
 
@@ -61,6 +78,12 @@ export async function POST(request: Request) {
   });
 
   if (soldOutListings.length === 0) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "No sold-out listings matched your restock selection" },
+        { status: 400 },
+      );
+    }
     return redirectWithError(request, "No sold-out listings matched your restock selection");
   }
 
@@ -167,5 +190,11 @@ export async function POST(request: Request) {
 
   revalidatePath("/dashboard/supplier");
   revalidatePath("/cart");
+  if (asyncRequest) {
+    return NextResponse.json({
+      ok: true,
+      selectedCount: selectedEntries.length,
+    });
+  }
   return NextResponse.redirect(new URL("/cart?added=1", request.url), 303);
 }

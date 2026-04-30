@@ -10,6 +10,10 @@ import { clamp } from "@/lib/utils";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
+function isAsyncRequest(request: Request) {
+  return request.headers.get("x-tradex-async") === "1";
+}
+
 function redirectWithError(request: Request, message: string) {
   return NextResponse.redirect(
     new URL(`/dashboard/supplier?error=${encodeURIComponent(message)}`, request.url),
@@ -18,11 +22,18 @@ function redirectWithError(request: Request, message: string) {
 }
 
 export async function POST(request: Request) {
+  const asyncRequest = isAsyncRequest(request);
   const user = await getSessionUser();
   if (!user) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Login required" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
   if (!hasCompletedSecuritySetup(user)) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Complete security setup first" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/security-setup", request.url), 303);
   }
 
@@ -35,6 +46,9 @@ export async function POST(request: Request) {
   const selectedCategory = getCategoryFilterOption(categoryValue);
 
   if (!selectedCategory) {
+    if (asyncRequest) {
+      return NextResponse.json({ ok: false, error: "Choose a category first" }, { status: 400 });
+    }
     return redirectWithError(request, "Choose a category first");
   }
 
@@ -62,6 +76,12 @@ export async function POST(request: Request) {
   });
 
   if (products.length === 0) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "No in-stock supplier items in that category" },
+        { status: 400 },
+      );
+    }
     return redirectWithError(request, "No in-stock supplier items in that category");
   }
 
@@ -147,5 +167,12 @@ export async function POST(request: Request) {
 
   revalidatePath("/cart");
   revalidatePath("/dashboard/supplier");
+  if (asyncRequest) {
+    return NextResponse.json({
+      ok: true,
+      addedCount: products.length,
+      quantityPerItem,
+    });
+  }
   return NextResponse.redirect(new URL("/cart?added=1", request.url), 303);
 }

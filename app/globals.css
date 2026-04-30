@@ -197,6 +197,8 @@ textarea {
 
 .brand-mark__image {
   object-fit: contain;
+  object-position: center;
+  padding: 8%;
   transform: rotate(-6deg);
   transform-origin: center;
   filter: saturate(1.08) contrast(1.06);
@@ -1216,6 +1218,10 @@ textarea {
 
   .topbar {
     position: static;
+  }
+
+  .brand-link > span {
+    display: none;
   }
 
   .category-sidebar {

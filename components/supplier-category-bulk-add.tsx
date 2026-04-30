@@ -4,31 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type SupplierPurchaseFormProps = {
-  productId: string;
-  supplierStock: number;
+type SupplierCategoryBulkAddProps = {
+  categoryValue: string;
 };
 
-export function SupplierPurchaseForm({
-  productId,
-  supplierStock,
-}: SupplierPurchaseFormProps) {
+export function SupplierCategoryBulkAdd({ categoryValue }: SupplierCategoryBulkAddProps) {
   const router = useRouter();
-  const [quantity, setQuantity] = useState("1");
+  const [quantityPerItem, setQuantityPerItem] = useState("1");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function refreshInPlace() {
-    const scrollY = window.scrollY;
-    router.refresh();
-    window.setTimeout(() => {
-      window.scrollTo({ top: scrollY, behavior: "auto" });
-    }, 60);
-  }
-
-  async function handleAddToCart() {
-    const parsedQuantity = Number.parseInt(quantity, 10);
+  async function handleAddAllToCart() {
+    const parsedQuantity = Number.parseInt(quantityPerItem, 10);
     if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
       setError("Please buy at least 1");
       setFeedback(null);
@@ -41,10 +29,10 @@ export function SupplierPurchaseForm({
 
     try {
       const formData = new FormData();
-      formData.set("productId", productId);
-      formData.set("quantity", String(parsedQuantity));
+      formData.set("category", categoryValue);
+      formData.set("quantityPerItem", String(parsedQuantity));
 
-      const response = await fetch("/supplier/buy", {
+      const response = await fetch("/supplier/add-category", {
         method: "POST",
         body: formData,
         headers: {
@@ -55,18 +43,24 @@ export function SupplierPurchaseForm({
       const payload = (await response.json()) as {
         ok?: boolean;
         error?: string;
-        restockedListing?: boolean;
+        addedCount?: number;
       };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Unable to add supplier item to cart");
+        throw new Error(payload.error ?? "Unable to add category items to cart");
       }
 
-      setFeedback("Added to cart");
-      refreshInPlace();
-    } catch (purchaseError) {
+      setFeedback(
+        payload.addedCount && payload.addedCount > 0
+          ? `Added to cart (${payload.addedCount} items)`
+          : "Added to cart",
+      );
+      router.refresh();
+    } catch (submissionError) {
       setError(
-        purchaseError instanceof Error ? purchaseError.message : "Unable to add supplier item to cart",
+        submissionError instanceof Error
+          ? submissionError.message
+          : "Unable to add category items to cart",
       );
     } finally {
       setSubmitting(false);
@@ -74,36 +68,30 @@ export function SupplierPurchaseForm({
   }
 
   return (
-    <div className="supplier-buy-form">
-      <label className="supplier-buy-form__quantity">
-        Quantity
+    <div className="supplier-bulk-action">
+      <label className="stack-xs" style={{ minWidth: 120 }}>
+        Qty each
         <input
           type="number"
           min={1}
-          max={Math.max(supplierStock, 1)}
-          value={quantity}
-          disabled={supplierStock <= 0 || submitting}
+          max={99}
+          value={quantityPerItem}
           onChange={(event) => {
             const nextValue = event.target.value;
             if (nextValue === "") {
-              setQuantity("");
+              setQuantityPerItem("");
               return;
             }
-
             if (!/^\d+$/.test(nextValue)) {
               return;
             }
-
-            setQuantity(nextValue);
+            setQuantityPerItem(nextValue);
           }}
+          disabled={submitting}
         />
       </label>
-      <button
-        type="button"
-        onClick={() => void handleAddToCart()}
-        disabled={supplierStock <= 0 || submitting}
-      >
-        {supplierStock > 0 ? (submitting ? "Adding..." : "Add to cart") : "Out of stock"}
+      <button type="button" onClick={() => void handleAddAllToCart()} disabled={submitting}>
+        {submitting ? "Adding..." : "Add all to cart"}
       </button>
       {feedback ? (
         <span className="muted">

@@ -3,7 +3,9 @@ import { ProductCategory } from "@prisma/client";
 import { CategoryFilterList } from "@/components/category-filter-list";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
+import { SupplierCategoryBulkAdd } from "@/components/supplier-category-bulk-add";
 import { SupplierPurchaseForm } from "@/components/supplier-purchase-form";
+import { SupplierRestockNeededForm } from "@/components/supplier-restock-needed-form";
 import { requireUser } from "@/lib/auth";
 import {
   CATEGORY_OPTIONS,
@@ -317,14 +319,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
               </p>
             </div>
             {selectedCategory ? (
-              <form action="/supplier/add-category" method="post">
-                <input type="hidden" name="category" value={selectedCategory.value} />
-                <label className="stack-xs" style={{ minWidth: 120 }}>
-                  Qty each
-                  <input type="number" name="quantityPerItem" min={1} max={99} defaultValue={1} />
-                </label>
-                <button type="submit">Add all to cart</button>
-              </form>
+              <SupplierCategoryBulkAdd categoryValue={selectedCategory.value} />
             ) : null}
           </section>
 
@@ -336,34 +331,20 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                   <p>Choose quantities, then add selected sold-out items to cart.</p>
                 </div>
               </div>
-              <form action="/supplier/restock-needed" method="post" className="table-list">
-                {soldOutRestockItems.map((item) => (
-                  <div key={item.productId} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{item.name}</strong>
-                      <span className="muted">
-                        {getProductCategoryLabel(item.category, item.subcategory)} -{" "}
-                        {formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)} -{" "}
-                        {sanitizeStockCount(item.supplierStock)} supplier stock
-                      </span>
-                    </div>
-                    <div className="table-row__actions">
-                      <input
-                        type="number"
-                        name={`qty:${item.productId}`}
-                        min={0}
-                        max={Math.max(item.supplierStock, 0)}
-                        defaultValue={0}
-                        aria-label={`Quantity for ${item.name}`}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <div className="section-row">
-                  <span className="muted">Set quantity to 0 to skip an item.</span>
-                  <button type="submit">Add selected to cart</button>
-                </div>
-              </form>
+              <SupplierRestockNeededForm
+                items={soldOutRestockItems.map((item) => ({
+                  productId: item.productId,
+                  name: item.name,
+                  categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
+                  unitLabel: item.unitLabel,
+                  supplierStock: sanitizeStockCount(item.supplierStock),
+                  supplierPriceLabel: formatPriceWithUnit(
+                    item.supplierPrice,
+                    item.unitLabel,
+                    currencyCode,
+                  ),
+                }))}
+              />
             </section>
           ) : null}
 

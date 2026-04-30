@@ -58,6 +58,16 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     );
   });
   const hasUnavailableItems = unavailableItems.length > 0;
+  const priceChangedItems = cart.items.filter((item) => {
+    if (item.source === "SUPPLIER") {
+      return (
+        item.product.marketState?.currentSupplierPrice !== undefined &&
+        item.product.marketState.currentSupplierPrice !== item.unitPriceSnapshot
+      );
+    }
+
+    return item.listing?.price !== undefined && item.listing.price !== item.unitPriceSnapshot;
+  });
 
   return (
     <div className="page-grid">
@@ -81,6 +91,16 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
             <p>
               Remove or update these items before checkout:{" "}
               {unavailableItems.map((item) => item.product.name).join(", ")}.
+            </p>
+          </div>
+        </div>
+      ) : null}
+      {priceChangedItems.length > 0 ? (
+        <div className="status-banner status-banner--success">
+          <div>
+            <h3>Price changed since added</h3>
+            <p>
+              Your cart price is locked for: {priceChangedItems.map((item) => item.product.name).join(", ")}.
             </p>
           </div>
         </div>

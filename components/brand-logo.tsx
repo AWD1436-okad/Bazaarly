@@ -14,7 +14,7 @@ export function BrandLogo({ size = 54, className }: BrandLogoProps) {
     >
       <span className="brand-mark__glow" />
       <Image
-        src="/tradex-logo4-icon.png"
+        src="/tradex-logo4-icon-square.png"
         alt=""
         fill
         sizes={`${size}px`}

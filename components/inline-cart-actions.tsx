@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type InlineCartActionsProps = {
@@ -8,6 +10,7 @@ type InlineCartActionsProps = {
 };
 
 export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsProps) {
+  const router = useRouter();
   const [quantity, setQuantity] = useState("1");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -45,6 +48,7 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
       }
 
       setFeedback("Added to cart");
+      router.refresh();
     } catch (submissionError) {
       setError(
         submissionError instanceof Error ? submissionError.message : "Unable to add to cart",
@@ -81,7 +85,11 @@ export function InlineCartActions({ listingId, maxQuantity }: InlineCartActionsP
           {submitting ? "Adding..." : "Add to cart"}
         </button>
       </div>
-      {feedback ? <span className="muted">{feedback}</span> : null}
+      {feedback ? (
+        <span className="muted">
+          {feedback} - <Link href="/cart">View cart</Link> - <Link href="/checkout">Checkout</Link>
+        </span>
+      ) : null}
       {error ? <span className="status-text status-text--error">{error}</span> : null}
     </div>
   );

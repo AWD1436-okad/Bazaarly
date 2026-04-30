@@ -185,10 +185,6 @@ export async function POST(request: Request) {
             throw new Error(`${item.product.name} supplier stock changed`);
           }
 
-          if (marketState.currentSupplierPrice !== item.unitPriceSnapshot) {
-            throw new Error(`${item.product.name} changed price. Please review your cart and try again`);
-          }
-
           const lineTotal = item.unitPriceSnapshot * item.quantity;
           totalPrice += lineTotal;
           supplierTotal += lineTotal;
@@ -230,10 +226,6 @@ export async function POST(request: Request) {
         if (listing.shopId !== cart.shopId || listing.productId !== item.productId) {
           throw new Error("Cart item no longer matches its listing");
         }
-        if (listing.price !== item.unitPriceSnapshot) {
-          throw new Error(`${listing.product.name} changed price. Please review your cart and try again`);
-        }
-
         const seller = cart.shop?.owner;
         if (!seller) {
           throw new Error("Seller not found");
