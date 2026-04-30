@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BulkListingVisibilityControls } from "@/components/bulk-listing-visibility-controls";
 import { BulkSoldOutCleanup } from "@/components/bulk-sold-out-cleanup";
+import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
 import { SoldOutListingActions } from "@/components/sold-out-listing-actions";
@@ -433,6 +434,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         <p>
           Manage inventory, publish listings, and monitor sales from the same seller dashboard.
         </p>
+        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       <section className="metrics-grid">

@@ -469,6 +469,7 @@ export function SettingsActions({
           currencies, so one listing may appear as PKR to the seller, AUD to one buyer, and USD to
           another buyer while checkout still uses the stored AUD value.
         </p>
+        <p className="muted">Exchange rates are static reference values in this build and are not live market feeds.</p>
       </section>
 
       <section className="card settings-card">

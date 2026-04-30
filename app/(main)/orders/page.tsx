@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -130,6 +131,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
       <section className="page-header">
         <h1>Order history</h1>
         <p>Review both sides of your Tradex economy: what you bought and what you sold.</p>
+        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {checkout ? (

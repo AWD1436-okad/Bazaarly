@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { CheckoutStickyAction } from "@/components/checkout-sticky-action";
+import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -71,10 +72,11 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   });
 
   return (
-    <div className="page-grid">
+    <div className="page-grid checkout-page">
       <section className="page-header">
         <h1>Secure checkout</h1>
         <p>Review everything, then confirm with your account password, checkout PIN, and bank number.</p>
+        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {error ? (
@@ -102,16 +104,53 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
             <h3>Price changed since added</h3>
             <p>
               Your cart price is locked for: {priceChangedItems.map((item) => item.product.name).join(", ")}.
+              Locked checkout amounts are stored in AUD and converted for display in {currencyCode}.
             </p>
           </div>
         </div>
       ) : null}
 
+      <section className="card checkout-page__confirm-card">
+        <div className="section-row">
+          <div>
+            <h2>Confirm purchase</h2>
+            <p>
+              {cart.items.length} item type{cart.items.length === 1 ? "" : "s"} in this checkout. Total{" "}
+              <strong>{formatCurrency(total, currencyCode)}</strong>.
+            </p>
+            <p>Wrong password, PIN, or bank number will leave your cart untouched.</p>
+          </div>
+          <Link className="ghost-button" href="/cart">
+            Back to cart
+          </Link>
+        </div>
+
+        <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
+          <label>
+            Account password
+            <input name="password" type="password" required />
+          </label>
+          <label>
+            Checkout PIN
+            <input name="checkoutPin" type="password" inputMode="numeric" required />
+          </label>
+          <label>
+            Bank number
+            <input name="bankNumber" type="password" inputMode="numeric" required />
+          </label>
+          <button type="submit" disabled={hasUnavailableItems}>
+            {hasUnavailableItems
+              ? "Update cart before confirming"
+              : `Confirm Purchase ${formatCurrency(total, currencyCode)}`}
+          </button>
+        </form>
+      </section>
+
       <section className="card">
         <div className="section-row">
           <div>
-            <h2>Order summary</h2>
-            <p>{cart.items.length} item type{cart.items.length === 1 ? "" : "s"} in this checkout.</p>
+            <h2>Order details</h2>
+            <p>Review each cart line before final confirmation.</p>
           </div>
           <strong>{formatCurrency(total, currencyCode)}</strong>
         </div>
@@ -148,38 +187,6 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
             );
           })}
         </div>
-      </section>
-
-      <section className="card">
-        <div className="section-row">
-          <div>
-            <h2>Confirm purchase</h2>
-            <p>Wrong password, PIN, or bank number will leave your cart untouched.</p>
-          </div>
-          <Link className="ghost-button" href="/cart">
-            Back to cart
-          </Link>
-        </div>
-
-        <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
-          <label>
-            Account password
-            <input name="password" type="password" required />
-          </label>
-          <label>
-            Checkout PIN
-            <input name="checkoutPin" type="password" inputMode="numeric" required />
-          </label>
-          <label>
-            Bank number
-            <input name="bankNumber" type="password" inputMode="numeric" required />
-          </label>
-          <button type="submit" disabled={hasUnavailableItems}>
-            {hasUnavailableItems
-              ? "Update cart before confirming"
-              : `Confirm Purchase ${formatCurrency(total, currencyCode)}`}
-          </button>
-        </form>
       </section>
 
       <CheckoutStickyAction

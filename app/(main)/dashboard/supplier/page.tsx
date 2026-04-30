@@ -1,6 +1,7 @@
 import { ProductCategory } from "@prisma/client";
 
 import { CategoryFilterList } from "@/components/category-filter-list";
+import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { SupplierCategoryBulkAdd } from "@/components/supplier-category-bulk-add";
@@ -317,6 +318,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                 {selectedCategory ? ` in ${selectedCategory.label}` : ""}.
                 {searchQuery ? ` Search: "${searchQuery}".` : ""}
               </p>
+              <CurrencyDisplayNote currencyCode={currencyCode} />
             </div>
             {selectedCategory ? (
               <SupplierCategoryBulkAdd categoryValue={selectedCategory.value} />

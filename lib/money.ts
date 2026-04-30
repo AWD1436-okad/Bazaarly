@@ -1,6 +1,8 @@
 import { CURRENCY_DATA } from "@/lib/currencies";
 import { getPriceProfileMetadata, normalizeCurrencyCode } from "@/lib/price-profiles";
 
+// Rates are static reference values anchored to AUD.
+// They are intentionally not live FX feeds so pricing behavior stays deterministic.
 const approximateRatesPerAud: Record<string, number> = {
   AED: 2.39,
   AFN: 45,
@@ -202,6 +204,12 @@ export function formatCurrency(cents: number, currencyCodeInput = "AUD") {
 
 export function formatPriceWithUnit(cents: number, unitLabel: string, currencyCode = "AUD") {
   return `${formatMoney(cents, currencyCode)} ${unitLabel}`;
+}
+
+export function getCurrencyDisplayNotice(currencyCodeInput = "AUD") {
+  const currencyCode = normalizeCurrencyCode(currencyCodeInput);
+  const profile = getPriceProfileMetadata(currencyCode);
+  return `Displaying prices in ${profile.currencyCode} (${profile.currencyName}) using static reference exchange rates. Base values are stored in AUD.`;
 }
 
 export function parseCurrencyInput(value: string) {

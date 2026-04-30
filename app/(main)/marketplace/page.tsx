@@ -1,4 +1,5 @@
 import { CategoryFilterList } from "@/components/category-filter-list";
+import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { DailyFeatureCard } from "@/components/daily-feature-card";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
@@ -167,6 +168,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
             ? ` for "${queryText}"`
             : ""}
         </p>
+        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {hasQuery && marketplace.searchSummary?.showingClosestMatches ? (

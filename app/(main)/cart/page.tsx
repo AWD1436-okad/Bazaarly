@@ -1,5 +1,6 @@
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { ClearCartButton } from "@/components/clear-cart-button";
+import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -43,12 +44,24 @@ export default async function CartPage({ searchParams }: CartProps) {
 
   const total =
     cart?.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0) ?? 0;
+  const hasUnavailableItems =
+    cart?.items.some((item) => {
+      const availableQuantity =
+        item.source === "SUPPLIER"
+          ? item.product.marketState?.supplierStock ?? 0
+          : item.listing?.quantity ?? 0;
+      return (
+        availableQuantity <= 0 ||
+        (item.source === "MARKETPLACE" && (!item.listing || !item.listing.active || item.listing.isPaused))
+      );
+    }) ?? false;
 
   return (
     <div className="page-grid cart-page">
       <section className="page-header">
         <h1>Your cart</h1>
         <p>Review marketplace and supplier items before moving to secure checkout.</p>
+        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {added ? (
@@ -131,18 +144,39 @@ export default async function CartPage({ searchParams }: CartProps) {
                 <p>Continue to the secure checkout screen to confirm with your password, PIN, and bank number.</p>
               </div>
               <form action="/checkout" method="get">
-                <button type="submit">Checkout {formatCurrency(total, currencyCode)}</button>
+                <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
+                  {hasUnavailableItems ? "Update cart before checkout" : `Continue to Checkout ${formatCurrency(total, currencyCode)}`}
+                </button>
               </form>
             </div>
           </section>
 
-          <aside className="sticky-checkout-bar" aria-label="Cart checkout">
+          <aside className="cart-sticky-card" aria-label="Cart checkout summary">
             <div>
+              <span className="muted">
+                {cart.items.length} item{cart.items.length === 1 ? "" : "s"}
+              </span>
+              <strong>{formatCurrency(total, currencyCode)}</strong>
+            </div>
+            <form action="/checkout" method="get">
+              <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
+                {hasUnavailableItems ? "Update cart before checkout" : "Continue to Checkout"}
+              </button>
+            </form>
+          </aside>
+
+          <aside className="cart-sticky-bottom" aria-label="Cart checkout">
+            <div>
+              <span className="muted">
+                {cart.items.length} item{cart.items.length === 1 ? "" : "s"}
+              </span>
               <span className="muted">Cart total</span>
               <strong>{formatCurrency(total, currencyCode)}</strong>
             </div>
             <form action="/checkout" method="get">
-              <button type="submit">Checkout</button>
+              <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
+                {hasUnavailableItems ? "Update cart" : "Continue to Checkout"}
+              </button>
             </form>
           </aside>
         </>
