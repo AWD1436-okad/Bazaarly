@@ -20,6 +20,12 @@ function shouldTriggerSimulation(request: NextRequest) {
 }
 
 export function middleware(request: NextRequest, event: NextFetchEvent) {
+  const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith("/branch") || pathname.startsWith("/settings/branch-availability")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   if (shouldTriggerSimulation(request)) {
     const simulationUrl = new URL("/api/simulation", request.url);
 
@@ -38,5 +44,14 @@ export function middleware(request: NextRequest, event: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ["/marketplace/:path*", "/dashboard/:path*", "/cart/:path*", "/orders/:path*", "/notifications/:path*", "/shop/:path*"],
+  matcher: [
+    "/marketplace/:path*",
+    "/dashboard/:path*",
+    "/cart/:path*",
+    "/orders/:path*",
+    "/notifications/:path*",
+    "/shop/:path*",
+    "/branch/:path*",
+    "/settings/branch-availability/:path*",
+  ],
 };
