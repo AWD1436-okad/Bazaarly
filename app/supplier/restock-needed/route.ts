@@ -1,9 +1,8 @@
-import { Prisma, ProductCategory } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
-import { getCategoryFilterOption } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 
@@ -27,43 +26,45 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const categoryValue = String(formData.get("category") ?? "");
-  const quantityPerItemValue = Number.parseInt(String(formData.get("quantityPerItem") ?? "1"), 10);
-  const quantityPerItem = Number.isFinite(quantityPerItemValue)
-    ? clamp(quantityPerItemValue, 1, 99)
-    : 1;
-  const selectedCategory = getCategoryFilterOption(categoryValue);
+  const selectedEntries = Array.from(formData.entries())
+    .filter(([key]) => key.startsWith("qty:"))
+    .map(([key, value]) => {
+      const productId = key.slice(4);
+      const parsed = Number.parseInt(String(value ?? "0"), 10);
+      return {
+        productId,
+        quantity: Number.isFinite(parsed) ? clamp(parsed, 0, 99) : 0,
+      };
+    })
+    .filter((entry) => entry.productId.length > 0 && entry.quantity > 0);
 
-  if (!selectedCategory) {
-    return redirectWithError(request, "Choose a category first");
+  if (selectedEntries.length === 0) {
+    return redirectWithError(request, "Select at least one product quantity greater than zero");
   }
 
-  const products = await prisma.product.findMany({
+  const selectedProductIds = selectedEntries.map((entry) => entry.productId);
+  const quantityMap = new Map(selectedEntries.map((entry) => [entry.productId, entry.quantity]));
+
+  const soldOutListings = await prisma.listing.findMany({
     where: {
-      category: selectedCategory.category ?? (selectedCategory.value as ProductCategory),
-      ...(selectedCategory.subcategory !== undefined
-        ? { subcategory: selectedCategory.subcategory }
-        : {}),
-      marketState: {
-        supplierStock: { gt: 0 },
-        currentSupplierPrice: { gt: 0 },
+      shop: {
+        ownerId: user.id,
       },
+      productId: {
+        in: selectedProductIds,
+      },
+      quantity: { lte: 0 },
     },
     select: {
-      id: true,
-      marketState: {
-        select: {
-          currentSupplierPrice: true,
-          supplierStock: true,
-        },
-      },
+      productId: true,
     },
-    orderBy: { name: "asc" },
   });
 
-  if (products.length === 0) {
-    return redirectWithError(request, "No in-stock supplier items in that category");
+  if (soldOutListings.length === 0) {
+    return redirectWithError(request, "No sold-out listings matched your restock selection");
   }
+
+  const allowedProductIds = new Set(soldOutListings.map((listing) => listing.productId));
 
   await prisma.$transaction(async (tx) => {
     let cart = await tx.cart.findFirst({
@@ -100,11 +101,28 @@ export async function POST(request: Request) {
       throw new Error("Unable to open your cart right now");
     }
 
-    for (const product of products) {
-      const supplierPrice = product.marketState?.currentSupplierPrice ?? 0;
-      const supplierStock = product.marketState?.supplierStock ?? 0;
+    for (const productId of allowedProductIds) {
+      const requestedQuantity = quantityMap.get(productId) ?? 0;
+      if (requestedQuantity <= 0) {
+        continue;
+      }
 
-      if (supplierPrice <= 0 || supplierStock <= 0) {
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+        include: {
+          marketState: {
+            select: {
+              currentSupplierPrice: true,
+              supplierStock: true,
+            },
+          },
+        },
+      });
+
+      const supplierPrice = product?.marketState?.currentSupplierPrice ?? 0;
+      const supplierStock = product?.marketState?.supplierStock ?? 0;
+
+      if (!product || supplierPrice <= 0 || supplierStock <= 0) {
         continue;
       }
 
@@ -112,18 +130,20 @@ export async function POST(request: Request) {
         where: {
           cartId_productId_source: {
             cartId: cart.id,
-            productId: product.id,
+            productId,
             source: "SUPPLIER",
           },
         },
       });
 
-      if (cartItem) {
-        if (cartItem.quantity >= supplierStock) {
-          continue;
-        }
-        const nextQuantity = Math.min(supplierStock, cartItem.quantity + quantityPerItem);
+      const existingQuantity = cartItem?.quantity ?? 0;
+      const nextQuantity = Math.min(supplierStock, existingQuantity + requestedQuantity);
 
+      if (nextQuantity <= existingQuantity) {
+        continue;
+      }
+
+      if (cartItem) {
         await tx.cartItem.update({
           where: { id: cartItem.id },
           data: {
@@ -135,9 +155,9 @@ export async function POST(request: Request) {
         await tx.cartItem.create({
           data: {
             cartId: cart.id,
-            productId: product.id,
+            productId,
             source: "SUPPLIER",
-            quantity: Math.min(quantityPerItem, supplierStock),
+            quantity: nextQuantity,
             unitPriceSnapshot: supplierPrice,
           },
         });
@@ -145,7 +165,7 @@ export async function POST(request: Request) {
     }
   });
 
-  revalidatePath("/cart");
   revalidatePath("/dashboard/supplier");
+  revalidatePath("/cart");
   return NextResponse.redirect(new URL("/cart?added=1", request.url), 303);
 }

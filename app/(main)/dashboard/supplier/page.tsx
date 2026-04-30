@@ -31,6 +31,16 @@ type SupplierProduct = {
   supplierStock: number;
 };
 
+type SoldOutRestockItem = {
+  productId: string;
+  name: string;
+  category: ProductCategory;
+  subcategory: string | null;
+  unitLabel: string;
+  supplierStock: number;
+  supplierPrice: number;
+};
+
 function parseCategoryFilter(value: string | string[] | undefined) {
   if (typeof value !== "string" || value === "ALL") {
     return null;
@@ -178,6 +188,50 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     supplierStock: item.marketState?.supplierStock ?? 0,
   }));
 
+  const soldOutListings = await prisma.listing.findMany({
+    where: {
+      shop: {
+        ownerId: user.id,
+      },
+      quantity: { lte: 0 },
+    },
+    select: {
+      productId: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          subcategory: true,
+          unitLabel: true,
+          marketState: {
+            select: {
+              currentSupplierPrice: true,
+              supplierStock: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      product: {
+        name: "asc",
+      },
+    },
+  });
+
+  const soldOutRestockItems: SoldOutRestockItem[] = soldOutListings
+    .map((listing) => ({
+      productId: listing.product.id,
+      name: listing.product.name,
+      category: listing.product.category,
+      subcategory: listing.product.subcategory,
+      unitLabel: listing.product.unitLabel,
+      supplierStock: listing.product.marketState?.supplierStock ?? 0,
+      supplierPrice: listing.product.marketState?.currentSupplierPrice ?? 0,
+    }))
+    .filter((item) => item.supplierStock > 0 && item.supplierPrice > 0);
+
   const filteredProducts = searchQuery
     ? supplierProducts
         .map((item) => ({
@@ -265,10 +319,53 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
             {selectedCategory ? (
               <form action="/supplier/add-category" method="post">
                 <input type="hidden" name="category" value={selectedCategory.value} />
-                <button type="submit">Add category to cart</button>
+                <label className="stack-xs" style={{ minWidth: 120 }}>
+                  Qty each
+                  <input type="number" name="quantityPerItem" min={1} max={99} defaultValue={1} />
+                </label>
+                <button type="submit">Add all to cart</button>
               </form>
             ) : null}
           </section>
+
+          {soldOutRestockItems.length > 0 ? (
+            <section className="card stack-sm">
+              <div className="section-row">
+                <div>
+                  <h3>Restock sold-out listings</h3>
+                  <p>Choose quantities, then add selected sold-out items to cart.</p>
+                </div>
+              </div>
+              <form action="/supplier/restock-needed" method="post" className="table-list">
+                {soldOutRestockItems.map((item) => (
+                  <div key={item.productId} className="table-row">
+                    <div className="table-row__meta">
+                      <strong>{item.name}</strong>
+                      <span className="muted">
+                        {getProductCategoryLabel(item.category, item.subcategory)} -{" "}
+                        {formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)} -{" "}
+                        {sanitizeStockCount(item.supplierStock)} supplier stock
+                      </span>
+                    </div>
+                    <div className="table-row__actions">
+                      <input
+                        type="number"
+                        name={`qty:${item.productId}`}
+                        min={0}
+                        max={Math.max(item.supplierStock, 0)}
+                        defaultValue={0}
+                        aria-label={`Quantity for ${item.name}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div className="section-row">
+                  <span className="muted">Set quantity to 0 to skip an item.</span>
+                  <button type="submit">Add selected to cart</button>
+                </div>
+              </form>
+            </section>
+          ) : null}
 
           {filteredProducts.length === 0 ? (
             <div className="empty-state">
