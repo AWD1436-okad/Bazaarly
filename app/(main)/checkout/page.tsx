@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
+import { CheckoutStickyAction } from "@/components/checkout-sticky-action";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -160,7 +161,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           </Link>
         </div>
 
-        <form action="/checkout/confirm" method="post" className="stack-sm">
+        <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
           <label>
             Account password
             <input name="password" type="password" required />
@@ -180,6 +181,13 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           </button>
         </form>
       </section>
+
+      <CheckoutStickyAction
+        formId="checkout-confirm-form"
+        totalLabel={formatCurrency(total, currencyCode)}
+        itemCount={cart.items.length}
+        disabledByAvailability={hasUnavailableItems}
+      />
     </div>
   );
 }
