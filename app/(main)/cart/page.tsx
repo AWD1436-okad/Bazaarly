@@ -153,34 +153,6 @@ export default async function CartPage({ searchParams }: CartProps) {
             </div>
           </section>
 
-          <aside className="cart-sticky-card" aria-label="Cart checkout summary">
-            <div>
-              <span className="muted">
-                {cart.items.length} item{cart.items.length === 1 ? "" : "s"}
-              </span>
-              <strong>{formatCurrency(total, currencyCode)}</strong>
-            </div>
-            <form action="/checkout" method="get">
-              <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
-                {hasUnavailableItems ? "Update cart before checkout" : "Continue to Checkout"}
-              </button>
-            </form>
-          </aside>
-
-          <aside className="cart-sticky-bottom" aria-label="Cart checkout">
-            <div>
-              <span className="muted">
-                {cart.items.length} item{cart.items.length === 1 ? "" : "s"}
-              </span>
-              <span className="muted">Cart total</span>
-              <strong>{formatCurrency(total, currencyCode)}</strong>
-            </div>
-            <form action="/checkout" method="get">
-              <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
-                {hasUnavailableItems ? "Update cart" : "Continue to Checkout"}
-              </button>
-            </form>
-          </aside>
         </>
       )}
     </div>
