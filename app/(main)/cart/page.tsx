@@ -97,7 +97,23 @@ export default async function CartPage({ searchParams }: CartProps) {
                 <ClearCartButton />
               </div>
             </div>
+          </section>
 
+          <section className="card cart-checkout-card-top">
+            <div className="section-row">
+              <div>
+                <h2>Checkout</h2>
+                <p>Continue to secure checkout with password, PIN, and bank number verification.</p>
+              </div>
+              <form action="/checkout" method="get">
+                <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
+                  {hasUnavailableItems ? "Update cart before checkout" : `Continue to Checkout ${formatCurrency(total, currencyCode)}`}
+                </button>
+              </form>
+            </div>
+          </section>
+
+          <section className="card">
             <div className="table-list">
               {cart.items.map((item) => {
                 const availableQuantity =
@@ -134,20 +150,6 @@ export default async function CartPage({ searchParams }: CartProps) {
                   </div>
                 );
               })}
-            </div>
-          </section>
-
-          <section className="card">
-            <div className="section-row">
-              <div>
-                <h2>Checkout</h2>
-                <p>Continue to the secure checkout screen to confirm with your password, PIN, and bank number.</p>
-              </div>
-              <form action="/checkout" method="get">
-                <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>
-                  {hasUnavailableItems ? "Update cart before checkout" : `Continue to Checkout ${formatCurrency(total, currencyCode)}`}
-                </button>
-              </form>
             </div>
           </section>
 

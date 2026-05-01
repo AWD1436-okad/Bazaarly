@@ -6,7 +6,7 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { SupplierCategoryBulkAdd } from "@/components/supplier-category-bulk-add";
 import { SupplierPurchaseForm } from "@/components/supplier-purchase-form";
-import { SupplierRestockNeededForm } from "@/components/supplier-restock-needed-form";
+import { SupplierRestockNeededModal } from "@/components/supplier-restock-needed-modal";
 import { requireUser } from "@/lib/auth";
 import {
   CATEGORY_OPTIONS,
@@ -326,28 +326,20 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
           </section>
 
           {soldOutRestockItems.length > 0 ? (
-            <section className="card stack-sm">
-              <div className="section-row">
-                <div>
-                  <h3>Restock sold-out listings</h3>
-                  <p>Choose quantities, then add selected sold-out items to cart.</p>
-                </div>
-              </div>
-              <SupplierRestockNeededForm
-                items={soldOutRestockItems.map((item) => ({
-                  productId: item.productId,
-                  name: item.name,
-                  categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
-                  unitLabel: item.unitLabel,
-                  supplierStock: sanitizeStockCount(item.supplierStock),
-                  supplierPriceLabel: formatPriceWithUnit(
-                    item.supplierPrice,
-                    item.unitLabel,
-                    currencyCode,
-                  ),
-                }))}
-              />
-            </section>
+            <SupplierRestockNeededModal
+              items={soldOutRestockItems.map((item) => ({
+                productId: item.productId,
+                name: item.name,
+                categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
+                unitLabel: item.unitLabel,
+                supplierStock: sanitizeStockCount(item.supplierStock),
+                supplierPriceLabel: formatPriceWithUnit(
+                  item.supplierPrice,
+                  item.unitLabel,
+                  currencyCode,
+                ),
+              }))}
+            />
           ) : null}
 
           {filteredProducts.length === 0 ? (

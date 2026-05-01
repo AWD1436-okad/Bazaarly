@@ -76,6 +76,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const params = (await searchParams) ?? {};
   const welcome = params.welcome === "1";
   const listingSuccess = params.listingSuccess === "1";
+  const bulkListed = params.bulkListed === "1";
+  const bulkListedCreated = Number(params.bulkListedCreated ?? "0") || 0;
+  const bulkListedUpdated = Number(params.bulkListedUpdated ?? "0") || 0;
+  const bulkListedSkipped = Number(params.bulkListedSkipped ?? "0") || 0;
   const error = typeof params.error === "string" ? params.error : null;
   const inventoryPage = Math.max(Number(params.inventoryPage ?? "1") || 1, 1);
   const listingsPage = Math.max(Number(params.listingsPage ?? "1") || 1, 1);
@@ -414,6 +418,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         />
       ) : null}
 
+      {bulkListed ? (
+        <StatusBanner
+          tone="success"
+          title="Bulk listing complete"
+          body={`Listed ${bulkListedCreated} products, restocked ${bulkListedUpdated}, skipped ${bulkListedSkipped}.`}
+        />
+      ) : null}
+
       {error ? <StatusBanner tone="error" title="Action needs attention" body={error} /> : null}
 
       {!hasInventory ? (
@@ -467,6 +479,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 <Link href="/dashboard/supplier" className="ghost-button">
                   Open supplier
                 </Link>
+                <form action="/listings/list-all" method="post">
+                  <button type="submit">List all products</button>
+                </form>
               </div>
             </div>
               {listingOptionRows.length > 0 ? (

@@ -942,6 +942,13 @@ textarea {
   flex-wrap: wrap;
 }
 
+.cart-checkout-card-top {
+  border-color: rgba(111, 45, 245, 0.26);
+  background:
+    radial-gradient(circle at top left, rgba(122, 60, 255, 0.1), transparent 32%),
+    linear-gradient(180deg, #ffffff, #f4f7ff);
+}
+
 .clear-cart-action {
   display: grid;
   gap: 0.35rem;
@@ -1109,6 +1116,17 @@ textarea {
   border-radius: 24px;
   background: var(--surface);
   box-shadow: 0 22px 70px rgba(31, 41, 51, 0.22);
+}
+
+.modal-card--wide {
+  width: min(760px, 100%);
+  max-height: min(80vh, 760px);
+}
+
+.modal-card--wide .table-list {
+  overflow: auto;
+  max-height: min(52vh, 460px);
+  padding-right: 0.35rem;
 }
 
 .modal-card--danger {
