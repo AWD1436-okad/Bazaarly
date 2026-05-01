@@ -9,6 +9,17 @@ import { clamp } from "@/lib/utils";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
+const TIER_KEYS = [
+  "above_1",
+  "above_5",
+  "above_10",
+  "above_20",
+  "above_50",
+  "above_100",
+] as const;
+
+type TierKey = (typeof TIER_KEYS)[number];
+
 function isAsyncRequest(request: Request) {
   return request.headers.get("x-tradex-async") === "1";
 }
@@ -18,6 +29,17 @@ function redirectWithError(request: Request, message: string) {
     new URL(`/dashboard/supplier?error=${encodeURIComponent(message)}`, request.url),
     303,
   );
+}
+
+function resolveTierKeyByPrice(priceCents: number): TierKey | null {
+  const audDollars = priceCents / 100;
+  if (audDollars >= 100) return "above_100";
+  if (audDollars >= 50) return "above_50";
+  if (audDollars >= 20) return "above_20";
+  if (audDollars >= 10) return "above_10";
+  if (audDollars >= 5) return "above_5";
+  if (audDollars >= 1) return "above_1";
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -37,43 +59,51 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const selectedEntries = Array.from(formData.entries())
-    .filter(([key]) => key.startsWith("qty:"))
+  const requestedTiers = Array.from(formData.entries())
+    .filter(([key]) => key.startsWith("tier:"))
     .map(([key, value]) => {
-      const productId = key.slice(4);
+      const tierKey = key.slice(5) as TierKey;
       const parsed = Number.parseInt(String(value ?? "0"), 10);
       return {
-        productId,
+        tierKey,
         quantity: Number.isFinite(parsed) ? clamp(parsed, 0, 99) : 0,
       };
     })
-    .filter((entry) => entry.productId.length > 0 && entry.quantity > 0);
+    .filter((entry) => TIER_KEYS.includes(entry.tierKey) && entry.quantity > 0);
 
-  if (selectedEntries.length === 0) {
+  if (requestedTiers.length === 0) {
     if (asyncRequest) {
       return NextResponse.json(
-        { ok: false, error: "Select at least one product quantity greater than zero" },
+        { ok: false, error: "Select at least one tier quantity greater than zero" },
         { status: 400 },
       );
     }
-    return redirectWithError(request, "Select at least one product quantity greater than zero");
+    return redirectWithError(request, "Select at least one tier quantity greater than zero");
   }
 
-  const selectedProductIds = selectedEntries.map((entry) => entry.productId);
-  const quantityMap = new Map(selectedEntries.map((entry) => [entry.productId, entry.quantity]));
+  const tierQuantityMap = new Map<TierKey, number>(
+    requestedTiers.map((entry) => [entry.tierKey, entry.quantity]),
+  );
 
   const soldOutListings = await prisma.listing.findMany({
     where: {
       shop: {
         ownerId: user.id,
       },
-      productId: {
-        in: selectedProductIds,
-      },
       quantity: { lte: 0 },
     },
     select: {
       productId: true,
+      product: {
+        select: {
+          marketState: {
+            select: {
+              currentSupplierPrice: true,
+              supplierStock: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -87,7 +117,25 @@ export async function POST(request: Request) {
     return redirectWithError(request, "No sold-out listings matched your restock selection");
   }
 
-  const allowedProductIds = new Set(soldOutListings.map((listing) => listing.productId));
+  const selectedProductQuantities = new Map<string, number>();
+  for (const listing of soldOutListings) {
+    const supplierPrice = listing.product.marketState?.currentSupplierPrice ?? 0;
+    const tierKey = resolveTierKeyByPrice(supplierPrice);
+    if (!tierKey) continue;
+    const requestedQty = tierQuantityMap.get(tierKey) ?? 0;
+    if (requestedQty <= 0) continue;
+    selectedProductQuantities.set(listing.productId, requestedQty);
+  }
+
+  if (selectedProductQuantities.size === 0) {
+    if (asyncRequest) {
+      return NextResponse.json(
+        { ok: false, error: "No sold-out items match the selected tier quantities" },
+        { status: 400 },
+      );
+    }
+    return redirectWithError(request, "No sold-out items match the selected tier quantities");
+  }
 
   await prisma.$transaction(async (tx) => {
     let cart = await tx.cart.findFirst({
@@ -124,8 +172,7 @@ export async function POST(request: Request) {
       throw new Error("Unable to open your cart right now");
     }
 
-    for (const productId of allowedProductIds) {
-      const requestedQuantity = quantityMap.get(productId) ?? 0;
+    for (const [productId, requestedQuantity] of selectedProductQuantities.entries()) {
       if (requestedQuantity <= 0) {
         continue;
       }
@@ -193,7 +240,8 @@ export async function POST(request: Request) {
   if (asyncRequest) {
     return NextResponse.json({
       ok: true,
-      selectedCount: selectedEntries.length,
+      selectedCount: selectedProductQuantities.size,
+      message: "Added restock items to cart",
     });
   }
   return NextResponse.redirect(new URL("/cart?added=1", request.url), 303);

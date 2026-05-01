@@ -333,6 +333,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                 categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
                 unitLabel: item.unitLabel,
                 supplierStock: sanitizeStockCount(item.supplierStock),
+                supplierPriceCents: item.supplierPrice,
                 supplierPriceLabel: formatPriceWithUnit(
                   item.supplierPrice,
                   item.unitLabel,
