@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BulkListingVisibilityControls } from "@/components/bulk-listing-visibility-controls";
 import { BulkSoldOutCleanup } from "@/components/bulk-sold-out-cleanup";
+import { ChallengeCountdown } from "@/components/challenge-countdown";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
@@ -12,6 +13,7 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
+import { getDashboardChallenges } from "@/lib/challenges";
 import { convertAudCentsToCurrencyMinorUnits, formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode, getPriceProfileMetadata } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
@@ -102,9 +104,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     listingTotalCount,
     activeListingCount,
     pausedListingCount,
-    totalSalesCount,
-    soldUnitsSummary,
-    stockedCategoryRows,
   ] =
     await Promise.all([
       prisma.inventory.findMany({
@@ -315,32 +314,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           isPaused: true,
         },
       }),
-      prisma.order.count({
-        where: {
-          sellerId: user.id,
-        },
-      }),
-      prisma.$queryRaw<{ units: number }[]>(Prisma.sql`
-        SELECT COALESCE(SUM(oli."quantity"), 0)::int AS "units"
-        FROM "OrderLineItem" oli
-        INNER JOIN "Order" o ON o."id" = oli."orderId"
-        WHERE o."sellerId" = ${user.id}
-      `),
-      prisma.listing.findMany({
-        where: {
-          shopId: user.shop.id,
-          quantity: { gt: 0 },
-          active: true,
-          isPaused: false,
-        },
-        select: {
-          product: {
-            select: {
-              category: true,
-            },
-          },
-        },
-      }),
     ]);
 
   const listingOptionRows = listingOptions
@@ -428,51 +401,16 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
-  const totalUnitsSold = soldUnitsSummary[0]?.units ?? 0;
-  const stockedCategoryCount = new Set(stockedCategoryRows.map((row) => row.product.category)).size;
   const bestSellers = bestSellerRows.map((item) => ({
     name: item.productName,
     units: item.units,
     profit: item.profit,
   }));
-  const milestones = [
-    {
-      key: "first-sale",
-      label: "Make your first sale",
-      target: 1,
-      progress: totalSalesCount,
-    },
-    {
-      key: "balance-1000",
-      label: `Reach ${formatCurrency(100000, currencyCode)} balance`,
-      target: 100000,
-      progress: user.balance,
-    },
-    {
-      key: "sell-10",
-      label: "Sell 10 items",
-      target: 10,
-      progress: totalUnitsSold,
-    },
-    {
-      key: "profit-500",
-      label: `Reach ${formatCurrency(50000, currencyCode)} today profit`,
-      target: 50000,
-      progress: todayProfit,
-    },
-    {
-      key: "categories-5",
-      label: "Stock 5 different categories",
-      target: 5,
-      progress: stockedCategoryCount,
-    },
-  ].map((milestone) => {
-    const ratio = milestone.target > 0 ? Math.min(1, milestone.progress / milestone.target) : 0;
-    return {
-      ...milestone,
-      ratio,
-      completed: ratio >= 1,
-    };
+  const challengeSet = await getDashboardChallenges({
+    userId: user.id,
+    shopId: user.shop.id,
+    currencyCode,
+    activeListingCount,
   });
 
   if (safeInventoryPage !== inventoryPage) {
@@ -746,20 +684,31 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           <section className="card">
             <div className="card-header">
               <div className="card-header__copy">
-                <h2>Goals</h2>
-                <p>Complete milestones to keep growth steady and challenge decisions.</p>
+                <h2>Challenges</h2>
+                <p>Short business challenges refresh every five minutes.</p>
               </div>
+              <ChallengeCountdown cycleEndsAt={challengeSet.cycleEndsAt.toISOString()} />
             </div>
-            <div className="table-list">
-              {milestones.map((goal) => (
-                <div key={goal.key} className="table-row">
-                  <div className="table-row__meta">
-                    <strong>{goal.label}</strong>
-                    <span className="muted">
-                      {goal.completed ? "Completed" : `${Math.min(goal.progress, goal.target)} / ${goal.target}`}
-                    </span>
+            <div className="challenge-list">
+              {challengeSet.challenges.map((challenge) => (
+                <div key={challenge.key} className="challenge-row">
+                  <div className="challenge-row__header">
+                    <div className="table-row__meta">
+                      <strong>{challenge.label}</strong>
+                      <span className="muted">
+                        {challenge.completed ? "Completed" : challenge.progressLabel}
+                      </span>
+                    </div>
+                    <div className="challenge-row__badges">
+                      <span className="tag">{challenge.difficulty}</span>
+                      <span className={challenge.rewarded ? "tag challenge-row__rewarded" : "tag"}>
+                        {challenge.rewarded ? "Rewarded" : `Reward ${challenge.rewardLabel}`}
+                      </span>
+                    </div>
                   </div>
-                  <strong>{Math.round(goal.ratio * 100)}%</strong>
+                  <div className="challenge-progress" aria-hidden="true">
+                    <span style={{ width: `${Math.round(challenge.ratio * 100)}%` }} />
+                  </div>
                 </div>
               ))}
             </div>

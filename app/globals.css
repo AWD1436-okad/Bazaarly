@@ -780,6 +780,67 @@ textarea {
   font-size: 1.55rem;
 }
 
+.challenge-countdown {
+  align-self: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  background: linear-gradient(180deg, #f5f7ff, #edf2ff);
+  color: var(--text);
+  font-weight: 700;
+  border: 1px solid rgba(194, 206, 244, 0.95);
+}
+
+.challenge-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.challenge-row {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.82rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top left, rgba(111, 45, 245, 0.08), transparent 28%),
+    var(--surface-alt);
+}
+
+.challenge-row__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.challenge-row__badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.challenge-row__rewarded {
+  color: #4f46e5;
+  background: rgba(111, 45, 245, 0.1);
+}
+
+.challenge-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(167, 186, 244, 0.35);
+}
+
+.challenge-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary-gradient);
+}
+
 .listing-grid {
   display: grid;
   gap: 0.8rem;
@@ -1342,6 +1403,14 @@ textarea {
   .currency-option {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+
+  .challenge-row__header {
+    grid-template-columns: 1fr;
+  }
+
+  .challenge-row__badges {
+    justify-content: flex-start;
   }
 
   .currency-option small {
