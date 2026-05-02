@@ -1,5 +1,6 @@
 import { LiveUpdatesWatcher } from "@/components/live-updates-watcher";
 import { Navigation } from "@/components/navigation";
+import { AutoRestockApprovalGate } from "@/components/auto-restock-approval-gate";
 import { SecuritySetupLock } from "@/components/security-setup-lock";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
@@ -33,6 +34,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
   return (
     <main className="app-shell">
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
+      <AutoRestockApprovalGate />
       <Navigation
         balance={user.balance}
         currencyCode={currencyCode}

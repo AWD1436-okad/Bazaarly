@@ -11,9 +11,20 @@ type SettingsActionsProps = {
   currentCurrencyCode: string;
   maskedBankNumber: string;
   renameStoreCostLabel: string;
-  autoRestockEnabled: boolean;
-  autoRestockQuantity: number;
-  autoRestockLastRunAt: string | null;
+  autoRestockSubscription: {
+    plan: "SIMPLE" | "PRO" | "MAX";
+    status: "ACTIVE" | "CANCELLED";
+    dailyCostCents: number;
+    dailyCostLabel: string;
+    nextChargeAt: string;
+    lastRestockAt: string | null;
+    lastChargedAt: string | null;
+  } | null;
+  autoRestockPlanLabels: {
+    simple: string;
+    pro: string;
+    max: string;
+  };
   priceProfiles: Array<{
     currencyCode: string;
     label: string;
@@ -43,9 +54,8 @@ export function SettingsActions({
   currentCurrencyCode,
   maskedBankNumber,
   renameStoreCostLabel,
-  autoRestockEnabled,
-  autoRestockQuantity,
-  autoRestockLastRunAt,
+  autoRestockSubscription,
+  autoRestockPlanLabels,
   priceProfiles,
 }: SettingsActionsProps) {
   const router = useRouter();
@@ -55,10 +65,10 @@ export function SettingsActions({
   const [bankOpen, setBankOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [restockEnabled, setRestockEnabled] = useState(autoRestockEnabled);
-  const [restockQuantity, setRestockQuantity] = useState(
-    Math.min(5, Math.max(1, autoRestockQuantity)),
+  const [selectedPlan, setSelectedPlan] = useState<"SIMPLE" | "PRO" | "MAX">(
+    autoRestockSubscription?.plan ?? "SIMPLE",
   );
+  const [confirmReplace, setConfirmReplace] = useState(false);
   const [nextUsername, setNextUsername] = useState(username);
   const [usernamePassword, setUsernamePassword] = useState("");
   const [nextDisplayName, setNextDisplayName] = useState(displayName);
@@ -377,34 +387,43 @@ export function SettingsActions({
     }
   }
 
-  async function handleAutoRestockChange() {
+  async function handleAutoRestockSubscription(action: "activate" | "cancel") {
     setSubmitting("autoRestock");
     resetMessages();
 
     try {
       const formData = new FormData();
-      formData.set("enabled", String(restockEnabled));
-      formData.set("quantity", String(restockQuantity));
+      formData.set("action", action);
+      if (action === "activate") {
+        formData.set("plan", selectedPlan);
+        formData.set("confirmReplace", String(confirmReplace));
+      }
 
-      const response = await fetch("/settings/auto-restock", {
+      const response = await fetch("/settings/auto-restock-subscription", {
         method: "POST",
         body: formData,
       });
       const payload = (await response.json()) as {
         ok?: boolean;
-        enabled?: boolean;
-        quantity?: number;
+        requiresReplaceConfirmation?: boolean;
         message?: string;
         error?: string;
       };
 
       if (!response.ok || !payload.ok) {
+        if (payload.requiresReplaceConfirmation) {
+          setState({
+            message: null,
+            error: payload.error ?? "Confirm replacement to switch plans",
+          });
+          setConfirmReplace(true);
+          return;
+        }
         throw new Error(payload.error ?? "Auto Restock update failed");
       }
 
-      setRestockEnabled(Boolean(payload.enabled));
-      setRestockQuantity(Math.min(5, Math.max(1, Number(payload.quantity ?? restockQuantity))));
-      setState({ message: payload.message ?? "Auto Restock updated", error: null });
+      setConfirmReplace(false);
+      setState({ message: payload.message ?? "Auto Restock subscription updated", error: null });
       router.refresh();
     } catch (error) {
       setState({
@@ -440,58 +459,72 @@ export function SettingsActions({
         <div className="card-header">
           <div className="card-header__copy">
             <h2>Auto Restock</h2>
-            <p>Automatically restock your sold-out listed items from supplier stock.</p>
+            <p>Choose one paid plan. Only one Auto Restock subscription can be active at a time.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => void handleAutoRestockChange()}
-            disabled={submitting !== null}
-          >
-            {submitting === "autoRestock" ? "Saving..." : "Save Auto Restock"}
-          </button>
+          <div className="inline-actions">
+            {autoRestockSubscription?.status === "ACTIVE" ? (
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => void handleAutoRestockSubscription("cancel")}
+                disabled={submitting !== null}
+              >
+                {submitting === "autoRestock" ? "Cancelling..." : "Cancel subscription"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void handleAutoRestockSubscription("activate")}
+              disabled={submitting !== null}
+            >
+              {submitting === "autoRestock" ? "Saving..." : "Activate plan"}
+            </button>
+          </div>
         </div>
         <label className="modal-card__field">
-          <span>Auto Restock sold-out items</span>
+          <span>Plan</span>
           <select
-            value={restockEnabled ? "on" : "off"}
+            value={selectedPlan}
             onChange={(event) => {
-              setRestockEnabled(event.target.value === "on");
+              setSelectedPlan(event.target.value as "SIMPLE" | "PRO" | "MAX");
+              setConfirmReplace(false);
               resetMessages();
             }}
             disabled={submitting !== null}
           >
-            <option value="off">Off</option>
-            <option value="on">On</option>
+            <option value="SIMPLE">Simple - {autoRestockPlanLabels.simple}</option>
+            <option value="PRO">Pro - {autoRestockPlanLabels.pro}</option>
+            <option value="MAX">Max - {autoRestockPlanLabels.max}</option>
           </select>
         </label>
-        <label className="modal-card__field">
-          <span>Quantity per sold-out item</span>
-          <select
-            value={String(restockQuantity)}
-            onChange={(event) => {
-              setRestockQuantity(Math.min(5, Math.max(1, Number(event.target.value) || 1)));
-              resetMessages();
-            }}
-            disabled={submitting !== null}
-          >
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </label>
+        {autoRestockSubscription?.status === "ACTIVE" ? (
+          <>
+            <p className="muted">
+              Current plan: <strong>{autoRestockSubscription.plan}</strong> | Daily cost:{" "}
+              <strong>{autoRestockSubscription.dailyCostLabel}</strong>
+            </p>
+            <p className="muted">
+              Next charge: <strong>{new Date(autoRestockSubscription.nextChargeAt).toLocaleString()}</strong>
+            </p>
+            <p className="muted">
+              Last restock:{" "}
+              <strong>
+                {autoRestockSubscription.lastRestockAt
+                  ? new Date(autoRestockSubscription.lastRestockAt).toLocaleString()
+                  : "Not run yet"}
+              </strong>
+            </p>
+          </>
+        ) : (
+          <p className="muted">No active Auto Restock subscription.</p>
+        )}
+        {confirmReplace ? (
+          <p className="status-text status-text--error">
+            Confirmed replacement is enabled. Activating now will replace your current active plan.
+          </p>
+        ) : null}
         <p className="muted">
-          Status: <strong>{restockEnabled ? "On" : "Off"}</strong> | Quantity:{" "}
-          <strong>{restockQuantity}</strong>
-        </p>
-        <p className="muted">
-          Last auto-restock run:{" "}
-          {autoRestockLastRunAt ? new Date(autoRestockLastRunAt).toLocaleString() : "Not run yet"}
-        </p>
-        <p className="muted">
-          Safety rules: only your sold-out listed items, quantity 1-5, capped by supplier stock,
-          and blocked when your balance is too low.
+          Daily plan fees are charged automatically. If balance is too low at charge time, subscription auto-cancels.
         </p>
       </section>
 

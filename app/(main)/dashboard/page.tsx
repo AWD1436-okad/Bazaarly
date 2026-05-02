@@ -102,6 +102,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     listingTotalCount,
     activeListingCount,
     pausedListingCount,
+    totalSalesCount,
+    soldUnitsSummary,
+    stockedCategoryRows,
   ] =
     await Promise.all([
       prisma.inventory.findMany({
@@ -312,6 +315,32 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           isPaused: true,
         },
       }),
+      prisma.order.count({
+        where: {
+          sellerId: user.id,
+        },
+      }),
+      prisma.$queryRaw<{ units: number }[]>(Prisma.sql`
+        SELECT COALESCE(SUM(oli."quantity"), 0)::int AS "units"
+        FROM "OrderLineItem" oli
+        INNER JOIN "Order" o ON o."id" = oli."orderId"
+        WHERE o."sellerId" = ${user.id}
+      `),
+      prisma.listing.findMany({
+        where: {
+          shopId: user.shop.id,
+          quantity: { gt: 0 },
+          active: true,
+          isPaused: false,
+        },
+        select: {
+          product: {
+            select: {
+              category: true,
+            },
+          },
+        },
+      }),
     ]);
 
   const listingOptionRows = listingOptions
@@ -399,11 +428,52 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
+  const totalUnitsSold = soldUnitsSummary[0]?.units ?? 0;
+  const stockedCategoryCount = new Set(stockedCategoryRows.map((row) => row.product.category)).size;
   const bestSellers = bestSellerRows.map((item) => ({
     name: item.productName,
     units: item.units,
     profit: item.profit,
   }));
+  const milestones = [
+    {
+      key: "first-sale",
+      label: "Make your first sale",
+      target: 1,
+      progress: totalSalesCount,
+    },
+    {
+      key: "balance-1000",
+      label: `Reach ${formatCurrency(100000, currencyCode)} balance`,
+      target: 100000,
+      progress: user.balance,
+    },
+    {
+      key: "sell-10",
+      label: "Sell 10 items",
+      target: 10,
+      progress: totalUnitsSold,
+    },
+    {
+      key: "profit-500",
+      label: `Reach ${formatCurrency(50000, currencyCode)} today profit`,
+      target: 50000,
+      progress: todayProfit,
+    },
+    {
+      key: "categories-5",
+      label: "Stock 5 different categories",
+      target: 5,
+      progress: stockedCategoryCount,
+    },
+  ].map((milestone) => {
+    const ratio = milestone.target > 0 ? Math.min(1, milestone.progress / milestone.target) : 0;
+    return {
+      ...milestone,
+      ratio,
+      completed: ratio >= 1,
+    };
+  });
 
   if (safeInventoryPage !== inventoryPage) {
     redirect(buildDashboardHref(params, { inventoryPage: safeInventoryPage }) as Route);
@@ -457,6 +527,16 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               Open Supplier
             </Link>
           }
+        />
+      ) : null}
+      {user.balance < 50000 ? (
+        <StatusBanner
+          tone="warning"
+          title="Low balance warning"
+          body={`Your balance is ${formatCurrency(
+            user.balance,
+            currencyCode,
+          )}. Restock carefully to avoid cancelled subscriptions or failed checkouts.`}
         />
       ) : null}
 
@@ -663,6 +743,28 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         </div>
 
         <div className="stack">
+          <section className="card">
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Goals</h2>
+                <p>Complete milestones to keep growth steady and challenge decisions.</p>
+              </div>
+            </div>
+            <div className="table-list">
+              {milestones.map((goal) => (
+                <div key={goal.key} className="table-row">
+                  <div className="table-row__meta">
+                    <strong>{goal.label}</strong>
+                    <span className="muted">
+                      {goal.completed ? "Completed" : `${Math.min(goal.progress, goal.target)} / ${goal.target}`}
+                    </span>
+                  </div>
+                  <strong>{Math.round(goal.ratio * 100)}%</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
           <section className="card">
             <div className="card-header">
               <div className="card-header__copy">

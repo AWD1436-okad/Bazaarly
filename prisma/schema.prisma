@@ -66,6 +66,25 @@ enum MarketTimePhase {
   NIGHT
 }
 
+enum AutoRestockPlan {
+  SIMPLE
+  PRO
+  MAX
+}
+
+enum AutoRestockSubscriptionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum AutoRestockRequestStatus {
+  PENDING
+  SKIPPED
+  APPROVED
+  COMPLETED
+  FAILED
+}
+
 model User {
   id                     String         @id @default(cuid())
   email                  String         @unique
@@ -95,6 +114,8 @@ model User {
   buyerOrders            Order[]        @relation("BuyerOrders")
   sellerOrders           Order[]        @relation("SellerOrders")
   sessions               Session[]
+  autoRestockSubscription AutoRestockSubscription?
+  autoRestockRequests     AutoRestockRequest[]
 }
 
 model Shop {
@@ -136,6 +157,7 @@ model Product {
   updatedAt    DateTime           @updatedAt
   inventories  Inventory[]
   listings     Listing[]
+  autoRestockRequestItems AutoRestockRequestItem[]
   cartItems    CartItem[]
   lineItems    OrderLineItem[]
   marketState  MarketProductState?
@@ -201,8 +223,62 @@ model Listing {
   product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems  CartItem[]
   lineItems  OrderLineItem[]
+  autoRestockRequestItems AutoRestockRequestItem[]
 
   @@unique([shopId, productId])
+}
+
+model AutoRestockSubscription {
+  id              String                         @id @default(cuid())
+  userId          String                         @unique
+  plan            AutoRestockPlan
+  status          AutoRestockSubscriptionStatus  @default(ACTIVE)
+  dailyCostCents  Int
+  setupFeeCents   Int                            @default(0)
+  startedAt       DateTime                       @default(now())
+  nextChargeAt    DateTime
+  lastChargedAt   DateTime?
+  lastRestockAt   DateTime?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  user            User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextChargeAt])
+}
+
+model AutoRestockRequest {
+  id                 String                   @id @default(cuid())
+  userId             String
+  plan               AutoRestockPlan
+  status             AutoRestockRequestStatus @default(PENDING)
+  estimatedCostCents Int
+  itemCount          Int                      @default(0)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  decidedAt          DateTime?
+  completedAt        DateTime?
+  failureReason      String?
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items              AutoRestockRequestItem[]
+
+  @@index([userId, status, createdAt])
+}
+
+model AutoRestockRequestItem {
+  id          String            @id @default(cuid())
+  requestId   String
+  listingId   String
+  productId   String
+  quantity    Int
+  unitPrice   Int
+  lineTotal   Int
+  createdAt   DateTime          @default(now())
+  request     AutoRestockRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  listing     Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, listingId])
+  @@index([listingId])
 }
 
 model Cart {

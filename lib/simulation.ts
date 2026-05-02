@@ -1,11 +1,15 @@
 import {
+  AutoRestockPlan,
+  AutoRestockRequestStatus,
+  AutoRestockSubscriptionStatus,
   BotPersonality,
   MarketTimePhase,
   NotificationType,
   ProductCategory,
 } from "@prisma/client";
-import { subMinutes } from "date-fns";
+import { addDays, subMinutes } from "date-fns";
 
+import { getNextRestockDelayMs, getPlanMeta } from "@/lib/auto-restock";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +21,6 @@ const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
 const BOT_WALLET_REFILL_FLOOR = 120_000;
-const AUTO_RESTOCK_COOLDOWN_MS = 8 * 60 * 1000;
 
 type BotCandidateListing = {
   id: string;
@@ -536,59 +539,125 @@ function getDesiredBotQuantity(
 }
 
 async function runAutoRestock(now: Date) {
-  const usersWithAutoRestock = await prisma.user.findMany({
+  const activeSubscriptions = await prisma.autoRestockSubscription.findMany({
     where: {
-      deletedAt: null,
-      securitySetupCompleted: true,
-      autoRestockEnabled: true,
-      autoRestockQuantity: {
-        gte: 1,
-        lte: 5,
-      },
-      shop: {
-        is: {
-          status: "ACTIVE",
-        },
-      },
+      status: AutoRestockSubscriptionStatus.ACTIVE,
     },
     select: {
       id: true,
-      currencyCode: true,
-      balance: true,
-      autoRestockQuantity: true,
-      shop: {
+      userId: true,
+      plan: true,
+      dailyCostCents: true,
+      nextChargeAt: true,
+      lastRestockAt: true,
+      user: {
         select: {
           id: true,
+          currencyCode: true,
+          balance: true,
+          deletedAt: true,
+          securitySetupCompleted: true,
+          shop: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
         },
       },
     },
   });
 
-  for (const user of usersWithAutoRestock) {
-    if (!user.shop) {
+  for (const subscription of activeSubscriptions) {
+    const user = subscription.user;
+    if (!user || user.deletedAt || !user.securitySetupCompleted || !user.shop || user.shop.status !== "ACTIVE") {
+      continue;
+    }
+
+    const activePendingRequest = await prisma.autoRestockRequest.findFirst({
+      where: {
+        userId: user.id,
+        status: AutoRestockRequestStatus.PENDING,
+      },
+      select: { id: true },
+    });
+    if (activePendingRequest) {
+      continue;
+    }
+
+    if (subscription.nextChargeAt <= now) {
+      if (user.balance < subscription.dailyCostCents) {
+        await prisma.$transaction(async (tx) => {
+          await tx.autoRestockSubscription.update({
+            where: { id: subscription.id },
+            data: {
+              status: AutoRestockSubscriptionStatus.CANCELLED,
+            },
+          });
+          await tx.notification.create({
+            data: {
+              userId: user.id,
+              type: NotificationType.SYSTEM,
+              message: `Auto Restock cancelled: insufficient balance for daily fee (${formatCurrency(
+                subscription.dailyCostCents,
+                user.currencyCode,
+              )}).`,
+              createdAt: now,
+            },
+          });
+        });
+        continue;
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            balance: {
+              decrement: subscription.dailyCostCents,
+            },
+          },
+        });
+        await tx.autoRestockSubscription.update({
+          where: { id: subscription.id },
+          data: {
+            lastChargedAt: now,
+            nextChargeAt: addDays(now, 1),
+          },
+        });
+        await tx.notification.create({
+          data: {
+            userId: user.id,
+            type: NotificationType.SYSTEM,
+            message: `${getPlanMeta(subscription.plan).name} Auto Restock daily fee charged: ${formatCurrency(
+              subscription.dailyCostCents,
+              user.currencyCode,
+            )}.`,
+            createdAt: now,
+          },
+        });
+      });
+    }
+
+    const delayMs = getNextRestockDelayMs(subscription.plan);
+    if (subscription.lastRestockAt && now.getTime() - subscription.lastRestockAt.getTime() < delayMs) {
       continue;
     }
 
     const soldOutListings = await prisma.listing.findMany({
       where: {
         shopId: user.shop.id,
-        quantity: {
-          lte: 0,
-        },
-        OR: [
-          { lastAutoRestockedAt: null },
-          { lastAutoRestockedAt: { lte: new Date(now.getTime() - AUTO_RESTOCK_COOLDOWN_MS) } },
-        ],
+        quantity: { lte: 0 },
+        isPaused: false,
+        active: true,
       },
       select: {
         id: true,
         productId: true,
-        isPaused: true,
-        active: true,
-        lastAutoRestockedAt: true,
         product: {
           select: {
             name: true,
+            category: true,
             marketState: {
               select: {
                 currentSupplierPrice: true,
@@ -598,196 +667,99 @@ async function runAutoRestock(now: Date) {
           },
         },
       },
-      orderBy: {
-        updatedAt: "asc",
-      },
-      take: 40,
+      orderBy: { updatedAt: "asc" },
+      take: subscription.plan === AutoRestockPlan.MAX ? 160 : 120,
     });
 
     if (soldOutListings.length === 0) {
       continue;
     }
 
-    let runningBalance = user.balance;
-    let restockedCount = 0;
-
-    for (const listing of soldOutListings) {
-      const supplierStock = sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0);
-      if (supplierStock <= 0) {
-        continue;
-      }
-
-      const quantityToBuy = Math.min(
-        Math.max(1, Math.min(5, user.autoRestockQuantity)),
-        supplierStock,
-      );
-      const unitPrice = Math.max(1, listing.product.marketState?.currentSupplierPrice ?? 0);
-      const totalCost = unitPrice * quantityToBuy;
-
-      if (runningBalance < totalCost) {
-        continue;
-      }
-
-      const didRestock = await prisma.$transaction(async (tx) => {
-        const latestUser = await tx.user.findUnique({
-          where: { id: user.id },
-          select: { balance: true },
-        });
-        const latestListing = await tx.listing.findUnique({
-          where: { id: listing.id },
-          select: {
-            id: true,
-            productId: true,
-            quantity: true,
-            isPaused: true,
-            lastAutoRestockedAt: true,
-            product: {
-              select: {
-                marketState: {
-                  select: {
-                    currentSupplierPrice: true,
-                    supplierStock: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        if (!latestUser || !latestListing) {
-          return false;
-        }
-
-        const cooldownReady =
-          !latestListing.lastAutoRestockedAt ||
-          now.getTime() - latestListing.lastAutoRestockedAt.getTime() >= AUTO_RESTOCK_COOLDOWN_MS;
-        if (!cooldownReady) {
-          return false;
-        }
-
-        const freshSupplierStock = sanitizeStockCount(
-          latestListing.product.marketState?.supplierStock ?? 0,
-        );
-        if (freshSupplierStock <= 0) {
-          return false;
-        }
-
-        const finalQuantity = Math.min(quantityToBuy, freshSupplierStock);
-        const finalUnitPrice = Math.max(
-          1,
-          latestListing.product.marketState?.currentSupplierPrice ?? unitPrice,
-        );
-        const finalCost = finalQuantity * finalUnitPrice;
-        if (latestUser.balance < finalCost) {
-          return false;
-        }
-
-        const inventory = await tx.inventory.upsert({
-          where: {
-            userId_productId: {
-              userId: user.id,
-              productId: latestListing.productId,
-            },
-          },
-          update: {},
-          create: {
-            userId: user.id,
-            productId: latestListing.productId,
-            quantity: 0,
-            allocatedQuantity: 0,
-            averageUnitCost: 0,
-          },
-          select: {
-            id: true,
-            quantity: true,
-            allocatedQuantity: true,
-            averageUnitCost: true,
-          },
-        });
-
-        const inventoryValueBefore = inventory.quantity * inventory.averageUnitCost;
-        const inventoryValueAfter = inventoryValueBefore + finalCost;
-        const quantityAfter = inventory.quantity + finalQuantity;
-        const nextAverageUnitCost =
-          quantityAfter > 0 ? Math.round(inventoryValueAfter / quantityAfter) : inventory.averageUnitCost;
-
-        await tx.user.update({
-          where: { id: user.id },
-          data: {
-            balance: {
-              decrement: finalCost,
-            },
-            autoRestockLastRunAt: now,
-          },
-        });
-
-        await tx.marketProductState.update({
-          where: { productId: latestListing.productId },
-          data: {
-            supplierStock: {
-              decrement: finalQuantity,
-            },
-          },
-        });
-
-        await tx.inventory.update({
-          where: {
-            userId_productId: {
-              userId: user.id,
-              productId: latestListing.productId,
-            },
-          },
-          data: {
-            quantity: {
-              increment: finalQuantity,
-            },
-            allocatedQuantity: {
-              increment: finalQuantity,
-            },
-            averageUnitCost: nextAverageUnitCost,
-          },
-        });
-
-        await tx.listing.update({
-          where: { id: latestListing.id },
-          data: {
-            quantity: {
-              increment: finalQuantity,
-            },
-            active: true,
-            lastAutoRestockedAt: now,
-          },
-        });
-
-        await tx.notification.create({
-          data: {
-            userId: user.id,
-            type: NotificationType.SYSTEM,
-            message: `Auto Restock purchased ${finalQuantity}x ${listing.product.name} for ${formatCurrency(
-              finalCost,
-              user.currencyCode,
-            )}.`,
-            createdAt: now,
-          },
-        });
-
-        return true;
-      });
-
-      if (didRestock) {
-        runningBalance -= totalCost;
-        restockedCount += 1;
-      }
+    const withStock = soldOutListings.filter((listing) => sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0) > 0);
+    if (withStock.length === 0) {
+      continue;
     }
 
-    if (restockedCount === 0) {
-      await prisma.user.update({
-        where: { id: user.id },
+    let selectedListings = withStock;
+    if (subscription.plan === AutoRestockPlan.SIMPLE) {
+      const poolSize = Math.min(withStock.length, randomIntInclusive(1, 3));
+      selectedListings = withStock
+        .slice()
+        .sort(() => Math.random() - 0.5)
+        .slice(0, poolSize);
+    } else if (subscription.plan === AutoRestockPlan.PRO) {
+      const targetCount = Math.max(1, Math.ceil(withStock.length * 0.65));
+      selectedListings = withStock
+        .slice()
+        .sort(() => Math.random() - 0.5)
+        .slice(0, targetCount);
+    }
+
+    const defaultQty = getPlanMeta(subscription.plan).defaultQuantity;
+    const requestItems = selectedListings
+      .map((listing) => {
+        const supplierStock = sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0);
+        if (supplierStock <= 0) return null;
+        const baseQty =
+          subscription.plan === AutoRestockPlan.SIMPLE
+            ? 1
+            : subscription.plan === AutoRestockPlan.PRO
+              ? randomIntInclusive(Math.max(1, defaultQty - 1), defaultQty + 1)
+              : Math.max(defaultQty, randomIntInclusive(defaultQty, defaultQty + 2));
+        const quantity = Math.min(Math.max(1, baseQty), supplierStock);
+        const unitPrice = Math.max(1, listing.product.marketState?.currentSupplierPrice ?? 1);
+        return {
+          listingId: listing.id,
+          productId: listing.productId,
+          quantity,
+          unitPrice,
+          lineTotal: quantity * unitPrice,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    if (requestItems.length === 0) {
+      continue;
+    }
+
+    const estimatedCost = requestItems.reduce((sum, item) => sum + item.lineTotal, 0);
+    if (estimatedCost <= 0) {
+      continue;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.autoRestockRequest.create({
         data: {
-          autoRestockLastRunAt: now,
+          userId: user.id,
+          plan: subscription.plan,
+          status: AutoRestockRequestStatus.PENDING,
+          estimatedCostCents: estimatedCost,
+          itemCount: requestItems.length,
+          createdAt: now,
+          items: {
+            create: requestItems,
+          },
         },
       });
-    }
+
+      await tx.autoRestockSubscription.update({
+        where: { id: subscription.id },
+        data: {
+          lastRestockAt: now,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: user.id,
+          type: NotificationType.SYSTEM,
+          message: `${getPlanMeta(subscription.plan).name} Auto Restock prepared ${requestItems.length} item ${
+            requestItems.length === 1 ? "restock" : "restocks"
+          } for approval.`,
+          createdAt: now,
+        },
+      });
+    });
   }
 }
 

@@ -1,7 +1,14 @@
 import { SettingsActions } from "@/components/settings-actions";
+import {
+  MAX_DAILY_COST_CENTS,
+  PRO_DAILY_COST_CENTS,
+  SIMPLE_DAILY_COST_CENTS,
+  SIMPLE_SETUP_FEE_CENTS,
+} from "@/lib/auto-restock";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -10,6 +17,9 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
   const profile = getPriceProfileMetadata(currencyCode);
+  const subscription = await prisma.autoRestockSubscription.findUnique({
+    where: { userId: user.id },
+  });
 
   return (
     <div className="page-grid">
@@ -50,9 +60,27 @@ export default async function SettingsPage() {
         priceProfiles={getSupportedPriceProfiles()}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
         renameStoreCostLabel={formatCurrency(20000, currencyCode)}
-        autoRestockEnabled={user.autoRestockEnabled}
-        autoRestockQuantity={Math.min(5, Math.max(1, user.autoRestockQuantity))}
-        autoRestockLastRunAt={user.autoRestockLastRunAt?.toISOString() ?? null}
+        autoRestockSubscription={
+          subscription
+            ? {
+                plan: subscription.plan,
+                status: subscription.status,
+                dailyCostCents: subscription.dailyCostCents,
+                dailyCostLabel: formatCurrency(subscription.dailyCostCents, currencyCode),
+                nextChargeAt: subscription.nextChargeAt.toISOString(),
+                lastRestockAt: subscription.lastRestockAt?.toISOString() ?? null,
+                lastChargedAt: subscription.lastChargedAt?.toISOString() ?? null,
+              }
+            : null
+        }
+        autoRestockPlanLabels={{
+          simple: `${formatCurrency(SIMPLE_DAILY_COST_CENTS, currencyCode)}/day (+${formatCurrency(
+            SIMPLE_SETUP_FEE_CENTS,
+            currencyCode,
+          )} setup once)`,
+          pro: `${formatCurrency(PRO_DAILY_COST_CENTS, currencyCode)}/day`,
+          max: `${formatCurrency(MAX_DAILY_COST_CENTS, currencyCode)}/day`,
+        }}
       />
 
     </div>
