@@ -278,6 +278,21 @@ textarea {
   color: var(--danger);
 }
 
+.stock-chip,
+.sold-out-listing-actions__toggle,
+.sold-out-listing-actions__delete,
+.table-row__actions > .ghost-button,
+.table-row__actions > button,
+.listing-card__actions button,
+.listing-card__actions .ghost-button {
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 0.58rem 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .sold-out-button {
   width: 100%;
   background: rgba(92, 102, 112, 0.16);
@@ -287,16 +302,22 @@ textarea {
 
 .sold-out-listing-actions {
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: max-content max-content;
   align-items: center;
   gap: 0.45rem;
-  flex-wrap: wrap;
   justify-content: flex-end;
+  min-height: 40px;
+  align-self: center;
 }
 
 .sold-out-listing-actions__toggle,
 .sold-out-listing-actions__delete {
-  min-height: 34px;
+  flex: 0 0 auto;
+}
+
+.sold-out-listing-actions > .status-text {
+  grid-column: 1 / -1;
 }
 
 .sold-out-listing-actions__menu {
@@ -854,6 +875,8 @@ textarea {
 .listing-card__actions {
   padding-top: 0.5rem;
   border-top: 1px solid rgba(205, 215, 247, 0.84);
+  min-height: 54px;
+  align-items: center;
 }
 
 .listing-card__actions .inline-cart-form {
@@ -904,6 +927,11 @@ textarea {
 }
 
 .table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 64px;
   padding: 0.72rem 0.86rem;
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -913,6 +941,7 @@ textarea {
 .table-row__meta {
   display: grid;
   gap: 0.2rem;
+  min-width: 0;
 }
 
 .table-row__actions,
@@ -920,6 +949,18 @@ textarea {
   display: flex;
   gap: 0.6rem;
   align-items: center;
+  justify-content: flex-end;
+  min-height: 40px;
+}
+
+.table-row__actions {
+  flex-wrap: nowrap;
+  justify-self: end;
+}
+
+.table-row__actions > *,
+.sold-out-listing-actions > * {
+  flex: 0 0 auto;
 }
 
 .inline-form input {
@@ -1278,6 +1319,17 @@ textarea {
   .table-row__actions {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .table-row__actions,
+  .sold-out-listing-actions {
+    justify-self: stretch;
+    justify-content: flex-end;
   }
 
   .cart-summary-actions,
