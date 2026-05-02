@@ -9,6 +9,7 @@ import { subMinutes } from "date-fns";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { sanitizeStockCount } from "@/lib/stock";
 import { clamp } from "@/lib/utils";
 
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
@@ -16,6 +17,7 @@ const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
 const BOT_WALLET_REFILL_FLOOR = 120_000;
+const AUTO_RESTOCK_COOLDOWN_MS = 8 * 60 * 1000;
 
 type BotCandidateListing = {
   id: string;
@@ -533,6 +535,262 @@ function getDesiredBotQuantity(
   return randomIntInclusive(1, maxPurchaseableUnits);
 }
 
+async function runAutoRestock(now: Date) {
+  const usersWithAutoRestock = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      securitySetupCompleted: true,
+      autoRestockEnabled: true,
+      autoRestockQuantity: {
+        gte: 1,
+        lte: 5,
+      },
+      shop: {
+        is: {
+          status: "ACTIVE",
+        },
+      },
+    },
+    select: {
+      id: true,
+      currencyCode: true,
+      balance: true,
+      autoRestockQuantity: true,
+      shop: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  for (const user of usersWithAutoRestock) {
+    if (!user.shop) {
+      continue;
+    }
+
+    const soldOutListings = await prisma.listing.findMany({
+      where: {
+        shopId: user.shop.id,
+        quantity: {
+          lte: 0,
+        },
+        OR: [
+          { lastAutoRestockedAt: null },
+          { lastAutoRestockedAt: { lte: new Date(now.getTime() - AUTO_RESTOCK_COOLDOWN_MS) } },
+        ],
+      },
+      select: {
+        id: true,
+        productId: true,
+        isPaused: true,
+        active: true,
+        lastAutoRestockedAt: true,
+        product: {
+          select: {
+            name: true,
+            marketState: {
+              select: {
+                currentSupplierPrice: true,
+                supplierStock: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "asc",
+      },
+      take: 40,
+    });
+
+    if (soldOutListings.length === 0) {
+      continue;
+    }
+
+    let runningBalance = user.balance;
+    let restockedCount = 0;
+
+    for (const listing of soldOutListings) {
+      const supplierStock = sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0);
+      if (supplierStock <= 0) {
+        continue;
+      }
+
+      const quantityToBuy = Math.min(
+        Math.max(1, Math.min(5, user.autoRestockQuantity)),
+        supplierStock,
+      );
+      const unitPrice = Math.max(1, listing.product.marketState?.currentSupplierPrice ?? 0);
+      const totalCost = unitPrice * quantityToBuy;
+
+      if (runningBalance < totalCost) {
+        continue;
+      }
+
+      const didRestock = await prisma.$transaction(async (tx) => {
+        const latestUser = await tx.user.findUnique({
+          where: { id: user.id },
+          select: { balance: true },
+        });
+        const latestListing = await tx.listing.findUnique({
+          where: { id: listing.id },
+          select: {
+            id: true,
+            productId: true,
+            quantity: true,
+            isPaused: true,
+            lastAutoRestockedAt: true,
+            product: {
+              select: {
+                marketState: {
+                  select: {
+                    currentSupplierPrice: true,
+                    supplierStock: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (!latestUser || !latestListing) {
+          return false;
+        }
+
+        const cooldownReady =
+          !latestListing.lastAutoRestockedAt ||
+          now.getTime() - latestListing.lastAutoRestockedAt.getTime() >= AUTO_RESTOCK_COOLDOWN_MS;
+        if (!cooldownReady) {
+          return false;
+        }
+
+        const freshSupplierStock = sanitizeStockCount(
+          latestListing.product.marketState?.supplierStock ?? 0,
+        );
+        if (freshSupplierStock <= 0) {
+          return false;
+        }
+
+        const finalQuantity = Math.min(quantityToBuy, freshSupplierStock);
+        const finalUnitPrice = Math.max(
+          1,
+          latestListing.product.marketState?.currentSupplierPrice ?? unitPrice,
+        );
+        const finalCost = finalQuantity * finalUnitPrice;
+        if (latestUser.balance < finalCost) {
+          return false;
+        }
+
+        const inventory = await tx.inventory.upsert({
+          where: {
+            userId_productId: {
+              userId: user.id,
+              productId: latestListing.productId,
+            },
+          },
+          update: {},
+          create: {
+            userId: user.id,
+            productId: latestListing.productId,
+            quantity: 0,
+            allocatedQuantity: 0,
+            averageUnitCost: 0,
+          },
+          select: {
+            id: true,
+            quantity: true,
+            allocatedQuantity: true,
+            averageUnitCost: true,
+          },
+        });
+
+        const inventoryValueBefore = inventory.quantity * inventory.averageUnitCost;
+        const inventoryValueAfter = inventoryValueBefore + finalCost;
+        const quantityAfter = inventory.quantity + finalQuantity;
+        const nextAverageUnitCost =
+          quantityAfter > 0 ? Math.round(inventoryValueAfter / quantityAfter) : inventory.averageUnitCost;
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            balance: {
+              decrement: finalCost,
+            },
+            autoRestockLastRunAt: now,
+          },
+        });
+
+        await tx.marketProductState.update({
+          where: { productId: latestListing.productId },
+          data: {
+            supplierStock: {
+              decrement: finalQuantity,
+            },
+          },
+        });
+
+        await tx.inventory.update({
+          where: {
+            userId_productId: {
+              userId: user.id,
+              productId: latestListing.productId,
+            },
+          },
+          data: {
+            quantity: {
+              increment: finalQuantity,
+            },
+            allocatedQuantity: {
+              increment: finalQuantity,
+            },
+            averageUnitCost: nextAverageUnitCost,
+          },
+        });
+
+        await tx.listing.update({
+          where: { id: latestListing.id },
+          data: {
+            quantity: {
+              increment: finalQuantity,
+            },
+            active: true,
+            lastAutoRestockedAt: now,
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: user.id,
+            type: NotificationType.SYSTEM,
+            message: `Auto Restock purchased ${finalQuantity}x ${listing.product.name} for ${formatCurrency(
+              finalCost,
+              user.currencyCode,
+            )}.`,
+            createdAt: now,
+          },
+        });
+
+        return true;
+      });
+
+      if (didRestock) {
+        runningBalance -= totalCost;
+        restockedCount += 1;
+      }
+    }
+
+    if (restockedCount === 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          autoRestockLastRunAt: now,
+        },
+      });
+    }
+  }
+}
+
 export async function runMarketSimulation(force = false, debug = false) {
   const now = new Date();
   const currencyCode = "AUD";
@@ -644,6 +902,8 @@ export async function runMarketSimulation(force = false, debug = false) {
       },
     });
   }
+
+  await runAutoRestock(now);
 
   let botWallet = await prisma.user.findUnique({
     where: { username: "bot_market" },

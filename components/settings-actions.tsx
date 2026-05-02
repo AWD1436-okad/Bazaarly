@@ -11,6 +11,9 @@ type SettingsActionsProps = {
   currentCurrencyCode: string;
   maskedBankNumber: string;
   renameStoreCostLabel: string;
+  autoRestockEnabled: boolean;
+  autoRestockQuantity: number;
+  autoRestockLastRunAt: string | null;
   priceProfiles: Array<{
     currencyCode: string;
     label: string;
@@ -40,6 +43,9 @@ export function SettingsActions({
   currentCurrencyCode,
   maskedBankNumber,
   renameStoreCostLabel,
+  autoRestockEnabled,
+  autoRestockQuantity,
+  autoRestockLastRunAt,
   priceProfiles,
 }: SettingsActionsProps) {
   const router = useRouter();
@@ -49,6 +55,10 @@ export function SettingsActions({
   const [bankOpen, setBankOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [restockEnabled, setRestockEnabled] = useState(autoRestockEnabled);
+  const [restockQuantity, setRestockQuantity] = useState(
+    Math.min(5, Math.max(1, autoRestockQuantity)),
+  );
   const [nextUsername, setNextUsername] = useState(username);
   const [usernamePassword, setUsernamePassword] = useState("");
   const [nextDisplayName, setNextDisplayName] = useState(displayName);
@@ -69,7 +79,7 @@ export function SettingsActions({
     : currentCurrencyCode;
   const [currencySearch, setCurrencySearch] = useState(initialCurrencySearch);
   const [submitting, setSubmitting] = useState<
-    null | "username" | "displayName" | "rename" | "bank" | "logout" | "delete" | "currency"
+    null | "username" | "displayName" | "rename" | "bank" | "logout" | "delete" | "currency" | "autoRestock"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
   const selectedCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currencyCode);
@@ -367,6 +377,45 @@ export function SettingsActions({
     }
   }
 
+  async function handleAutoRestockChange() {
+    setSubmitting("autoRestock");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("enabled", String(restockEnabled));
+      formData.set("quantity", String(restockQuantity));
+
+      const response = await fetch("/settings/auto-restock", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        enabled?: boolean;
+        quantity?: number;
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Auto Restock update failed");
+      }
+
+      setRestockEnabled(Boolean(payload.enabled));
+      setRestockQuantity(Math.min(5, Math.max(1, Number(payload.quantity ?? restockQuantity))));
+      setState({ message: payload.message ?? "Auto Restock updated", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Auto Restock update failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   return (
     <div className="settings-actions">
       {state.message ? (
@@ -386,6 +435,65 @@ export function SettingsActions({
           </div>
         </div>
       ) : null}
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
+            <h2>Auto Restock</h2>
+            <p>Automatically restock your sold-out listed items from supplier stock.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleAutoRestockChange()}
+            disabled={submitting !== null}
+          >
+            {submitting === "autoRestock" ? "Saving..." : "Save Auto Restock"}
+          </button>
+        </div>
+        <label className="modal-card__field">
+          <span>Auto Restock sold-out items</span>
+          <select
+            value={restockEnabled ? "on" : "off"}
+            onChange={(event) => {
+              setRestockEnabled(event.target.value === "on");
+              resetMessages();
+            }}
+            disabled={submitting !== null}
+          >
+            <option value="off">Off</option>
+            <option value="on">On</option>
+          </select>
+        </label>
+        <label className="modal-card__field">
+          <span>Quantity per sold-out item</span>
+          <select
+            value={String(restockQuantity)}
+            onChange={(event) => {
+              setRestockQuantity(Math.min(5, Math.max(1, Number(event.target.value) || 1)));
+              resetMessages();
+            }}
+            disabled={submitting !== null}
+          >
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <p className="muted">
+          Status: <strong>{restockEnabled ? "On" : "Off"}</strong> | Quantity:{" "}
+          <strong>{restockQuantity}</strong>
+        </p>
+        <p className="muted">
+          Last auto-restock run:{" "}
+          {autoRestockLastRunAt ? new Date(autoRestockLastRunAt).toLocaleString() : "Not run yet"}
+        </p>
+        <p className="muted">
+          Safety rules: only your sold-out listed items, quantity 1-5, capped by supplier stock,
+          and blocked when your balance is too low.
+        </p>
+      </section>
 
       <section className="card settings-card">
         <div className="card-header">

@@ -50,6 +50,9 @@ export default async function SettingsPage() {
         priceProfiles={getSupportedPriceProfiles()}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
         renameStoreCostLabel={formatCurrency(20000, currencyCode)}
+        autoRestockEnabled={user.autoRestockEnabled}
+        autoRestockQuantity={Math.min(5, Math.max(1, user.autoRestockQuantity))}
+        autoRestockLastRunAt={user.autoRestockLastRunAt?.toISOString() ?? null}
       />
 
     </div>
