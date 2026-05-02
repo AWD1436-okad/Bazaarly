@@ -35,12 +35,12 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
 
   const tierDefinitions = useMemo(
     () => [
-      { key: "above_1", label: "Above $1", minAudDollars: 1 },
-      { key: "above_5", label: "Above $5", minAudDollars: 5 },
-      { key: "above_10", label: "Above $10", minAudDollars: 10 },
-      { key: "above_20", label: "Above $20", minAudDollars: 20 },
-      { key: "above_50", label: "Above $50", minAudDollars: 50 },
-      { key: "above_100", label: "$100+", minAudDollars: 100 },
+      { key: "above_1", label: "Above $1" },
+      { key: "above_5", label: "Above $5" },
+      { key: "above_10", label: "Above $10" },
+      { key: "above_20", label: "Above $20" },
+      { key: "above_50", label: "Above $50" },
+      { key: "above_100", label: "$100+" },
     ],
     [],
   );
@@ -75,7 +75,7 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
 
   async function handleAddSelected() {
     if (!hasPositiveSelection) {
-      setError("Select at least one product quantity greater than zero");
+      setError("Select at least one tier quantity greater than zero");
       setFeedback(null);
       return;
     }
