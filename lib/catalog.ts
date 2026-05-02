@@ -257,12 +257,29 @@ export function getCategoryFilterOption(value: string | null | undefined) {
   return CATEGORY_OPTIONS.find((category) => category.value === value) ?? null;
 }
 
+export function getCategoryOptionDisplayLabel(category: CategoryOption) {
+  if (category.value === ProductCategory.CLOTHING) {
+    return "\u{1F45F} Other Clothes";
+  }
+
+  if (category.value === "CLOTHING_MUSLIM_MEN") {
+    return "\u{1F45E} Men Muslim Clothes";
+  }
+
+  if (category.value === "CLOTHING_MUSLIM_WOMEN") {
+    return "\u{1F461} Female Muslim Clothes";
+  }
+
+  return category.label;
+}
+
 export function getCategoryFilterLabel(value: string | null | undefined) {
   if (!value || value === "ALL") {
     return "All Products";
   }
 
-  return getCategoryFilterOption(value)?.label ?? "All Products";
+  const option = getCategoryFilterOption(value);
+  return option ? getCategoryOptionDisplayLabel(option) : "All Products";
 }
 
 export const CATEGORY_COUNT_EXPECTATIONS = Object.fromEntries(

@@ -12,6 +12,7 @@ import {
   CATEGORY_OPTIONS,
   getCategoryFilterOption,
   getCategoryLabel,
+  getCategoryOptionDisplayLabel,
   getProductCategoryLabel,
 } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
@@ -147,6 +148,9 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
   const currencyCode = await getActiveCurrencyCode(user.id);
   const params = (await searchParams) ?? {};
   const selectedCategory = parseCategoryFilter(params.category);
+  const selectedCategoryDisplayLabel = selectedCategory
+    ? getCategoryOptionDisplayLabel(selectedCategory)
+    : null;
   const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
   const purchaseSuccess = params.purchase === "1";
   const restockedListing = params.restocked === "1";
@@ -312,10 +316,10 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
 
           <section className="page-header">
             <div>
-              <h2>{selectedCategory ? selectedCategory.label : "All supplier items"}</h2>
+              <h2>{selectedCategoryDisplayLabel ?? "All supplier items"}</h2>
               <p>
                 {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} shown
-                {selectedCategory ? ` in ${selectedCategory.label}` : ""}.
+                {selectedCategoryDisplayLabel ? ` in ${selectedCategoryDisplayLabel}` : ""}.
                 {searchQuery ? ` Search: "${searchQuery}".` : ""}
               </p>
               <CurrencyDisplayNote currencyCode={currencyCode} />

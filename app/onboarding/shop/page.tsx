@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
-import { CATEGORY_OPTIONS, SHOP_THEMES } from "@/lib/catalog";
+import { CATEGORY_OPTIONS, SHOP_THEMES, getCategoryOptionDisplayLabel } from "@/lib/catalog";
 
 type OnboardingProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -73,7 +73,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
                 <option value="">Optional</option>
                 {CATEGORY_OPTIONS.map((category) => (
                   <option key={category.value} value={category.value}>
-                    {category.label}
+                    {getCategoryOptionDisplayLabel(category)}
                   </option>
                 ))}
               </select>
