@@ -1161,6 +1161,7 @@ textarea {
 }
 
 .modal-card {
+  position: relative;
   width: min(480px, 100%);
   display: grid;
   gap: 1rem;
@@ -1169,6 +1170,22 @@ textarea {
   border-radius: 24px;
   background: var(--surface);
   box-shadow: 0 22px 70px rgba(31, 41, 51, 0.22);
+}
+
+.modal-card__close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 2.2rem;
+  min-height: 2.2rem;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
 }
 
 .modal-card--wide {
@@ -1213,6 +1230,19 @@ textarea {
 .settings-actions {
   display: grid;
   gap: 0.9rem;
+}
+
+.auto-restock-status {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 110;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  font-weight: 800;
+  background: var(--primary-gradient);
+  box-shadow: var(--shadow-soft);
 }
 
 .settings-card {

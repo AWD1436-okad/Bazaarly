@@ -34,6 +34,7 @@ export function AutoRestockApprovalGate() {
   const [checkoutPin, setCheckoutPin] = useState("");
   const [bankNumber, setBankNumber] = useState("");
   const [busyAction, setBusyAction] = useState<null | "skip" | "approve">(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isMax = pending?.plan === "MAX";
   const totalItems = useMemo(
@@ -102,12 +103,16 @@ export function AutoRestockApprovalGate() {
         throw new Error(payload.error ?? "Auto Restock action failed");
       }
 
+      setSuccessMessage(
+        action === "approve" ? "Auto Restock purchase completed" : "Auto Restock skipped for this cycle",
+      );
       setPending(null);
       setStage("summary");
       setPassword("");
       setCheckoutPin("");
       setBankNumber("");
       router.refresh();
+      window.setTimeout(() => setSuccessMessage(null), 4500);
     } catch (decisionError) {
       setError(decisionError instanceof Error ? decisionError.message : "Auto Restock action failed");
     } finally {
@@ -117,12 +122,27 @@ export function AutoRestockApprovalGate() {
   }
 
   if (!pending) {
-    return null;
+    return successMessage ? (
+      <div className="auto-restock-status" role="status">
+        {successMessage}
+      </div>
+    ) : null;
   }
 
   return (
     <div className="modal-backdrop auto-restock-backdrop" role="presentation">
       <div className="modal-card modal-card--wide auto-restock-modal" role="dialog" aria-modal="true">
+        {pending.canSkip ? (
+          <button
+            type="button"
+            className="modal-card__close"
+            aria-label="Skip this Auto Restock cycle"
+            disabled={loading}
+            onClick={() => void submitDecision("skip")}
+          >
+            ×
+          </button>
+        ) : null}
         <div className="modal-card__copy">
           <h3>Your {pending.planName} wants to buy:</h3>
           <p>
@@ -170,6 +190,14 @@ export function AutoRestockApprovalGate() {
           </div>
         ) : (
           <>
+            <div className="card">
+              <p className="muted">
+                Final item total: <strong>{pending.estimatedCost}</strong>
+              </p>
+              <p className="muted">
+                Enter your secure checkout details before Auto Restock can buy anything.
+              </p>
+            </div>
             <label className="modal-card__field">
               Bank number
               <input

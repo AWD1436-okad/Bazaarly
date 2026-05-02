@@ -6,6 +6,7 @@ import { getPlanMeta } from "@/lib/auto-restock";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
+import { prepareAutoRestockProposalForUser } from "@/lib/simulation";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -18,6 +19,8 @@ export async function GET() {
   }
 
   const currencyCode = await getActiveCurrencyCode(user.id);
+  await prepareAutoRestockProposalForUser(user.id);
+
   const pending = await prisma.autoRestockRequest.findFirst({
     where: {
       userId: user.id,

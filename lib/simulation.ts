@@ -538,10 +538,11 @@ function getDesiredBotQuantity(
   return randomIntInclusive(1, maxPurchaseableUnits);
 }
 
-async function runAutoRestock(now: Date) {
+async function runAutoRestock(now: Date, userId?: string) {
   const activeSubscriptions = await prisma.autoRestockSubscription.findMany({
     where: {
       status: AutoRestockSubscriptionStatus.ACTIVE,
+      ...(userId ? { userId } : {}),
     },
     select: {
       id: true,
@@ -761,6 +762,10 @@ async function runAutoRestock(now: Date) {
       });
     });
   }
+}
+
+export async function prepareAutoRestockProposalForUser(userId: string) {
+  await runAutoRestock(new Date(), userId);
 }
 
 export async function runMarketSimulation(force = false, debug = false) {
