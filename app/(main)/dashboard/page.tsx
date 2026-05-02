@@ -91,7 +91,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const [
     listingOptions,
     freeInventoryRows,
-    listings,
     recentSales,
     lowStockListings,
     unreadAlerts,
@@ -166,35 +165,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             name: "asc",
           },
         },
-      }),
-      prisma.listing.findMany({
-        where: {
-          shopId: user.shop.id,
-          OR: [{ active: true }, { quantity: { lte: 0 } }, { isPaused: true }],
-        },
-        select: {
-          id: true,
-          shopId: true,
-          productId: true,
-          price: true,
-          quantity: true,
-          active: true,
-          isPaused: true,
-          createdAt: true,
-          updatedAt: true,
-          product: {
-            select: {
-              id: true,
-              name: true,
-              subcategory: true,
-              unitLabel: true,
-              category: true,
-            },
-          },
-        },
-        orderBy: { updatedAt: "desc" },
-        skip: (listingsPage - 1) * LISTING_PAGE_SIZE,
-        take: LISTING_PAGE_SIZE,
       }),
       prisma.order.findMany({
         where: { sellerId: user.id },
@@ -387,7 +357,35 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const freeInventoryCount = freeInventoryRowList.length;
   const totalListingsPages = Math.max(1, Math.ceil(listingTotalCount / LISTING_PAGE_SIZE));
   const safeListingsPage = Math.min(listingsPage, totalListingsPages);
-  const visibleListings = listings;
+  const visibleListings = await prisma.listing.findMany({
+    where: {
+      shopId: user.shop.id,
+      OR: [{ active: true }, { quantity: { lte: 0 } }, { isPaused: true }],
+    },
+    select: {
+      id: true,
+      shopId: true,
+      productId: true,
+      price: true,
+      quantity: true,
+      active: true,
+      isPaused: true,
+      createdAt: true,
+      updatedAt: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          subcategory: true,
+          unitLabel: true,
+          category: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    skip: (safeListingsPage - 1) * LISTING_PAGE_SIZE,
+    take: LISTING_PAGE_SIZE,
+  });
   const hasNextListingsPage = safeListingsPage < totalListingsPages;
   const defaultListingPrice =
     listingOptionRows.length > 0
