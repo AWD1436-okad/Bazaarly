@@ -17,8 +17,8 @@ import { getActiveCurrencyCode, getPriceProfileMetadata } from "@/lib/price-prof
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount, getLiveStockStatusMessage } from "@/lib/stock";
 
-const INVENTORY_PAGE_SIZE = 12;
-const LISTING_PAGE_SIZE = 12;
+const INVENTORY_PAGE_SIZE = 3;
+const LISTING_PAGE_SIZE = 3;
 const LISTING_OPTION_LIMIT = 40;
 
 type DashboardProps = {
@@ -83,8 +83,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const error = typeof params.error === "string" ? params.error : null;
   const inventoryPage = Math.max(Number(params.inventoryPage ?? "1") || 1, 1);
   const listingsPage = Math.max(Number(params.listingsPage ?? "1") || 1, 1);
-  const inventoryOffset = (inventoryPage - 1) * INVENTORY_PAGE_SIZE;
-  const listingsOffset = (listingsPage - 1) * LISTING_PAGE_SIZE;
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday);
@@ -102,6 +100,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     todayProfitSummary,
     totalProfitSummary,
     soldOutListingCount,
+    listingTotalCount,
     activeListingCount,
     pausedListingCount,
   ] =
@@ -194,8 +193,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           },
         },
         orderBy: { updatedAt: "desc" },
-        skip: listingsOffset,
-        take: LISTING_PAGE_SIZE + 1,
+        skip: (listingsPage - 1) * LISTING_PAGE_SIZE,
+        take: LISTING_PAGE_SIZE,
       }),
       prisma.order.findMany({
         where: { sellerId: user.id },
@@ -325,6 +324,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       prisma.listing.count({
         where: {
           shopId: user.shop.id,
+          OR: [{ active: true }, { quantity: { lte: 0 } }, { isPaused: true }],
+        },
+      }),
+      prisma.listing.count({
+        where: {
+          shopId: user.shop.id,
           quantity: { gt: 0 },
           active: true,
           isPaused: false,
@@ -368,14 +373,22 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       };
     })
     .filter((item) => item.availableToList > 0);
+  const totalInventoryPages = Math.max(
+    1,
+    Math.ceil(freeInventoryRowList.length / INVENTORY_PAGE_SIZE),
+  );
+  const safeInventoryPage = Math.min(inventoryPage, totalInventoryPages);
+  const inventoryOffset = (safeInventoryPage - 1) * INVENTORY_PAGE_SIZE;
   const visibleInventory = freeInventoryRowList.slice(
     inventoryOffset,
     inventoryOffset + INVENTORY_PAGE_SIZE,
   );
-  const hasNextInventoryPage = freeInventoryRowList.length > inventoryOffset + INVENTORY_PAGE_SIZE;
+  const hasNextInventoryPage = safeInventoryPage < totalInventoryPages;
   const freeInventoryCount = freeInventoryRowList.length;
-  const visibleListings = listings.slice(0, LISTING_PAGE_SIZE);
-  const hasNextListingsPage = listings.length > LISTING_PAGE_SIZE;
+  const totalListingsPages = Math.max(1, Math.ceil(listingTotalCount / LISTING_PAGE_SIZE));
+  const safeListingsPage = Math.min(listingsPage, totalListingsPages);
+  const visibleListings = listings;
+  const hasNextListingsPage = safeListingsPage < totalListingsPages;
   const defaultListingPrice =
     listingOptionRows.length > 0
       ? (
@@ -393,6 +406,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     units: item.units,
     profit: item.profit,
   }));
+
+  if (safeInventoryPage !== inventoryPage) {
+    redirect(buildDashboardHref(params, { inventoryPage: safeInventoryPage }) as Route);
+  }
+
+  if (safeListingsPage !== listingsPage) {
+    redirect(buildDashboardHref(params, { listingsPage: safeListingsPage }) as Route);
+  }
 
   return (
     <div className="page-grid">
@@ -532,12 +553,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             {freeInventoryCount > INVENTORY_PAGE_SIZE ? (
               <div className="section-row" style={{ marginTop: "1rem" }}>
                 <span className="muted">
-                  Showing page {inventoryPage} of your free inventory
+                  Page {safeInventoryPage} of {totalInventoryPages}
                 </span>
                 <div className="table-row__actions">
-                  {inventoryPage > 1 ? (
+                  {safeInventoryPage > 1 ? (
                     <Link
-                      href={buildDashboardHref(params, { inventoryPage: inventoryPage - 1 }) as Route}
+                      href={buildDashboardHref(params, { inventoryPage: safeInventoryPage - 1 }) as Route}
                       className="ghost-button"
                       scroll={false}
                     >
@@ -546,7 +567,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   ) : null}
                   {hasNextInventoryPage ? (
                     <Link
-                      href={buildDashboardHref(params, { inventoryPage: inventoryPage + 1 }) as Route}
+                      href={buildDashboardHref(params, { inventoryPage: safeInventoryPage + 1 }) as Route}
                       className="ghost-button"
                       scroll={false}
                     >
@@ -615,13 +636,13 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 ))}
               </div>
             )}
-            {listingsPage > 1 || hasNextListingsPage ? (
+            {totalListingsPages > 1 ? (
               <div className="section-row" style={{ marginTop: "1rem" }}>
-                <span className="muted">Showing page {listingsPage} of your listings</span>
+                <span className="muted">Page {safeListingsPage} of {totalListingsPages}</span>
                 <div className="table-row__actions">
-                  {listingsPage > 1 ? (
+                  {safeListingsPage > 1 ? (
                     <Link
-                      href={buildDashboardHref(params, { listingsPage: listingsPage - 1 }) as Route}
+                      href={buildDashboardHref(params, { listingsPage: safeListingsPage - 1 }) as Route}
                       className="ghost-button"
                       scroll={false}
                     >
@@ -630,7 +651,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   ) : null}
                   {hasNextListingsPage ? (
                     <Link
-                      href={buildDashboardHref(params, { listingsPage: listingsPage + 1 }) as Route}
+                      href={buildDashboardHref(params, { listingsPage: safeListingsPage + 1 }) as Route}
                       className="ghost-button"
                       scroll={false}
                     >
