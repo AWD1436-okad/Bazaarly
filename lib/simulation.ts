@@ -16,7 +16,12 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount } from "@/lib/stock";
 import { clamp } from "@/lib/utils";
 
-const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 18;
+const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 45;
+const BOT_SHOP_PURCHASE_CAP_LOOKBACK_MINUTES = 60;
+const BOT_SHOP_DAILY_CAP_LOOKBACK_MINUTES = 24 * 60;
+const MAX_BOT_PURCHASES_PER_SHOP_PER_HOUR = 2;
+const MAX_BOT_PURCHASES_PER_SHOP_PER_DAY = 8;
+const MAX_BOT_PURCHASES_PER_SIMULATION = 1;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
@@ -185,47 +190,45 @@ function getBotAttemptProbability({
   averageCandidateScore: number;
   hasLoyaltyOption: boolean;
 }) {
-  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (4.5 * 60 * 1000), 0.08, 1.2);
-  const activityFactor = clamp(bot.activityLevel / 100, 0.4, 1.2);
-  const assortmentFactor = clamp(affordableListingCount / 18, 0.05, 1.05);
-  const shopExposureFactor = clamp(distinctShopCount / 6, 0.05, 1);
-  const marketHeatFactor = clamp(recentMarketSalesCount / 8, 0, 0.55);
+  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (14 * 60 * 1000), 0.02, 1.1);
+  const activityFactor = clamp(bot.activityLevel / 120, 0.32, 0.95);
+  const assortmentFactor = clamp(affordableListingCount / 28, 0.03, 0.9);
+  const shopExposureFactor = clamp(distinctShopCount / 8, 0.04, 0.85);
+  const marketCooldownFactor = clamp(1 - recentMarketSalesCount / 14, 0.28, 1);
   const demandFactor = clamp((averageDemand - 0.82) / 0.58, 0, 1);
-  const candidateStrengthFactor = clamp(averageCandidateScore / 52, 0, 1.25);
+  const candidateStrengthFactor = clamp(averageCandidateScore / 78, 0, 1);
   const timeOfDayBoost =
     getCurrentPhase(now) === MarketTimePhase.EVENING
-      ? 0.08
+      ? 0.025
       : getCurrentPhase(now) === MarketTimePhase.MORNING
-        ? 0.05
-        : 0.03;
+        ? 0.018
+        : 0.012;
 
   const personalityBias =
     bot.type === BotPersonality.BUDGET
-      ? 0.05
+      ? 0.015
       : bot.type === BotPersonality.QUALITY
-        ? 0.04
+        ? 0.012
         : bot.type === BotPersonality.LOYAL
           ? hasLoyaltyOption
-            ? 0.08
-            : 0.01
+            ? 0.022
+            : 0.004
           : bot.type === BotPersonality.BULK
-            ? 0.06
-            : 0.1;
+            ? 0.014
+            : 0.018;
 
-  return clamp(
-    0.025 +
+  const rawProbability =
+    0.006 +
       elapsedFactor * 0.14 +
-      activityFactor * 0.08 +
-      assortmentFactor * 0.1 +
-      shopExposureFactor * 0.06 +
-      marketHeatFactor * 0.06 +
-      demandFactor * 0.08 +
-      candidateStrengthFactor * 0.08 +
+      activityFactor * 0.035 +
+      assortmentFactor * 0.045 +
+      shopExposureFactor * 0.025 +
+      demandFactor * 0.035 +
+      candidateStrengthFactor * 0.045 +
       timeOfDayBoost +
-      personalityBias,
-    0.02,
-    0.55,
-  );
+      personalityBias;
+
+  return clamp(rawProbability * marketCooldownFactor, 0.004, 0.18);
 }
 
 function getDynamicBotCooldownMs({
@@ -241,21 +244,27 @@ function getDynamicBotCooldownMs({
 }) {
   const baseByPersonality =
     bot.type === BotPersonality.BULK
-      ? 95_000
+      ? 11 * 60_000
       : bot.type === BotPersonality.LOYAL
-        ? 105_000
+        ? 10 * 60_000
         : bot.type === BotPersonality.BUDGET
-          ? 88_000
+          ? 9 * 60_000
           : bot.type === BotPersonality.QUALITY
-            ? 115_000
-            : 100_000;
-  const activityModifier = clamp(bot.activityLevel / 100, 0.45, 1.35);
-  const marketHeatModifier = clamp(1 - marketHeat * 0.35, 0.62, 1.08);
-  const demandModifier = clamp(1 - (averageDemand - 1) * 0.28, 0.74, 1.14);
-  const assortmentModifier = clamp(1 - Math.min(candidateCount, 30) / 90, 0.7, 1.02);
+            ? 12 * 60_000
+            : 10 * 60_000;
+  const activityModifier = clamp(bot.activityLevel / 110, 0.45, 1.05);
+  const marketHeatModifier = clamp(1 + marketHeat * 0.55, 1, 1.55);
+  const demandModifier = clamp(1 - (averageDemand - 1) * 0.14, 0.86, 1.18);
+  const assortmentModifier = clamp(1 - Math.min(candidateCount, 35) / 180, 0.82, 1.04);
+  const randomJitter = 1 + Math.random() * 0.55;
 
   return Math.round(
-    baseByPersonality * (1 / activityModifier) * marketHeatModifier * demandModifier * assortmentModifier,
+    baseByPersonality *
+      (1 / activityModifier) *
+      marketHeatModifier *
+      demandModifier *
+      assortmentModifier *
+      randomJitter,
   );
 }
 
@@ -376,53 +385,53 @@ function getPriceSensitivityMultiplier(
           : 0;
   const ratio = Math.max(0.6, getOverpriceRatio(listing) - ratingGrace);
 
-  if (ratio <= 0.94) {
-    return personality === BotPersonality.BUDGET || personality === BotPersonality.BULK ? 1.3 : 1.16;
+  if (ratio <= 0.92) {
+    return personality === BotPersonality.BUDGET || personality === BotPersonality.BULK ? 1.18 : 1.08;
   }
 
-  if (ratio <= 1.05) {
+  if (ratio <= 1.02) {
     return 1;
+  }
+
+  if (ratio <= 1.12) {
+    switch (personality) {
+      case BotPersonality.BUDGET:
+        return 0.24;
+      case BotPersonality.BULK:
+        return 0.18;
+      case BotPersonality.QUALITY:
+        return 0.62;
+      case BotPersonality.LOYAL:
+        return 0.46;
+      default:
+        return 0.36;
+    }
   }
 
   if (ratio <= 1.25) {
     switch (personality) {
       case BotPersonality.BUDGET:
-        return 0.18;
+        return 0.025;
       case BotPersonality.BULK:
-        return 0.14;
+        return 0.018;
       case BotPersonality.QUALITY:
-        return 0.55;
+        return listing.shop.rating >= 4.7 ? 0.16 : 0.08;
       case BotPersonality.LOYAL:
-        return 0.42;
+        return loyaltyShopId === listing.shop.id ? 0.09 : 0.04;
       default:
-        return 0.32;
+        return 0.045;
     }
   }
 
-  if (ratio <= 1.5) {
-    switch (personality) {
-      case BotPersonality.BUDGET:
-        return 0.015;
-      case BotPersonality.BULK:
-        return 0.01;
-      case BotPersonality.QUALITY:
-        return listing.shop.rating >= 4.7 ? 0.12 : 0.07;
-      case BotPersonality.LOYAL:
-        return loyaltyShopId === listing.shop.id ? 0.08 : 0.035;
-      default:
-        return 0.05;
-    }
+  if (ratio <= 1.45 && personality === BotPersonality.QUALITY && listing.shop.rating >= 4.85) {
+    return 0.018;
   }
 
-  if (ratio <= 1.75 && personality === BotPersonality.RANDOM) {
-    return 0.002;
+  if (ratio <= 1.4 && personality === BotPersonality.RANDOM) {
+    return 0.004;
   }
 
-  if (ratio <= 1.75 && personality === BotPersonality.QUALITY && listing.shop.rating >= 4.85) {
-    return 0.01;
-  }
-
-  return personality === BotPersonality.RANDOM ? 0.002 : 0.0005;
+  return personality === BotPersonality.RANDOM ? 0.0008 : 0.0001;
 }
 
 function scoreBotCandidate(
@@ -444,18 +453,19 @@ function scoreBotCandidate(
   const categoryAffinity = getCategoryAffinityScore(preferenceCategory, listing.product.category);
   const demandFactor = listing.product.marketState?.demandScore ?? 1;
   const demandBoost = clamp(demandFactor, 0.82, 1.35) * 10;
-  const recentSalesPenalty = clamp(1 - recentBotSalesForShop * 0.07, 0.72, 1.06);
+  const recentSalesPenalty = clamp(1 - recentBotSalesForShop * 0.16, 0.38, 1);
   const assortmentBoost = shopBreadthScore * 5;
-  const discoveryBoost = clamp(
-    1.08 +
-      clamp((18 - Math.min(listing.shop.totalSales, 18)) / 120, 0, 0.16) -
-      recentBotSalesForShop * 0.04,
-    0.9,
-    1.16,
+  const maturityFactor = clamp(
+    0.34 +
+      Math.log10(Math.max(1, listing.shop.totalSales + 1)) * 0.26 +
+      shopBreadthScore * 0.32 +
+      clamp((listing.shop.rating - 3.2) / 3.2, 0, 0.22),
+    0.3,
+    1.18,
   );
   const randomnessBoost = 1 + Math.random() * 0.12;
-  const overpriceDrag = overpriceRatio > 1 ? clamp(1 / overpriceRatio ** 3, 0.02, 1) : 1.08;
-  const popularityFactor = clamp(1 + Math.log10(Math.max(1, listing.shop.totalSales + 1)) * 0.22, 1, 1.75);
+  const overpriceDrag = overpriceRatio > 1 ? clamp(1 / overpriceRatio ** 5, 0.006, 1) : 1.04;
+  const popularityFactor = clamp(0.78 + Math.log10(Math.max(1, listing.shop.totalSales + 1)) * 0.16, 0.78, 1.28);
   const premiumFit = clamp(1 - Math.abs(overpriceRatio - 1.18), 0.2, 1.1);
   const valueFit = clamp(referencePrice / Math.max(listing.price, 1), 0.15, 1.4);
   const bulkValueFit =
@@ -473,7 +483,14 @@ function scoreBotCandidate(
         demandBoost +
         assortmentBoost * 0.8 +
         loyaltyFactor * 0.35
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
+      ) *
+        categoryAffinity *
+        recentSalesPenalty *
+        maturityFactor *
+        randomnessBoost *
+        priceSensitivity *
+        overpriceDrag *
+        popularityFactor;
     case BotPersonality.QUALITY:
       return (
         ratingFactor * 4 +
@@ -484,7 +501,14 @@ function scoreBotCandidate(
         demandBoost +
         assortmentBoost * 0.8 +
         loyaltyFactor * 0.65
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
+      ) *
+        categoryAffinity *
+        recentSalesPenalty *
+        maturityFactor *
+        randomnessBoost *
+        priceSensitivity *
+        overpriceDrag *
+        popularityFactor;
     case BotPersonality.LOYAL:
       return (
         loyaltyFactor +
@@ -493,7 +517,14 @@ function scoreBotCandidate(
         relativeDealScore * 16 +
         demandBoost * 0.6 +
         assortmentBoost
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
+      ) *
+        categoryAffinity *
+        recentSalesPenalty *
+        maturityFactor *
+        randomnessBoost *
+        priceSensitivity *
+        overpriceDrag *
+        popularityFactor;
     case BotPersonality.BULK:
       return (
         stockFactor * 3.4 +
@@ -503,7 +534,14 @@ function scoreBotCandidate(
         demandBoost * 0.7 +
         assortmentBoost * 1.15 +
         loyaltyFactor
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * randomnessBoost * priceSensitivity * overpriceDrag * popularityFactor;
+      ) *
+        categoryAffinity *
+        recentSalesPenalty *
+        maturityFactor *
+        randomnessBoost *
+        priceSensitivity *
+        overpriceDrag *
+        popularityFactor;
     default:
       return (
         affordability * 9 +
@@ -513,7 +551,13 @@ function scoreBotCandidate(
         demandBoost +
         assortmentBoost +
         Math.random() * 12
-      ) * categoryAffinity * recentSalesPenalty * discoveryBoost * priceSensitivity * overpriceDrag * popularityFactor;
+      ) *
+        categoryAffinity *
+        recentSalesPenalty *
+        maturityFactor *
+        priceSensitivity *
+        overpriceDrag *
+        popularityFactor;
   }
 }
 
@@ -920,8 +964,40 @@ export async function runMarketSimulation(force = false, debug = false) {
     },
   });
 
+  const cappedHourlyBotSales = await prisma.order.groupBy({
+    by: ["shopId"],
+    where: {
+      buyerId: botWallet.id,
+      createdAt: {
+        gte: subMinutes(now, BOT_SHOP_PURCHASE_CAP_LOOKBACK_MINUTES),
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  const cappedDailyBotSales = await prisma.order.groupBy({
+    by: ["shopId"],
+    where: {
+      buyerId: botWallet.id,
+      createdAt: {
+        gte: subMinutes(now, BOT_SHOP_DAILY_CAP_LOOKBACK_MINUTES),
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
   const recentBotSalesByShop = new Map(
     recentBotSales.map((entry) => [entry.shopId, entry._count._all]),
+  );
+  const hourlyBotSalesByShop = new Map(
+    cappedHourlyBotSales.map((entry) => [entry.shopId, entry._count._all]),
+  );
+  const dailyBotSalesByShop = new Map(
+    cappedDailyBotSales.map((entry) => [entry.shopId, entry._count._all]),
   );
 
   const shopListingDepth = await prisma.listing.groupBy({
@@ -948,7 +1024,7 @@ export async function runMarketSimulation(force = false, debug = false) {
     }),
   );
 
-  const candidateListings = (await prisma.listing.findMany({
+  const allCandidateListings = (await prisma.listing.findMany({
     where: {
       active: true,
       isPaused: false,
@@ -994,6 +1070,11 @@ export async function runMarketSimulation(force = false, debug = false) {
       },
     },
   })) satisfies BotCandidateListing[];
+  const candidateListings = allCandidateListings.filter((listing) => {
+    const hourlySales = hourlyBotSalesByShop.get(listing.shopId) ?? 0;
+    const dailySales = dailyBotSalesByShop.get(listing.shopId) ?? 0;
+    return hourlySales < MAX_BOT_PURCHASES_PER_SHOP_PER_HOUR && dailySales < MAX_BOT_PURCHASES_PER_SHOP_PER_DAY;
+  });
 
   const occupiedAttemptSeconds = new Set<number>();
   const recentMarketSalesCount = recentBotSales.reduce((sum, entry) => sum + entry._count._all, 0);
@@ -1033,14 +1114,14 @@ export async function runMarketSimulation(force = false, debug = false) {
           const overpriceRatio = getOverpriceRatio(option.value);
           const hardCap =
             bot.type === BotPersonality.RANDOM
-              ? 1.75
+              ? 1.38
               : bot.type === BotPersonality.QUALITY
-                ? 1.6
+                ? 1.42
                 : bot.type === BotPersonality.LOYAL
-                  ? 1.55
-                  : 1.5;
+                  ? 1.34
+                  : 1.25;
 
-          return option.score >= 0.25 && overpriceRatio <= hardCap;
+          return option.score >= 1.5 && overpriceRatio <= hardCap;
         });
       const averageCandidateScore =
         weightedSelection.length > 0
@@ -1084,8 +1165,8 @@ export async function runMarketSimulation(force = false, debug = false) {
     })
     .sort((left, right) => right.attemptProbability - left.attemptProbability);
 
-  const selectedBotPlans = botPlans.filter(
-    (plan) => {
+  const selectedBotPlans = botPlans
+    .filter((plan) => {
       if (plan.weightedSelection.length === 0) {
         return false;
       }
@@ -1113,8 +1194,8 @@ export async function runMarketSimulation(force = false, debug = false) {
       }
 
       return Math.random() < plan.attemptProbability;
-    },
-  );
+    })
+    .slice(0, MAX_BOT_PURCHASES_PER_SIMULATION);
 
   for (const plan of selectedBotPlans) {
     const { bot, effectiveLoyaltyShopId, affordableListings, weightedSelection, attemptProbability } = plan;
@@ -1332,6 +1413,8 @@ export async function runMarketSimulation(force = false, debug = false) {
       botPurchases += 1;
       if (selectedShopId) {
         recentBotSalesByShop.set(selectedShopId, (recentBotSalesByShop.get(selectedShopId) ?? 0) + 1);
+        hourlyBotSalesByShop.set(selectedShopId, (hourlyBotSalesByShop.get(selectedShopId) ?? 0) + 1);
+        dailyBotSalesByShop.set(selectedShopId, (dailyBotSalesByShop.get(selectedShopId) ?? 0) + 1);
       }
     }
 
