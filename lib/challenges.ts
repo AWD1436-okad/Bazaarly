@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 export const CHALLENGE_CYCLE_MS = 5 * 60 * 1000;
 
-export type ChallengeDifficulty = "Easy" | "Easy/Medium" | "Medium" | "Medium/Hard" | "Hard";
+export type ChallengeDifficulty = "Easy" | "Medium" | "Hard";
 
 export type ChallengeDefinition = {
   key: string;
@@ -56,7 +56,7 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Sell 1 item",
       difficulty: "Easy",
       target: 1,
-      rewardCents: 200,
+      rewardCents: 10000,
     },
     {
       key: "add-3-cart-items",
@@ -64,7 +64,7 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Add 3 items to cart",
       difficulty: "Easy",
       target: 3,
-      rewardCents: 200,
+      rewardCents: 10000,
     },
     {
       key: "buy-1-supplier-stock",
@@ -72,35 +72,33 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Buy supplier stock",
       difficulty: "Easy",
       target: 1,
-      rewardCents: 200,
+      rewardCents: 10000,
     },
-  ],
-  "Easy/Medium": [
     {
       key: "list-2-products",
       type: "LIST_PRODUCTS",
       label: "List 2 products",
-      difficulty: "Easy/Medium",
+      difficulty: "Easy",
       target: 2,
-      rewardCents: 300,
+      rewardCents: 10000,
     },
+  ],
+  Medium: [
     {
       key: "keep-3-active-listings",
       type: "ACTIVE_LISTINGS",
       label: "Keep 3 listings active",
-      difficulty: "Easy/Medium",
+      difficulty: "Medium",
       target: 3,
-      rewardCents: 300,
+      rewardCents: 25000,
     },
-  ],
-  Medium: [
     {
       key: "earn-50-profit",
       type: "EARN_PROFIT",
       label: "Earn $50 profit",
       difficulty: "Medium",
       target: 5000,
-      rewardCents: 500,
+      rewardCents: 25000,
     },
     {
       key: "receive-2-orders",
@@ -108,25 +106,23 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Receive 2 customer orders",
       difficulty: "Medium",
       target: 2,
-      rewardCents: 500,
+      rewardCents: 25000,
     },
-  ],
-  "Medium/Hard": [
     {
       key: "sell-2-categories",
       type: "SELL_CATEGORIES",
       label: "Sell from 2 categories",
-      difficulty: "Medium/Hard",
+      difficulty: "Medium",
       target: 2,
-      rewardCents: 700,
+      rewardCents: 25000,
     },
     {
       key: "cart-value-100",
       type: "CART_VALUE",
       label: "Reach $100 cart value",
-      difficulty: "Medium/Hard",
+      difficulty: "Medium",
       target: 10000,
-      rewardCents: 700,
+      rewardCents: 25000,
     },
   ],
   Hard: [
@@ -136,7 +132,15 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Sell 10 items",
       difficulty: "Hard",
       target: 10,
-      rewardCents: 1000,
+      rewardCents: 50000,
+    },
+    {
+      key: "sell-3-items",
+      type: "SELL_ITEMS",
+      label: "Sell 3 items",
+      difficulty: "Hard",
+      target: 3,
+      rewardCents: 50000,
     },
     {
       key: "earn-150-profit",
@@ -144,12 +148,12 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Earn $150 profit",
       difficulty: "Hard",
       target: 15000,
-      rewardCents: 1000,
+      rewardCents: 50000,
     },
   ],
 };
 
-const DIFFICULTY_ORDER: ChallengeDifficulty[] = ["Easy", "Easy/Medium", "Medium", "Medium/Hard", "Hard"];
+const DIFFICULTY_ORDER: ChallengeDifficulty[] = ["Easy", "Easy", "Medium", "Medium", "Hard"];
 
 function getCycleStart(now: Date) {
   return new Date(Math.floor(now.getTime() / CHALLENGE_CYCLE_MS) * CHALLENGE_CYCLE_MS);
@@ -166,9 +170,16 @@ function getSeedIndex(seed: string, modulo: number) {
 
 function generateChallenges(userId: string, cycleStartAt: Date) {
   const cycleKey = cycleStartAt.toISOString();
-  return DIFFICULTY_ORDER.map((difficulty) => {
+  const usedBaseKeys = new Set<string>();
+  return DIFFICULTY_ORDER.map((difficulty, slot) => {
     const options = CHALLENGE_LIBRARY[difficulty];
-    const selected = options[getSeedIndex(`${userId}:${cycleKey}:${difficulty}`, options.length)];
+    const startIndex = getSeedIndex(`${userId}:${cycleKey}:${difficulty}:${slot}`, options.length);
+    const selected =
+      options.find((_, offset) => {
+        const option = options[(startIndex + offset) % options.length];
+        return !usedBaseKeys.has(option.key);
+      }) ?? options[startIndex];
+    usedBaseKeys.add(selected.key);
     return {
       ...selected,
       key: `${selected.key}:${cycleKey}`,

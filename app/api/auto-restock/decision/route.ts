@@ -85,6 +85,7 @@ async function restockIntoInventoryAndListing(
       },
       active: true,
       lastAutoRestockedAt: new Date(),
+      soldOutAt: null,
     },
   });
 

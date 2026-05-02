@@ -236,6 +236,7 @@ export async function createOrUpdateListingAction(formData: FormData) {
             quantity,
             active: quantity > 0,
             isPaused: false,
+            soldOutAt: quantity > 0 ? null : listing.soldOutAt,
           },
         });
       } else {
@@ -247,6 +248,7 @@ export async function createOrUpdateListingAction(formData: FormData) {
             quantity,
             active: true,
             isPaused: false,
+            soldOutAt: null,
           },
         });
       }

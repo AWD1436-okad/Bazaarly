@@ -24,6 +24,7 @@ export function SupplierRestockNeededModal({ items, currencyCode }: SupplierRest
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [tierQuantities, setTierQuantities] = useState<Record<string, string>>({
+    below_1: "0",
     above_1: "0",
     above_5: "0",
     above_10: "0",
@@ -70,17 +71,17 @@ export function SupplierRestockNeededModal({ items, currencyCode }: SupplierRest
     return counts;
   }, [items, tierDefinitions]);
 
-  const hasPositiveSelection = useMemo(() => {
-    return Object.values(tierQuantities).some((raw) => {
-      const parsed = Number.parseInt(raw, 10);
-      return Number.isFinite(parsed) && parsed > 0;
-    });
-  }, [tierQuantities]);
-
   const visibleTierDefinitions = useMemo(
     () => tierDefinitions.filter((tier) => tierItemCounts[tier.key] > 0),
     [tierDefinitions, tierItemCounts],
   );
+
+  const hasPositiveSelection = useMemo(() => {
+    return visibleTierDefinitions.some((tier) => {
+      const parsed = Number.parseInt(tierQuantities[tier.key] ?? "0", 10);
+      return Number.isFinite(parsed) && parsed > 0;
+    });
+  }, [tierQuantities, visibleTierDefinitions]);
 
   function handleApplyAll() {
     const parsed = Number.parseInt(applyAllQuantity, 10);
@@ -136,6 +137,7 @@ export function SupplierRestockNeededModal({ items, currencyCode }: SupplierRest
 
       setFeedback("Added restock items to cart");
       setTierQuantities({
+        below_1: "0",
         above_1: "0",
         above_5: "0",
         above_10: "0",

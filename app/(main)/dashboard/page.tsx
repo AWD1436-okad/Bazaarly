@@ -372,6 +372,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       quantity: true,
       active: true,
       isPaused: true,
+      soldOutAt: true,
       createdAt: true,
       updatedAt: true,
       product: {
@@ -412,6 +413,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     currencyCode,
     activeListingCount,
   });
+  const completedChallenges = challengeSet.challenges.filter((challenge) => challenge.completed).length;
+  const previewChallenges = challengeSet.challenges.slice(0, 2);
 
   if (safeInventoryPage !== inventoryPage) {
     redirect(buildDashboardHref(params, { inventoryPage: safeInventoryPage }) as Route);
@@ -627,6 +630,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         {formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)} -{" "}
                         {listing.isPaused ? "Paused" : getLiveStockStatusMessage(listing.quantity)}
                       </span>
+                      {listing.quantity <= 0 ? (
+                        <span className="muted">Auto-removes in about 20 min if not restocked.</span>
+                      ) : null}
                     </div>
                     <div className="table-row__actions">
                       {listing.quantity > 0 ? (
@@ -685,12 +691,20 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Challenges</h2>
-                <p>Short business challenges refresh every five minutes.</p>
+                <p>Short trading tasks refresh every five minutes.</p>
               </div>
               <ChallengeCountdown cycleEndsAt={challengeSet.cycleEndsAt.toISOString()} />
             </div>
+            <div className="challenge-preview-summary">
+              <strong>
+                {completedChallenges} / {challengeSet.challenges.length} complete
+              </strong>
+              <Link href={"/challenges" as Route} className="ghost-button">
+                View Challenges
+              </Link>
+            </div>
             <div className="challenge-list">
-              {challengeSet.challenges.map((challenge) => (
+              {previewChallenges.map((challenge) => (
                 <div key={challenge.key} className="challenge-row">
                   <div className="challenge-row__header">
                     <div className="table-row__meta">

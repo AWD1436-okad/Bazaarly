@@ -70,6 +70,10 @@ export function Navigation({
           <AppIcon icon={APP_ICONS.dashboard} />
           Dashboard
         </Link>
+        <Link href={"/challenges" as Route} className="topbar-link">
+          <AppIcon icon={APP_ICONS.challenges} />
+          Challenges
+        </Link>
         <Link href="/dashboard/supplier" className="topbar-link">
           <AppIcon icon={APP_ICONS.supplier} />
           Supplier

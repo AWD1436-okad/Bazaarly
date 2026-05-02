@@ -325,6 +325,7 @@ export async function POST(request: Request) {
             data: {
               quantity: remainingListingQuantity,
               active: remainingListingQuantity > 0,
+              soldOutAt: remainingListingQuantity > 0 ? null : new Date(),
             },
           });
 
@@ -524,6 +525,7 @@ async function restockBuyerInventory(
           increment: quantity,
         },
         active: true,
+        soldOutAt: null,
       },
     });
   }

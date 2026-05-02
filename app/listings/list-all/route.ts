@@ -111,6 +111,7 @@ export async function POST(request: Request) {
               active: nextQuantity > 0,
               isPaused: false,
               currencyCode: "AUD",
+              soldOutAt: null,
             },
           });
           updated += 1;
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
               active: true,
               isPaused: false,
               currencyCode: "AUD",
+              soldOutAt: null,
             },
           });
           created += 1;

@@ -13,6 +13,7 @@ import { getNextRestockDelayMs, getPlanMeta } from "@/lib/auto-restock";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { runSoldOutListingCleanup } from "@/lib/sold-out-cleanup";
 import { sanitizeStockCount } from "@/lib/stock";
 import { clamp } from "@/lib/utils";
 
@@ -822,6 +823,7 @@ export async function runMarketSimulation(force = false, debug = false) {
   const elapsedSinceLastSimulationMs = worldState.lastSimulatedAt
     ? now.getTime() - worldState.lastSimulatedAt.getTime()
     : DEFAULT_SIMULATION_ELAPSED_MS;
+  await runSoldOutListingCleanup(now);
 
   const marketReadinessScore = clamp(
     elapsedSinceLastSimulationMs / (2.5 * 60 * 1000) +
@@ -1348,6 +1350,7 @@ export async function runMarketSimulation(force = false, debug = false) {
           data: {
             quantity: remainingListingQuantity,
             active: remainingListingQuantity > 0,
+            soldOutAt: remainingListingQuantity > 0 ? null : attemptedAt,
           },
         });
 

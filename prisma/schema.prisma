@@ -218,6 +218,7 @@ model Listing {
   active     Boolean   @default(true)
   isPaused   Boolean   @default(false)
   lastAutoRestockedAt DateTime?
+  soldOutAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   shop       Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -227,6 +228,7 @@ model Listing {
   autoRestockRequestItems AutoRestockRequestItem[]
 
   @@unique([shopId, productId])
+  @@index([active, isPaused, quantity, soldOutAt])
 }
 
 model AutoRestockSubscription {

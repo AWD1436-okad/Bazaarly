@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
-import { CheckoutStickyAction } from "@/components/checkout-sticky-action";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
@@ -188,13 +187,6 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           })}
         </div>
       </section>
-
-      <CheckoutStickyAction
-        formId="checkout-confirm-form"
-        totalLabel={formatCurrency(total, currencyCode)}
-        itemCount={cart.items.length}
-        disabledByAvailability={hasUnavailableItems}
-      />
     </div>
   );
 }

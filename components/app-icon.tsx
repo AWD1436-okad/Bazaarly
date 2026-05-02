@@ -11,6 +11,7 @@ import {
   Settings,
   ShoppingCart,
   Store,
+  Trophy,
   WalletCards,
   XCircle,
 } from "lucide-react";
@@ -27,6 +28,7 @@ export const APP_ICONS = {
   search: Search,
   settings: Settings,
   supplier: PackageSearch,
+  challenges: Trophy,
   store: Store,
   wallet: WalletCards,
 } satisfies Record<string, LucideIcon>;

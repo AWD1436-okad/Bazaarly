@@ -120,6 +120,7 @@ export async function POST(request: Request) {
             quantity: nextListingQuantity,
             active: nextListingQuantity > 0,
             isPaused: false,
+            soldOutAt: nextListingQuantity > 0 ? null : listing.soldOutAt,
           },
         });
       } else {
@@ -132,6 +133,7 @@ export async function POST(request: Request) {
             quantity: quantityToList,
             active: true,
             isPaused: false,
+            soldOutAt: null,
           },
         });
       }
