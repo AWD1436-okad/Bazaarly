@@ -64,36 +64,20 @@ export function CheckoutStickyAction({
   const disabled = disabledByAvailability || !isFormReady || isSubmitting;
 
   return (
-    <>
-      <aside className="checkout-sticky-card" aria-label="Checkout summary">
+    <aside className="checkout-sticky-bottom" aria-label="Checkout action">
+      <div>
         <span className="muted">
           {itemCount} item{itemCount === 1 ? "" : "s"}
         </span>
         <strong>{totalLabel}</strong>
-        <button type="submit" form={formId} disabled={disabled}>
-          {disabledByAvailability
-            ? "Update cart before confirming"
-            : isSubmitting
-              ? "Confirming..."
-              : `Confirm Purchase ${totalLabel}`}
-        </button>
-      </aside>
-
-      <aside className="checkout-sticky-bottom" aria-label="Checkout action">
-        <div>
-          <span className="muted">
-            {itemCount} item{itemCount === 1 ? "" : "s"}
-          </span>
-          <strong>{totalLabel}</strong>
-        </div>
-        <button type="submit" form={formId} disabled={disabled}>
-          {disabledByAvailability
-            ? "Update cart"
-            : isSubmitting
-              ? "Confirming..."
-              : "Confirm Purchase"}
-        </button>
-      </aside>
-    </>
+      </div>
+      <button type="submit" form={formId} disabled={disabled}>
+        {disabledByAvailability
+          ? "Update cart"
+          : isSubmitting
+            ? "Confirming..."
+            : "Confirm Purchase"}
+      </button>
+    </aside>
   );
 }

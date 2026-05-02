@@ -138,7 +138,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
             Bank number
             <input name="bankNumber" type="password" inputMode="numeric" required />
           </label>
-          <button type="submit" disabled={hasUnavailableItems}>
+          <button type="submit" className="checkout-main-submit" disabled={hasUnavailableItems}>
             {hasUnavailableItems
               ? "Update cart before confirming"
               : `Confirm Purchase ${formatCurrency(total, currencyCode)}`}
