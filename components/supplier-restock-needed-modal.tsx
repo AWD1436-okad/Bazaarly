@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { formatCurrency } from "@/lib/money";
 
 type SoldOutRestockItem = {
   productId: string;
@@ -16,9 +17,10 @@ type SoldOutRestockItem = {
 
 type SupplierRestockNeededModalProps = {
   items: SoldOutRestockItem[];
+  currencyCode: string;
 };
 
-export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModalProps) {
+export function SupplierRestockNeededModal({ items, currencyCode }: SupplierRestockNeededModalProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [tierQuantities, setTierQuantities] = useState<Record<string, string>>({
@@ -30,19 +32,21 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
     above_100: "0",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [applyAllQuantity, setApplyAllQuantity] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const tierDefinitions = useMemo(
     () => [
-      { key: "above_1", label: "Above $1" },
-      { key: "above_5", label: "Above $5" },
-      { key: "above_10", label: "Above $10" },
-      { key: "above_20", label: "Above $20" },
-      { key: "above_50", label: "Above $50" },
-      { key: "above_100", label: "$100+" },
+      { key: "below_1", label: `Below ${formatCurrency(100, currencyCode)}` },
+      { key: "above_1", label: `Above ${formatCurrency(100, currencyCode)}` },
+      { key: "above_5", label: `Above ${formatCurrency(500, currencyCode)}` },
+      { key: "above_10", label: `Above ${formatCurrency(1000, currencyCode)}` },
+      { key: "above_20", label: `Above ${formatCurrency(2000, currencyCode)}` },
+      { key: "above_50", label: `Above ${formatCurrency(5000, currencyCode)}` },
+      { key: "above_100", label: `${formatCurrency(10000, currencyCode)}+` },
     ],
-    [],
+    [currencyCode],
   );
 
   function resolveTierKeyByPrice(priceCents: number) {
@@ -53,7 +57,7 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
     if (audDollars >= 10) return "above_10";
     if (audDollars >= 5) return "above_5";
     if (audDollars >= 1) return "above_1";
-    return null;
+    return "below_1";
   }
 
   const tierItemCounts = useMemo(() => {
@@ -73,6 +77,28 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
     });
   }, [tierQuantities]);
 
+  const visibleTierDefinitions = useMemo(
+    () => tierDefinitions.filter((tier) => tierItemCounts[tier.key] > 0),
+    [tierDefinitions, tierItemCounts],
+  );
+
+  function handleApplyAll() {
+    const parsed = Number.parseInt(applyAllQuantity, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setError("Enter a valid quantity to apply");
+      return;
+    }
+    const bounded = Math.min(parsed, 99);
+    setTierQuantities((current) => {
+      const next = { ...current };
+      for (const tier of visibleTierDefinitions) {
+        next[tier.key] = String(bounded);
+      }
+      return next;
+    });
+    setError(null);
+  }
+
   async function handleAddSelected() {
     if (!hasPositiveSelection) {
       setError("Select at least one tier quantity greater than zero");
@@ -86,7 +112,7 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
 
     try {
       const formData = new FormData();
-      for (const tier of tierDefinitions) {
+      for (const tier of visibleTierDefinitions) {
         formData.set(`tier:${tier.key}`, tierQuantities[tier.key] ?? "0");
       }
 
@@ -156,8 +182,28 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
               <h3 id="restock-sold-out-title">Restock sold-out items</h3>
               <p>Set restock quantity by price tier, then add selected items to your cart.</p>
             </div>
-            <div className="table-list">
-              {tierDefinitions.map((tier) => (
+            {visibleTierDefinitions.length === 0 ? (
+              <div className="empty-state">No sold-out items to restock.</div>
+            ) : (
+              <>
+                <div className="section-row">
+                  <label className="stack-xs" style={{ minWidth: 120 }}>
+                    Set all quantities
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={applyAllQuantity}
+                      onChange={(event) => setApplyAllQuantity(event.target.value)}
+                      disabled={submitting}
+                    />
+                  </label>
+                  <button type="button" className="ghost-button" onClick={handleApplyAll} disabled={submitting}>
+                    Apply to all
+                  </button>
+                </div>
+                <div className="table-list">
+                  {visibleTierDefinitions.map((tier) => (
                 <div key={tier.key} className="table-row">
                   <div className="table-row__meta">
                     <strong>{tier.label}</strong>
@@ -189,13 +235,19 @@ export function SupplierRestockNeededModal({ items }: SupplierRestockNeededModal
                     />
                   </div>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+              </>
+            )}
             <div className="modal-card__actions">
               <button type="button" className="ghost-button" onClick={() => setOpen(false)} disabled={submitting}>
                 Cancel
               </button>
-              <button type="button" onClick={() => void handleAddSelected()} disabled={submitting}>
+              <button
+                type="button"
+                onClick={() => void handleAddSelected()}
+                disabled={submitting || visibleTierDefinitions.length === 0}
+              >
                 {submitting ? "Adding..." : "Add selected to cart"}
               </button>
             </div>

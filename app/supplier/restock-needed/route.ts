@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 const TIER_KEYS = [
+  "below_1",
   "above_1",
   "above_5",
   "above_10",
@@ -39,6 +40,7 @@ function resolveTierKeyByPrice(priceCents: number): TierKey | null {
   if (audDollars >= 10) return "above_10";
   if (audDollars >= 5) return "above_5";
   if (audDollars >= 1) return "above_1";
+  if (audDollars >= 0) return "below_1";
   return null;
 }
 

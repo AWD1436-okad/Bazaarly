@@ -16,6 +16,7 @@ const MARKUP_TIERS: Array<{ minAudDollars: number; addAudCents: number }> = [
   { minAudDollars: 10, addAudCents: 500 },
   { minAudDollars: 5, addAudCents: 200 },
   { minAudDollars: 1, addAudCents: 50 },
+  { minAudDollars: 0, addAudCents: 25 },
 ];
 
 function resolveMarkupFromAudCost(audCostCents: number) {
@@ -175,4 +176,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
