@@ -14,6 +14,7 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
+import { getNetProfitSummary } from "@/lib/business-ledger";
 import { getDashboardChallenges } from "@/lib/challenges";
 import { convertAudCentsToCurrencyMinorUnits, formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode, getPriceProfileMetadata } from "@/lib/price-profiles";
@@ -44,7 +45,7 @@ type BestSellerRow = {
   productId: string;
   productName: string;
   units: number;
-  profit: number;
+  salesIncome: number;
 };
 
 function buildDashboardHref(
@@ -247,21 +248,13 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           oli."productId" AS "productId",
           p."name" AS "productName",
           COALESCE(SUM(oli."quantity"), 0)::int AS "units",
-          COALESCE(
-            SUM(
-              (oli."unitPrice" - COALESCE(NULLIF(inv."averageUnitCost", 0), p."basePrice")) * oli."quantity"
-            ),
-            0
-          )::int AS "profit"
+          COALESCE(SUM(oli."lineTotal"), 0)::int AS "salesIncome"
         FROM "OrderLineItem" oli
         INNER JOIN "Order" o ON o."id" = oli."orderId"
         INNER JOIN "Product" p ON p."id" = oli."productId"
-        LEFT JOIN "Inventory" inv ON inv."userId" = o."sellerId" AND inv."productId" = oli."productId"
         WHERE o."sellerId" = ${user.id}
         GROUP BY oli."productId", p."name"
-        ORDER BY SUM(oli."quantity") DESC, SUM(
-          (oli."unitPrice" - COALESCE(NULLIF(inv."averageUnitCost", 0), p."basePrice")) * oli."quantity"
-        ) DESC
+        ORDER BY SUM(oli."quantity") DESC, SUM(oli."lineTotal") DESC
         LIMIT 4
       `),
       prisma.inventory.findFirst({
@@ -273,36 +266,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           id: true,
         },
       }),
-      prisma.$queryRaw<{ profit: number }[]>(Prisma.sql`
-        SELECT
-          COALESCE(
-            SUM(
-              (oli."unitPrice" - COALESCE(NULLIF(inv."averageUnitCost", 0), p."basePrice")) * oli."quantity"
-            ),
-            0
-          )::int AS "profit"
-        FROM "OrderLineItem" oli
-        INNER JOIN "Order" o ON o."id" = oli."orderId"
-        INNER JOIN "Product" p ON p."id" = oli."productId"
-        LEFT JOIN "Inventory" inv ON inv."userId" = o."sellerId" AND inv."productId" = oli."productId"
-        WHERE o."sellerId" = ${user.id}
-          AND o."createdAt" >= ${startOfToday}
-          AND o."createdAt" < ${endOfToday}
-      `),
-      prisma.$queryRaw<{ profit: number }[]>(Prisma.sql`
-        SELECT
-          COALESCE(
-            SUM(
-              (oli."unitPrice" - COALESCE(NULLIF(inv."averageUnitCost", 0), p."basePrice")) * oli."quantity"
-            ),
-            0
-          )::int AS "profit"
-        FROM "OrderLineItem" oli
-        INNER JOIN "Order" o ON o."id" = oli."orderId"
-        INNER JOIN "Product" p ON p."id" = oli."productId"
-        LEFT JOIN "Inventory" inv ON inv."userId" = o."sellerId" AND inv."productId" = oli."productId"
-        WHERE o."sellerId" = ${user.id}
-      `),
+      getNetProfitSummary({ userId: user.id, startAt: startOfToday, endAt: endOfToday }),
+      getNetProfitSummary({ userId: user.id }),
       prisma.listing.count({
         where: {
           shopId: user.shop.id,
@@ -420,15 +385,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           10 ** getPriceProfileMetadata(currencyCode).fractionDigits
         ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)
       : "2.50";
-  const todayProfit = todayProfitSummary[0]?.profit ?? 0;
-  const totalProfit = totalProfitSummary[0]?.profit ?? 0;
+  const todayProfit = todayProfitSummary.netProfitCents;
+  const totalProfit = totalProfitSummary.netProfitCents;
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
   const bestSellers = bestSellerRows.map((item) => ({
     name: item.productName,
     units: item.units,
-    profit: item.profit,
+    salesIncome: item.salesIncome,
   }));
   const challengeSet = await getDashboardChallenges({
     userId: user.id,
@@ -516,14 +481,17 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         <article className="metric-card">
           <span className="metric-card__eyebrow">Balance</span>
           <strong>{formatCurrency(user.balance, currencyCode)}</strong>
+          <span className="metric-card__helper">Money you can spend.</span>
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Today Profit</span>
           <strong>{formatCurrency(todayProfit, currencyCode)}</strong>
+          <span className="metric-card__helper">Today&apos;s sales minus today&apos;s business costs.</span>
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Total Profit</span>
           <strong>{formatCurrency(totalProfit, currencyCode)}</strong>
+          <span className="metric-card__helper">All sales minus all business costs.</span>
         </article>
       </section>
 
@@ -807,7 +775,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Best-selling items</h2>
-                <p>Your strongest sellers, ranked by completed sales and profit.</p>
+                <p>Your strongest sellers, ranked by completed units and sales income.</p>
               </div>
             </div>
             {bestSellers.length === 0 ? (
@@ -823,7 +791,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         <span className="muted">{item.units} units sold</span>
                       </div>
                     </div>
-                    <strong>{formatCurrency(item.profit, currencyCode)}</strong>
+                    <strong>{formatCurrency(item.salesIncome, currencyCode)}</strong>
                   </div>
                 ))}
               </div>

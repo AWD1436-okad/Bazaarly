@@ -1,8 +1,14 @@
-import { AutoRestockRequestStatus, NotificationType, Prisma } from "@prisma/client";
+import {
+  AutoRestockRequestStatus,
+  BusinessLedgerEntryCategory,
+  NotificationType,
+  Prisma,
+} from "@prisma/client";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { verifyPassword } from "@/lib/password";
 import { verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
@@ -274,6 +280,18 @@ export async function POST(request: Request) {
         balance: {
           decrement: payableTotal,
         },
+      },
+    });
+
+    await recordBusinessExpense(tx, {
+      userId: user.id,
+      category: BusinessLedgerEntryCategory.AUTO_RESTOCK_PURCHASE,
+      amount: payableTotal,
+      description: `Auto Restock ${freshRequest.plan} purchase`,
+      data: {
+        source: "auto_restock_request",
+        requestId: freshRequest.id,
+        plan: freshRequest.plan,
       },
     });
 

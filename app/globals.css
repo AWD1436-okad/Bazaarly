@@ -943,6 +943,14 @@ textarea {
   font-size: 1.55rem;
 }
 
+.metric-card__helper {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
 .challenge-countdown {
   align-self: center;
   white-space: nowrap;

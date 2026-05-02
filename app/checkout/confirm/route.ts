@@ -1,8 +1,9 @@
-import { NotificationType, Prisma } from "@prisma/client";
+import { BusinessLedgerEntryCategory, NotificationType, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { verifyPassword } from "@/lib/password";
 import { encryptBankNumber, verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
@@ -397,6 +398,18 @@ export async function POST(request: Request) {
             )}.`,
           },
         });
+
+        await recordBusinessExpense(tx, {
+          userId: buyer.id,
+          category: BusinessLedgerEntryCategory.STOCK_PURCHASE,
+          amount: marketplaceTotal,
+          description: `Marketplace stock purchase from ${cart.shop.name}: ${saleSummary.join(", ")}`,
+          data: {
+            source: "marketplace_checkout",
+            cartId: cart.id,
+            shopId: cart.shopId,
+          },
+        });
       }
 
       for (const item of supplierItems) {
@@ -413,6 +426,17 @@ export async function POST(request: Request) {
       }
 
       if (supplierItems.length > 0) {
+        await recordBusinessExpense(tx, {
+          userId: buyer.id,
+          category: BusinessLedgerEntryCategory.STOCK_PURCHASE,
+          amount: supplierTotal,
+          description: `Supplier stock purchase: ${supplierSummary.join(", ")}`,
+          data: {
+            source: "supplier_checkout",
+            cartId: cart.id,
+          },
+        });
+
         await tx.notification.create({
           data: {
             userId: buyer.id,

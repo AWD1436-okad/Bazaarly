@@ -1,10 +1,16 @@
-import { AutoRestockPlan, AutoRestockSubscriptionStatus, NotificationType } from "@prisma/client";
+import {
+  AutoRestockPlan,
+  AutoRestockSubscriptionStatus,
+  BusinessLedgerEntryCategory,
+  NotificationType,
+} from "@prisma/client";
 import { addDays } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { getPlanMeta } from "@/lib/auto-restock";
+import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
@@ -100,6 +106,30 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    await recordBusinessExpense(tx, {
+      userId: user.id,
+      category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
+      amount: planMeta.dailyCostCents,
+      description: `${planMeta.name} Auto Restock first daily fee`,
+      data: {
+        source: "auto_restock_subscription",
+        plan: requestedPlan,
+      },
+    });
+
+    if (setupFee > 0) {
+      await recordBusinessExpense(tx, {
+        userId: user.id,
+        category: BusinessLedgerEntryCategory.FEATURE_FEE,
+        amount: setupFee,
+        description: "Simple Auto Restock setup fee",
+        data: {
+          source: "auto_restock_subscription_setup",
+          plan: requestedPlan,
+        },
+      });
+    }
 
     const nextChargeAt = addDays(now, 1);
     await tx.autoRestockSubscription.upsert({

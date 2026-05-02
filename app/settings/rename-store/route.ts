@@ -1,8 +1,9 @@
-import { NotificationType } from "@prisma/client";
+import { BusinessLedgerEntryCategory, NotificationType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { verifyPassword } from "@/lib/password";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -90,6 +91,17 @@ export async function POST(request: Request) {
       if (balanceUpdate.count !== 1) {
         throw new Error(`You need ${formatCurrency(RENAME_COST_CENTS, currencyCode)} to rename your store`);
       }
+
+      await recordBusinessExpense(tx, {
+        userId: user.id,
+        category: BusinessLedgerEntryCategory.FEATURE_FEE,
+        amount: RENAME_COST_CENTS,
+        description: `Store rename fee for ${newName}`,
+        data: {
+          source: "store_rename",
+          shopId: user.shop!.id,
+        },
+      });
 
       const matchingSlugs = await tx.shop.count({
         where: {

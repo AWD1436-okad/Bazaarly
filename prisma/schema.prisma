@@ -85,6 +85,18 @@ enum AutoRestockRequestStatus {
   FAILED
 }
 
+enum BusinessLedgerEntryType {
+  EXPENSE
+}
+
+enum BusinessLedgerEntryCategory {
+  STOCK_PURCHASE
+  AUTO_RESTOCK_PURCHASE
+  SUBSCRIPTION_FEE
+  FEATURE_FEE
+  OTHER_EXPENSE
+}
+
 model User {
   id                     String         @id @default(cuid())
   email                  String         @unique
@@ -117,6 +129,7 @@ model User {
   autoRestockSubscription AutoRestockSubscription?
   autoRestockRequests     AutoRestockRequest[]
   challengeSets           ChallengeSet[]
+  businessLedgerEntries   BusinessLedgerEntry[]
 }
 
 model Shop {
@@ -297,6 +310,22 @@ model ChallengeSet {
 
   @@unique([userId, cycleStartAt])
   @@index([userId, cycleEndsAt])
+}
+
+model BusinessLedgerEntry {
+  id          String                      @id @default(cuid())
+  userId      String
+  type        BusinessLedgerEntryType
+  category    BusinessLedgerEntryCategory
+  amount      Int
+  description String
+  data        Json?
+  createdAt   DateTime                    @default(now())
+  user        User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, type, createdAt])
+  @@index([userId, category, createdAt])
 }
 
 model Cart {

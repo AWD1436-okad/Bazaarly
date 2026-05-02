@@ -3,6 +3,7 @@ import {
   AutoRestockRequestStatus,
   AutoRestockSubscriptionStatus,
   BotPersonality,
+  BusinessLedgerEntryCategory,
   MarketTimePhase,
   NotificationType,
   ProductCategory,
@@ -10,6 +11,7 @@ import {
 import { addDays, subMinutes } from "date-fns";
 
 import { getNextRestockDelayMs, getPlanMeta } from "@/lib/auto-restock";
+import { recordBusinessExpense } from "@/lib/business-ledger";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -663,6 +665,18 @@ async function runAutoRestock(now: Date, userId?: string) {
               decrement: subscription.dailyCostCents,
             },
           },
+        });
+        await recordBusinessExpense(tx, {
+          userId: user.id,
+          category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
+          amount: subscription.dailyCostCents,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock daily fee`,
+          data: {
+            source: "auto_restock_daily_charge",
+            subscriptionId: subscription.id,
+            plan: subscription.plan,
+          },
+          createdAt: now,
         });
         await tx.autoRestockSubscription.update({
           where: { id: subscription.id },
