@@ -2,6 +2,7 @@ import type { ProductCategory } from "@prisma/client";
 import Link from "next/link";
 
 import { InlineCartActions } from "@/components/inline-cart-actions";
+import { ProductVisual } from "@/components/product-visual";
 import { getProductCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
 import { getStockAvailabilityLabel, sanitizeStockCount } from "@/lib/stock";
@@ -18,6 +19,7 @@ type ListingCardProps = {
       subcategory?: string | null;
       unitLabel: string;
       description: string;
+      imageUrl?: string | null;
     };
     shop: {
       name: string;
@@ -40,14 +42,23 @@ export function ListingCard({
   return (
     <article className="card supplier-card listing-card">
       <div className="listing-card__header">
-        <div className="supplier-card__title">
-          <span className="category-chip">
-            {getProductCategoryLabel(listing.product.category, listing.product.subcategory)}
-          </span>
-          <h3>{listing.product.name}</h3>
-          <span className="listing-card__shop">
-            {shopLabel} {" - "}Rated {listing.shop.rating.toFixed(1)}
-          </span>
+        <div className="product-heading">
+          <ProductVisual
+            name={listing.product.name}
+            category={listing.product.category}
+            subcategory={listing.product.subcategory}
+            imageUrl={listing.product.imageUrl}
+            size="card"
+          />
+          <div className="supplier-card__title">
+            <span className="category-chip">
+              {getProductCategoryLabel(listing.product.category, listing.product.subcategory)}
+            </span>
+            <h3>{listing.product.name}</h3>
+            <span className="listing-card__shop">
+              {shopLabel} {" - "}Rated {listing.shop.rating.toFixed(1)}
+            </span>
+          </div>
         </div>
 
         <div className="listing-card__price">

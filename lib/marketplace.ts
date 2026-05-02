@@ -40,6 +40,7 @@ const listingCardSelect = {
       subcategory: true,
       unitLabel: true,
       description: true,
+      imageUrl: true,
       keywords: true,
     },
   },
@@ -63,6 +64,7 @@ type ListingWithRelations = {
     subcategory: string | null;
     unitLabel: string;
     description: string;
+    imageUrl: string | null;
     keywords: unknown;
   };
   shop: {
@@ -463,6 +465,7 @@ export async function getShopPageData(shopId: string, page = 1) {
           subcategory: true,
           unitLabel: true,
           description: true,
+          imageUrl: true,
         },
       },
     },

@@ -10,11 +10,11 @@ export const metadata: Metadata = {
   description: "A shared online marketplace simulation with player-owned shops and a living economy.",
   icons: {
     icon: [
-      { url: "/tradex-logo4-icon-square.png", sizes: "32x32", type: "image/png" },
-      { url: "/tradex-logo4-icon-square.png", sizes: "192x192", type: "image/png" },
+      { url: "/tradex-logo4-favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/tradex-logo4-favicon.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/tradex-logo4-icon-square.png",
-    apple: "/tradex-logo4-icon-square.png",
+    shortcut: "/tradex-logo4-favicon.png",
+    apple: "/tradex-logo4-favicon.png",
   },
 };
 

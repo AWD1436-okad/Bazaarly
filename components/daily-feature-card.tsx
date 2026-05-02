@@ -1,5 +1,6 @@
 import { type CatalogProduct, getProductCategoryLabel } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
+import { ProductVisual } from "@/components/product-visual";
 
 type DailyFeatureCardProps = {
   product: CatalogProduct;
@@ -22,6 +23,13 @@ export function DailyFeatureCard({
 }: DailyFeatureCardProps) {
   return (
     <section className="featured-item-card">
+      <ProductVisual
+        name={product.name}
+        category={product.category}
+        subcategory={product.subcategory}
+        imageUrl={product.imageUrl}
+        size="hero"
+      />
       <div className="featured-item-card__content">
         <div className="featured-item-card__eyebrow">{eyebrow}</div>
         <div className="featured-item-card__copy">

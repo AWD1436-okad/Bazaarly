@@ -2,6 +2,7 @@ import { ProductCategory } from "@prisma/client";
 
 import { CategoryFilterList } from "@/components/category-filter-list";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
+import { ProductVisual } from "@/components/product-visual";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { SupplierCategoryBulkAdd } from "@/components/supplier-category-bulk-add";
@@ -31,6 +32,7 @@ type SupplierProduct = {
   subcategory: string | null;
   unitLabel: string;
   description: string;
+  imageUrl: string | null;
   supplierPrice: number;
   supplierStock: number;
 };
@@ -174,6 +176,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       subcategory: true,
       unitLabel: true,
       description: true,
+      imageUrl: true,
       marketState: {
         select: {
           currentSupplierPrice: true,
@@ -191,6 +194,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     subcategory: item.subcategory,
     unitLabel: item.unitLabel,
     description: item.description,
+    imageUrl: item.imageUrl,
     supplierPrice: item.marketState?.currentSupplierPrice ?? 0,
     supplierStock: item.marketState?.supplierStock ?? 0,
   }));
@@ -355,11 +359,20 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
               {filteredProducts.map((item) => (
                 <article key={item.id} className="card supplier-card">
                   <div className="supplier-card__header">
-                    <div className="supplier-card__title">
-                      <span className="category-chip">
-                        {getProductCategoryLabel(item.category, item.subcategory)}
-                      </span>
-                      <h2>{item.name}</h2>
+                    <div className="product-heading">
+                      <ProductVisual
+                        name={item.name}
+                        category={item.category}
+                        subcategory={item.subcategory}
+                        imageUrl={item.imageUrl}
+                        size="card"
+                      />
+                      <div className="supplier-card__title">
+                        <span className="category-chip">
+                          {getProductCategoryLabel(item.category, item.subcategory)}
+                        </span>
+                        <h2>{item.name}</h2>
+                      </div>
                     </div>
                     <strong>{formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)}</strong>
                   </div>

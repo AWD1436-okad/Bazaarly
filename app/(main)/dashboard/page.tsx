@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, ProductCategory } from "@prisma/client";
 import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -8,6 +8,7 @@ import { ChallengeCountdown } from "@/components/challenge-countdown";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
+import { ProductVisual } from "@/components/product-visual";
 import { SoldOutListingActions } from "@/components/sold-out-listing-actions";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
@@ -31,6 +32,9 @@ type FreeInventoryRow = {
   inventoryId: string;
   productId: string;
   productName: string;
+  productCategory: ProductCategory;
+  productSubcategory: string | null;
+  productImageUrl: string | null;
   unitLabel: string;
   availableToList: number;
   marketAveragePrice: number;
@@ -121,6 +125,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           product: {
             select: {
               name: true,
+              category: true,
+              subcategory: true,
+              imageUrl: true,
               unitLabel: true,
               basePrice: true,
               marketState: {
@@ -152,6 +159,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           product: {
             select: {
               name: true,
+              category: true,
+              subcategory: true,
+              imageUrl: true,
               unitLabel: true,
               basePrice: true,
               marketState: {
@@ -187,6 +197,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 select: {
                   id: true,
                   name: true,
+                  category: true,
+                  subcategory: true,
+                  imageUrl: true,
                 },
               },
             },
@@ -206,6 +219,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           product: {
             select: {
               name: true,
+              category: true,
+              subcategory: true,
+              imageUrl: true,
             },
           },
         },
@@ -322,6 +338,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         inventoryId: item.id,
         productId: item.productId,
         productName: item.product.name,
+        productCategory: item.product.category,
+        productSubcategory: item.product.subcategory,
+        productImageUrl: item.product.imageUrl,
         unitLabel: item.product.unitLabel,
         availableToList: sanitizeStockCount(
           sanitizeStockCount(item.quantity) - sanitizeStockCount(item.allocatedQuantity),
@@ -337,6 +356,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         inventoryId: item.id,
         productId: item.productId,
         productName: item.product.name,
+        productCategory: item.product.category,
+        productSubcategory: item.product.subcategory,
+        productImageUrl: item.product.imageUrl,
         unitLabel: item.product.unitLabel,
         availableToList: sanitizeStockCount(
           sanitizeStockCount(item.quantity) - sanitizeStockCount(item.allocatedQuantity),
@@ -382,6 +404,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           subcategory: true,
           unitLabel: true,
           category: true,
+          imageUrl: true,
         },
       },
     },
@@ -557,12 +580,20 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               ) : (
                 visibleInventory.map((item) => (
                   <div key={item.inventoryId} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{item.productName}</strong>
-                      <span className="muted">
-                        Available in inventory: {item.availableToList} - Market average:{" "}
-                        {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}
-                      </span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      <ProductVisual
+                        name={item.productName}
+                        category={item.productCategory}
+                        subcategory={item.productSubcategory}
+                        imageUrl={item.productImageUrl}
+                      />
+                      <div>
+                        <strong>{item.productName}</strong>
+                        <span className="muted">
+                          Available in inventory: {item.availableToList} - Market average:{" "}
+                          {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}
+                        </span>
+                      </div>
                     </div>
                     <strong>{formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}</strong>
                   </div>
@@ -620,19 +651,27 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="table-list">
                 {visibleListings.map((listing) => (
                   <div key={listing.id} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{listing.product.name}</strong>
-                      <span className="muted">
-                        {getProductCategoryLabel(
-                          listing.product.category,
-                          listing.product.subcategory,
-                        )} -{" "}
-                        {formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)} -{" "}
-                        {listing.isPaused ? "Paused" : getLiveStockStatusMessage(listing.quantity)}
-                      </span>
-                      {listing.quantity <= 0 ? (
-                        <span className="muted">Auto-removes in about 20 min if not restocked.</span>
-                      ) : null}
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      <ProductVisual
+                        name={listing.product.name}
+                        category={listing.product.category}
+                        subcategory={listing.product.subcategory}
+                        imageUrl={listing.product.imageUrl}
+                      />
+                      <div>
+                        <strong>{listing.product.name}</strong>
+                        <span className="muted">
+                          {getProductCategoryLabel(
+                            listing.product.category,
+                            listing.product.subcategory,
+                          )} -{" "}
+                          {formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)} -{" "}
+                          {listing.isPaused ? "Paused" : getLiveStockStatusMessage(listing.quantity)}
+                        </span>
+                        {listing.quantity <= 0 ? (
+                          <span className="muted">Auto-removes in about 20 min if not restocked.</span>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="table-row__actions">
                       {listing.quantity > 0 ? (
@@ -741,11 +780,21 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="table-list">
                 {recentSales.map((sale) => (
                   <div key={sale.id} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{sale.buyer.displayName}</strong>
-                      <span className="muted">
-                        {sale.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
-                      </span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      {sale.lineItems[0] ? (
+                        <ProductVisual
+                          name={sale.lineItems[0].product.name}
+                          category={sale.lineItems[0].product.category}
+                          subcategory={sale.lineItems[0].product.subcategory}
+                          imageUrl={sale.lineItems[0].product.imageUrl}
+                        />
+                      ) : null}
+                      <div>
+                        <strong>{sale.buyer.displayName}</strong>
+                        <span className="muted">
+                          {sale.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
+                        </span>
+                      </div>
                     </div>
                     <strong>{formatCurrency(sale.totalPrice, currencyCode)}</strong>
                   </div>
@@ -767,9 +816,12 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="table-list">
                 {bestSellers.map((item) => (
                   <div key={item.name} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{item.name}</strong>
-                      <span className="muted">{item.units} units sold</span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      <ProductVisual name={item.name} />
+                      <div>
+                        <strong>{item.name}</strong>
+                        <span className="muted">{item.units} units sold</span>
+                      </div>
                     </div>
                     <strong>{formatCurrency(item.profit, currencyCode)}</strong>
                   </div>
@@ -791,11 +843,19 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="table-list">
                 {lowStockListings.map((listing) => (
                   <div key={listing.id} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{listing.product.name}</strong>
-                      <span className="muted">
-                        {getLiveStockStatusMessage(listing.quantity)}
-                      </span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      <ProductVisual
+                        name={listing.product.name}
+                        category={listing.product.category}
+                        subcategory={listing.product.subcategory}
+                        imageUrl={listing.product.imageUrl}
+                      />
+                      <div>
+                        <strong>{listing.product.name}</strong>
+                        <span className="muted">
+                          {getLiveStockStatusMessage(listing.quantity)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

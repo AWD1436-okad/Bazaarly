@@ -14,11 +14,12 @@ export function BrandLogo({ size = 54, className }: BrandLogoProps) {
     >
       <span className="brand-mark__glow" />
       <Image
-        src="/tradex-logo4-icon-square.png"
+        src="/tradex-logo4-icon.png"
         alt=""
         fill
         sizes={`${size}px`}
         className="brand-mark__image"
+        priority={size >= 48}
       />
     </span>
   );

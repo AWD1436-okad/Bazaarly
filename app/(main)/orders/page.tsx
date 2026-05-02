@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
+import { ProductVisual } from "@/components/product-visual";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -77,6 +78,9 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
             product: {
               select: {
                 name: true,
+                category: true,
+                subcategory: true,
+                imageUrl: true,
               },
             },
           },
@@ -106,6 +110,9 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
             product: {
               select: {
                 name: true,
+                category: true,
+                subcategory: true,
+                imageUrl: true,
               },
             },
           },
@@ -158,10 +165,22 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
               <div className="table-list">
                 {visibleBuyerOrders.map((order) => (
                   <div key={order.id} className="order-row">
-                    <strong>{order.shop.name}</strong>
-                    <span className="muted">
-                      {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
-                    </span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      {order.lineItems[0] ? (
+                        <ProductVisual
+                          name={order.lineItems[0].product.name}
+                          category={order.lineItems[0].product.category}
+                          subcategory={order.lineItems[0].product.subcategory}
+                          imageUrl={order.lineItems[0].product.imageUrl}
+                        />
+                      ) : null}
+                      <div>
+                        <strong>{order.shop.name}</strong>
+                        <span className="muted">
+                          {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
+                        </span>
+                      </div>
+                    </div>
                     <div className="section-row">
                       <span>{order.createdAt.toLocaleString()}</span>
                        <strong>{formatCurrency(order.totalPrice, currencyCode)}</strong>
@@ -227,10 +246,22 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
               <div className="table-list">
                 {visibleSellerOrders.map((order) => (
                   <div key={order.id} className="order-row">
-                    <strong>{order.buyer.displayName}</strong>
-                    <span className="muted">
-                      {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
-                    </span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      {order.lineItems[0] ? (
+                        <ProductVisual
+                          name={order.lineItems[0].product.name}
+                          category={order.lineItems[0].product.category}
+                          subcategory={order.lineItems[0].product.subcategory}
+                          imageUrl={order.lineItems[0].product.imageUrl}
+                        />
+                      ) : null}
+                      <div>
+                        <strong>{order.buyer.displayName}</strong>
+                        <span className="muted">
+                          {order.lineItems.map((line) => `${line.quantity}x ${line.product.name}`).join(", ")}
+                        </span>
+                      </div>
+                    </div>
                     <div className="section-row">
                       <span>{order.createdAt.toLocaleString()}</span>
                        <strong>{formatCurrency(order.totalPrice, currencyCode)}</strong>

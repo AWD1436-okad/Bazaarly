@@ -1,6 +1,7 @@
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { ClearCartButton } from "@/components/clear-cart-button";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
+import { ProductVisual } from "@/components/product-visual";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -130,14 +131,22 @@ export default async function CartPage({ searchParams }: CartProps) {
 
                 return (
                   <div key={item.id} className="table-row">
-                    <div className="table-row__meta">
-                      <strong>{item.product.name}</strong>
-                      <span className="muted">
-                        {sourceName} - {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)} -{" "}
-                        {itemUnavailable
-                          ? "Sold out or unavailable since added to cart"
-                          : `${sanitizeStockCount(availableQuantity)} available`}
-                      </span>
+                    <div className="table-row__meta table-row__meta--with-visual">
+                      <ProductVisual
+                        name={item.product.name}
+                        category={item.product.category}
+                        subcategory={item.product.subcategory}
+                        imageUrl={item.product.imageUrl}
+                      />
+                      <div>
+                        <strong>{item.product.name}</strong>
+                        <span className="muted">
+                          {sourceName} - {formatPriceWithUnit(item.unitPriceSnapshot, item.product.unitLabel, currencyCode)} -{" "}
+                          {itemUnavailable
+                            ? "Sold out or unavailable since added to cart"
+                            : `${sanitizeStockCount(availableQuantity)} available`}
+                        </span>
+                      </div>
                     </div>
                     <div className="table-row__actions">
                       <CartItemQuantityForm
