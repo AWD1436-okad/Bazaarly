@@ -148,7 +148,7 @@ textarea {
   top: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: 220px minmax(320px, 1fr) auto;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(0, auto);
   gap: 1rem;
   align-items: center;
   margin-bottom: 1.1rem;
@@ -358,8 +358,19 @@ textarea {
 
 .search-bar {
   display: grid;
-  grid-template-columns: 1fr 220px auto;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 220px) max-content;
   gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.search-bar > * {
+  min-width: 0;
+}
+
+.search-bar button {
+  min-height: 48px;
+  align-self: stretch;
 }
 
 .topbar-links {
@@ -368,6 +379,7 @@ textarea {
   gap: 0.8rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .balance-pill,
@@ -384,6 +396,29 @@ textarea {
   padding: 0.45rem 0.8rem;
   background: linear-gradient(180deg, #f5f7ff, #edf2ff);
   color: var(--muted);
+}
+
+.balance-pill {
+  min-height: 52px;
+  max-width: 100%;
+  padding: 0.56rem 1rem 0.56rem 0.58rem;
+  border: 1px solid rgba(194, 206, 244, 0.95);
+  background:
+    radial-gradient(circle at 18% 50%, rgba(111, 45, 245, 0.12), transparent 34%),
+    linear-gradient(180deg, #ffffff, #eef3ff);
+  color: #253273;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 24px rgba(43, 67, 153, 0.13);
+  white-space: nowrap;
+}
+
+.balance-pill .app-icon {
+  width: 2.12rem;
+  height: 2.12rem;
+  font-size: 1rem;
+  box-shadow: 0 8px 18px rgba(85, 69, 207, 0.22);
 }
 
 .metric-card__eyebrow::before,
@@ -1707,6 +1742,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .search-bar button {
+    width: 100%;
+  }
+
   .topbar-links,
   .card-header,
   .listing-card__summary,
@@ -1716,6 +1755,16 @@ textarea {
   .status-banner {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-links {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .balance-pill {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .inline-cart-form,
