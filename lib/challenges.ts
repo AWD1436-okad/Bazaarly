@@ -52,9 +52,9 @@ type ChallengeStats = {
 };
 
 const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
-  Easy: 10_000,
-  Medium: 25_000,
-  Hard: 50_000,
+  Easy: 5_000,
+  Medium: 10_000,
+  Hard: 15_000,
 };
 
 const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
@@ -70,7 +70,7 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
     {
       key: "earn-150-profit",
       type: "EARN_PROFIT",
-      label: "Earn $150 profit",
+      label: "Earn profit target",
       difficulty: "Easy",
       target: 15_000,
       rewardCents: REWARD_CENTS.Easy,
@@ -78,7 +78,7 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
     {
       key: "buy-250-supplier-stock",
       type: "BUY_SUPPLIER_STOCK",
-      label: "Add $250 worth of supplier stock",
+      label: "Add supplier stock target",
       difficulty: "Easy",
       target: 25_000,
       rewardCents: REWARD_CENTS.Easy,
@@ -144,7 +144,7 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
     {
       key: "earn-500-profit",
       type: "EARN_PROFIT",
-      label: "Earn $500 profit",
+      label: "Earn profit target",
       difficulty: "Medium",
       target: 50_000,
       rewardCents: REWARD_CENTS.Medium,
@@ -194,7 +194,7 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
     {
       key: "earn-1500-profit",
       type: "EARN_PROFIT",
-      label: "Earn $1,500 profit",
+      label: "Earn profit target",
       difficulty: "Hard",
       target: 150_000,
       rewardCents: REWARD_CENTS.Hard,
@@ -291,6 +291,21 @@ function parseRewardedKeys(value: Prisma.JsonValue): string[] {
   return value.filter((entry): entry is string => typeof entry === "string");
 }
 
+function getChallengeDefinitionFingerprint(challenges: ChallengeDefinition[]) {
+  return challenges
+    .map((challenge) =>
+      [
+        challenge.key,
+        challenge.type,
+        challenge.label,
+        challenge.difficulty,
+        challenge.target,
+        challenge.rewardCents,
+      ].join(":"),
+    )
+    .join("|");
+}
+
 function getChallengeProgress(challenge: ChallengeDefinition, stats: ChallengeStats) {
   switch (challenge.type) {
     case "SELL_ITEMS":
@@ -381,9 +396,7 @@ export async function getDashboardChallenges({
   });
 
   let challenges = parseChallenges(challengeSet.challenges);
-  const generatedKeys = generatedChallenges.map((challenge) => challenge.key).join("|");
-  const storedKeys = challenges.map((challenge) => challenge.key).join("|");
-  if (storedKeys !== generatedKeys) {
+  if (getChallengeDefinitionFingerprint(challenges) !== getChallengeDefinitionFingerprint(generatedChallenges)) {
     challengeSet = await prisma.challengeSet.update({
       where: { id: challengeSet.id },
       data: {

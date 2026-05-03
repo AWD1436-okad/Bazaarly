@@ -16,8 +16,8 @@ import { getProductCategoryLabel } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { getNetProfitSummary } from "@/lib/business-ledger";
 import { getDashboardChallenges } from "@/lib/challenges";
-import { convertAudCentsToCurrencyMinorUnits, formatCurrency, formatPriceWithUnit } from "@/lib/money";
-import { getActiveCurrencyCode, getPriceProfileMetadata } from "@/lib/price-profiles";
+import { formatCurrency, formatCurrencyInputValue, formatPriceWithUnit } from "@/lib/money";
+import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount, getLiveStockStatusMessage } from "@/lib/stock";
 
@@ -380,10 +380,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const hasNextListingsPage = safeListingsPage < totalListingsPages;
   const defaultListingPrice =
     listingOptionRows.length > 0
-      ? (
-          convertAudCentsToCurrencyMinorUnits(listingOptionRows[0].marketAveragePrice, currencyCode) /
-          10 ** getPriceProfileMetadata(currencyCode).fractionDigits
-        ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)
+      ? formatCurrencyInputValue(listingOptionRows[0].marketAveragePrice, currencyCode)
       : "2.50";
   const todayProfit = todayProfitSummary.netProfitCents;
   const totalProfit = totalProfitSummary.netProfitCents;
@@ -647,10 +644,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                           <DashboardListingManageForm
                             listingId={listing.id}
                             productId={listing.productId}
-                            defaultPrice={(
-                              convertAudCentsToCurrencyMinorUnits(listing.price, currencyCode) /
-                              10 ** getPriceProfileMetadata(currencyCode).fractionDigits
-                            ).toFixed(getPriceProfileMetadata(currencyCode).fractionDigits)}
+                            defaultPrice={formatCurrencyInputValue(listing.price, currencyCode)}
                             isPaused={listing.isPaused}
                           />
                         </>

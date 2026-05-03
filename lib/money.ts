@@ -189,13 +189,14 @@ export function formatMoney(baseAudCents: number, currencyCodeInput = "AUD") {
   const currencyCode = normalizeCurrencyCode(currencyCodeInput);
   const profile = getPriceProfileMetadata(currencyCode);
   const convertedMinorUnits = convertAudCentsToCurrencyMinorUnits(baseAudCents, currencyCode);
-  const convertedMajor = convertedMinorUnits / 10 ** profile.fractionDigits;
+  const convertedMajor = Math.abs(convertedMinorUnits) / 10 ** profile.fractionDigits;
   const formattedNumber = new Intl.NumberFormat(profile.locale, {
     minimumFractionDigits: profile.fractionDigits,
     maximumFractionDigits: profile.fractionDigits,
   }).format(convertedMajor);
+  const sign = convertedMinorUnits < 0 ? "-" : "";
 
-  return `${profile.symbol} ${formattedNumber}`;
+  return `${sign}${profile.symbol} ${formattedNumber}`;
 }
 
 export function formatCurrency(cents: number, currencyCodeInput = "AUD") {
@@ -204,6 +205,15 @@ export function formatCurrency(cents: number, currencyCodeInput = "AUD") {
 
 export function formatPriceWithUnit(cents: number, unitLabel: string, currencyCode = "AUD") {
   return `${formatMoney(cents, currencyCode)} ${unitLabel}`;
+}
+
+export function formatCurrencyInputValue(baseAudCents: number, currencyCodeInput = "AUD") {
+  const currencyCode = normalizeCurrencyCode(currencyCodeInput);
+  const profile = getPriceProfileMetadata(currencyCode);
+  const convertedMinorUnits = convertAudCentsToCurrencyMinorUnits(baseAudCents, currencyCode);
+  const convertedMajor = convertedMinorUnits / 10 ** profile.fractionDigits;
+
+  return convertedMajor.toFixed(profile.fractionDigits);
 }
 
 export function getCurrencyDisplayNotice(currencyCodeInput = "AUD") {
