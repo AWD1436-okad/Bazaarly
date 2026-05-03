@@ -429,6 +429,10 @@ textarea {
 .table-row__actions > button,
 .listing-card__actions button,
 .listing-card__actions .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
   min-height: 38px;
   border-radius: 999px;
   padding: 0.58rem 0.9rem;
@@ -446,11 +450,13 @@ textarea {
 
 .sold-out-listing-actions {
   position: relative;
-  display: inline-grid;
-  grid-template-columns: max-content max-content;
+  display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   justify-content: flex-end;
+  flex-wrap: nowrap;
+  width: max-content;
+  min-width: max-content;
   min-height: 40px;
   align-self: center;
 }
@@ -461,7 +467,12 @@ textarea {
 }
 
 .sold-out-listing-actions > .status-text {
-  grid-column: 1 / -1;
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  width: max-content;
+  max-width: min(260px, 70vw);
+  text-align: right;
 }
 
 .sold-out-listing-actions__menu {
@@ -1241,6 +1252,7 @@ textarea {
 .table-row__actions {
   flex-wrap: nowrap;
   justify-self: end;
+  align-self: center;
 }
 
 .table-row__actions > *,
@@ -1679,6 +1691,12 @@ textarea {
   .sold-out-listing-actions {
     justify-self: stretch;
     justify-content: flex-end;
+  }
+
+  .sold-out-listing-actions {
+    width: max-content;
+    min-width: max-content;
+    margin-left: auto;
   }
 
   .cart-summary-actions,
