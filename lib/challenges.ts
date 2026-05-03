@@ -16,6 +16,7 @@ export type ChallengeDefinition = {
     | "SELL_ITEMS"
     | "ADD_CART_ITEMS"
     | "LIST_PRODUCTS"
+    | "RESTOCK_SOLD_OUT"
     | "EARN_PROFIT"
     | "SELL_CATEGORIES"
     | "BUY_SUPPLIER_STOCK"
@@ -41,6 +42,7 @@ type ChallengeStats = {
   soldItems: number;
   cartItemsAdded: number;
   listedProducts: number;
+  restockedItems: number;
   profitEarned: number;
   soldCategories: number;
   supplierStockBoughtValue: number;
@@ -50,9 +52,9 @@ type ChallengeStats = {
 };
 
 const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
-  Easy: 5_000,
-  Medium: 10_000,
-  Hard: 15_000,
+  Easy: 10_000,
+  Medium: 25_000,
+  Hard: 50_000,
 };
 
 const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
@@ -87,6 +89,22 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "List 5 products",
       difficulty: "Easy",
       target: 5,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+    {
+      key: "restock-3-sold-out-items",
+      type: "RESTOCK_SOLD_OUT",
+      label: "Restock 3 sold-out items",
+      difficulty: "Easy",
+      target: 3,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+    {
+      key: "complete-2-orders",
+      type: "RECEIVE_ORDER",
+      label: "Complete 2 orders",
+      difficulty: "Easy",
+      target: 2,
       rewardCents: REWARD_CENTS.Easy,
     },
     {
@@ -129,6 +147,14 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Earn $500 profit",
       difficulty: "Medium",
       target: 50_000,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+    {
+      key: "restock-6-sold-out-items",
+      type: "RESTOCK_SOLD_OUT",
+      label: "Restock 6 sold-out items",
+      difficulty: "Medium",
+      target: 6,
       rewardCents: REWARD_CENTS.Medium,
     },
     {
@@ -195,6 +221,14 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
       label: "Complete 10 orders",
       difficulty: "Hard",
       target: 10,
+      rewardCents: REWARD_CENTS.Hard,
+    },
+    {
+      key: "restock-12-sold-out-items",
+      type: "RESTOCK_SOLD_OUT",
+      label: "Restock 12 sold-out items",
+      difficulty: "Hard",
+      target: 12,
       rewardCents: REWARD_CENTS.Hard,
     },
   ],
@@ -265,6 +299,8 @@ function getChallengeProgress(challenge: ChallengeDefinition, stats: ChallengeSt
       return stats.cartItemsAdded;
     case "LIST_PRODUCTS":
       return stats.listedProducts;
+    case "RESTOCK_SOLD_OUT":
+      return stats.restockedItems;
     case "EARN_PROFIT":
       return stats.profitEarned;
     case "SELL_CATEGORIES":
@@ -470,6 +506,7 @@ export async function getDashboardChallenges({
     soldItems: soldUnitsSummary._sum.quantity ?? 0,
     cartItemsAdded: cartItemsSummary._sum.quantity ?? 0,
     listedProducts: listedProductsCount,
+    restockedItems: supplierStockItems.reduce((sum, item) => sum + item.quantity, 0),
     profitEarned: profitSummary.netProfitCents,
     soldCategories: new Set<ProductCategory>(soldCategoryRows.map((row) => row.product.category)).size,
     supplierStockBoughtValue: supplierStockItems.reduce(
