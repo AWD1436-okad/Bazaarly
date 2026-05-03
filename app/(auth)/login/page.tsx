@@ -31,8 +31,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
             <h1>Enter the global marketplace.</h1>
             <p className="muted">
-              Sign in with your own account or create a new player and open a shop in the
-              shared world.
+              Build a shop, buy stock, set prices, and turn smart trades into real profit.
+            </p>
+          </div>
+
+          <div className="auth-game-panel">
+            <span className="tag">Marketplace game loop</span>
+            <div className="auth-game-panel__steps">
+              <span>Buy stock</span>
+              <span>List products</span>
+              <span>Make sales</span>
+              <span>Manage profit</span>
+              <span>Complete challenges</span>
+            </div>
+            <p>
+              Every choice matters: overspend and profit drops, price too high and shoppers slow down,
+              keep stock moving and your shop grows.
             </p>
           </div>
 
@@ -48,7 +62,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="card">
             <h2>Secure login</h2>
             <p className="muted">
-              Use your username or email together with your password.
+              Continue running your shop and checking live sales.
             </p>
             <form action="/auth/login" method="post" className="stack-sm">
               <label>
@@ -68,7 +82,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="card">
             <h2>Create a new player</h2>
             <p className="muted">
-              New accounts start with PIN setup, then shop setup, so checkout is protected.
+              Start with secure PIN setup, then create your shop and begin trading.
             </p>
             <form action="/auth/register" method="post" className="stack-sm">
               <label>

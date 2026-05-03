@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { Prisma, ProductCategory } from "@prisma/client";
 
+import { getNetProfitSummary } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
@@ -42,113 +43,159 @@ type ChallengeStats = {
   listedProducts: number;
   profitEarned: number;
   soldCategories: number;
-  supplierStockBought: number;
+  supplierStockBoughtValue: number;
   cartValue: number;
   receivedOrders: number;
   activeListings: number;
 };
 
+const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
+  Easy: 5_000,
+  Medium: 10_000,
+  Hard: 15_000,
+};
+
 const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   Easy: [
     {
-      key: "sell-1-item",
+      key: "sell-5-items",
       type: "SELL_ITEMS",
-      label: "Sell 1 item",
+      label: "Sell 5 items",
       difficulty: "Easy",
-      target: 1,
-      rewardCents: 10000,
-    },
-    {
-      key: "add-3-cart-items",
-      type: "ADD_CART_ITEMS",
-      label: "Add 3 items to cart",
-      difficulty: "Easy",
-      target: 3,
-      rewardCents: 10000,
-    },
-    {
-      key: "buy-1-supplier-stock",
-      type: "BUY_SUPPLIER_STOCK",
-      label: "Buy supplier stock",
-      difficulty: "Easy",
-      target: 1,
-      rewardCents: 10000,
-    },
-    {
-      key: "list-2-products",
-      type: "LIST_PRODUCTS",
-      label: "List 2 products",
-      difficulty: "Easy",
-      target: 2,
-      rewardCents: 10000,
-    },
-  ],
-  Medium: [
-    {
-      key: "keep-3-active-listings",
-      type: "ACTIVE_LISTINGS",
-      label: "Keep 3 listings active",
-      difficulty: "Medium",
-      target: 3,
-      rewardCents: 25000,
-    },
-    {
-      key: "earn-50-profit",
-      type: "EARN_PROFIT",
-      label: "Earn $50 profit",
-      difficulty: "Medium",
-      target: 5000,
-      rewardCents: 25000,
-    },
-    {
-      key: "receive-2-orders",
-      type: "RECEIVE_ORDER",
-      label: "Receive 2 customer orders",
-      difficulty: "Medium",
-      target: 2,
-      rewardCents: 25000,
-    },
-    {
-      key: "sell-2-categories",
-      type: "SELL_CATEGORIES",
-      label: "Sell from 2 categories",
-      difficulty: "Medium",
-      target: 2,
-      rewardCents: 25000,
-    },
-    {
-      key: "cart-value-100",
-      type: "CART_VALUE",
-      label: "Reach $100 cart value",
-      difficulty: "Medium",
-      target: 10000,
-      rewardCents: 25000,
-    },
-  ],
-  Hard: [
-    {
-      key: "sell-10-items",
-      type: "SELL_ITEMS",
-      label: "Sell 10 items",
-      difficulty: "Hard",
-      target: 10,
-      rewardCents: 50000,
-    },
-    {
-      key: "sell-3-items",
-      type: "SELL_ITEMS",
-      label: "Sell 3 items",
-      difficulty: "Hard",
-      target: 3,
-      rewardCents: 50000,
+      target: 5,
+      rewardCents: REWARD_CENTS.Easy,
     },
     {
       key: "earn-150-profit",
       type: "EARN_PROFIT",
       label: "Earn $150 profit",
+      difficulty: "Easy",
+      target: 15_000,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+    {
+      key: "buy-250-supplier-stock",
+      type: "BUY_SUPPLIER_STOCK",
+      label: "Add $250 worth of supplier stock",
+      difficulty: "Easy",
+      target: 25_000,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+    {
+      key: "list-5-products",
+      type: "LIST_PRODUCTS",
+      label: "List 5 products",
+      difficulty: "Easy",
+      target: 5,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+    {
+      key: "sell-2-categories",
+      type: "SELL_CATEGORIES",
+      label: "Sell from 2 categories",
+      difficulty: "Easy",
+      target: 2,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+    {
+      key: "keep-5-active-listings",
+      type: "ACTIVE_LISTINGS",
+      label: "Keep 5 listings active",
+      difficulty: "Easy",
+      target: 5,
+      rewardCents: REWARD_CENTS.Easy,
+    },
+  ],
+  Medium: [
+    {
+      key: "sell-15-items",
+      type: "SELL_ITEMS",
+      label: "Sell 15 items",
+      difficulty: "Medium",
+      target: 15,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+    {
+      key: "keep-12-active-listings",
+      type: "ACTIVE_LISTINGS",
+      label: "Keep 12 listings active",
+      difficulty: "Medium",
+      target: 12,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+    {
+      key: "earn-500-profit",
+      type: "EARN_PROFIT",
+      label: "Earn $500 profit",
+      difficulty: "Medium",
+      target: 50_000,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+    {
+      key: "receive-5-orders",
+      type: "RECEIVE_ORDER",
+      label: "Complete 5 orders",
+      difficulty: "Medium",
+      target: 5,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+    {
+      key: "sell-4-categories",
+      type: "SELL_CATEGORIES",
+      label: "Sell from 4 categories",
+      difficulty: "Medium",
+      target: 4,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+    {
+      key: "list-10-products",
+      type: "LIST_PRODUCTS",
+      label: "List 10 products",
+      difficulty: "Medium",
+      target: 10,
+      rewardCents: REWARD_CENTS.Medium,
+    },
+  ],
+  Hard: [
+    {
+      key: "sell-30-items",
+      type: "SELL_ITEMS",
+      label: "Sell 30 items",
       difficulty: "Hard",
-      target: 15000,
-      rewardCents: 50000,
+      target: 30,
+      rewardCents: REWARD_CENTS.Hard,
+    },
+    {
+      key: "earn-1500-profit",
+      type: "EARN_PROFIT",
+      label: "Earn $1,500 profit",
+      difficulty: "Hard",
+      target: 150_000,
+      rewardCents: REWARD_CENTS.Hard,
+    },
+    {
+      key: "keep-25-active-listings",
+      type: "ACTIVE_LISTINGS",
+      label: "Keep 25 listings active",
+      difficulty: "Hard",
+      target: 25,
+      rewardCents: REWARD_CENTS.Hard,
+    },
+    {
+      key: "sell-6-categories",
+      type: "SELL_CATEGORIES",
+      label: "Sell from 6 categories",
+      difficulty: "Hard",
+      target: 6,
+      rewardCents: REWARD_CENTS.Hard,
+    },
+    {
+      key: "complete-10-orders",
+      type: "RECEIVE_ORDER",
+      label: "Complete 10 orders",
+      difficulty: "Hard",
+      target: 10,
+      rewardCents: REWARD_CENTS.Hard,
     },
   ],
 };
@@ -223,7 +270,7 @@ function getChallengeProgress(challenge: ChallengeDefinition, stats: ChallengeSt
     case "SELL_CATEGORIES":
       return stats.soldCategories;
     case "BUY_SUPPLIER_STOCK":
-      return stats.supplierStockBought;
+      return stats.supplierStockBoughtValue;
     case "CART_VALUE":
       return stats.cartValue;
     case "RECEIVE_ORDER":
@@ -234,7 +281,11 @@ function getChallengeProgress(challenge: ChallengeDefinition, stats: ChallengeSt
 }
 
 function getProgressLabel(challenge: ChallengeDefinition, progress: number, currencyCode: string) {
-  if (challenge.type === "EARN_PROFIT" || challenge.type === "CART_VALUE") {
+  if (
+    challenge.type === "EARN_PROFIT" ||
+    challenge.type === "CART_VALUE" ||
+    challenge.type === "BUY_SUPPLIER_STOCK"
+  ) {
     return `${formatCurrency(Math.min(progress, challenge.target), currencyCode)} / ${formatCurrency(
       challenge.target,
       currencyCode,
@@ -251,6 +302,10 @@ function getChallengeLabel(challenge: ChallengeDefinition, currencyCode: string)
 
   if (challenge.type === "CART_VALUE") {
     return `Reach ${formatCurrency(challenge.target, currencyCode)} cart value`;
+  }
+
+  if (challenge.type === "BUY_SUPPLIER_STOCK") {
+    return `Add ${formatCurrency(challenge.target, currencyCode)} worth of supplier stock`;
   }
 
   return challenge.label;
@@ -272,7 +327,7 @@ export async function getDashboardChallenges({
   const cycleStartAt = getCycleStart(now);
   const cycleEndsAt = getCycleEnd(cycleStartAt);
   const generatedChallenges = generateChallenges(userId, cycleStartAt);
-  const challengeSet = await prisma.challengeSet.upsert({
+  let challengeSet = await prisma.challengeSet.upsert({
     where: {
       userId_cycleStartAt: {
         userId,
@@ -289,7 +344,20 @@ export async function getDashboardChallenges({
     update: {},
   });
 
-  const challenges = parseChallenges(challengeSet.challenges);
+  let challenges = parseChallenges(challengeSet.challenges);
+  const generatedKeys = generatedChallenges.map((challenge) => challenge.key).join("|");
+  const storedKeys = challenges.map((challenge) => challenge.key).join("|");
+  if (storedKeys !== generatedKeys) {
+    challengeSet = await prisma.challengeSet.update({
+      where: { id: challengeSet.id },
+      data: {
+        challenges: generatedChallenges,
+        rewardedKeys: [],
+      },
+    });
+    challenges = parseChallenges(challengeSet.challenges);
+  }
+
   const rewardedKeys = parseRewardedKeys(challengeSet.rewardedKeys);
 
   const [
@@ -298,7 +366,7 @@ export async function getDashboardChallenges({
     listedProductsCount,
     profitSummary,
     soldCategoryRows,
-    supplierStockSummary,
+    supplierStockItems,
     activeCart,
     receivedOrderCount,
   ] = await Promise.all([
@@ -335,22 +403,7 @@ export async function getDashboardChallenges({
         },
       },
     }),
-    prisma.$queryRaw<{ profit: number }[]>(Prisma.sql`
-      SELECT
-        COALESCE(
-          SUM(
-            (oli."unitPrice" - COALESCE(NULLIF(inv."averageUnitCost", 0), p."basePrice")) * oli."quantity"
-          ),
-          0
-        )::int AS "profit"
-      FROM "OrderLineItem" oli
-      INNER JOIN "Order" o ON o."id" = oli."orderId"
-      INNER JOIN "Product" p ON p."id" = oli."productId"
-      LEFT JOIN "Inventory" inv ON inv."userId" = o."sellerId" AND inv."productId" = oli."productId"
-      WHERE o."sellerId" = ${userId}
-        AND o."createdAt" >= ${cycleStartAt}
-        AND o."createdAt" < ${cycleEndsAt}
-    `),
+    getNetProfitSummary({ userId, startAt: cycleStartAt, endAt: cycleEndsAt }),
     prisma.orderLineItem.findMany({
       where: {
         order: {
@@ -369,7 +422,7 @@ export async function getDashboardChallenges({
         },
       },
     }),
-    prisma.cartItem.aggregate({
+    prisma.cartItem.findMany({
       where: {
         source: "SUPPLIER",
         cart: {
@@ -381,7 +434,10 @@ export async function getDashboardChallenges({
           },
         },
       },
-      _sum: { quantity: true },
+      select: {
+        quantity: true,
+        unitPriceSnapshot: true,
+      },
     }),
     prisma.cart.findFirst({
       where: {
@@ -414,9 +470,12 @@ export async function getDashboardChallenges({
     soldItems: soldUnitsSummary._sum.quantity ?? 0,
     cartItemsAdded: cartItemsSummary._sum.quantity ?? 0,
     listedProducts: listedProductsCount,
-    profitEarned: profitSummary[0]?.profit ?? 0,
+    profitEarned: profitSummary.netProfitCents,
     soldCategories: new Set<ProductCategory>(soldCategoryRows.map((row) => row.product.category)).size,
-    supplierStockBought: supplierStockSummary._sum.quantity ?? 0,
+    supplierStockBoughtValue: supplierStockItems.reduce(
+      (sum, item) => sum + item.quantity * item.unitPriceSnapshot,
+      0,
+    ),
     cartValue,
     receivedOrders: receivedOrderCount,
     activeListings: activeListingCount,

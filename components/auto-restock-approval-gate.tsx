@@ -140,7 +140,7 @@ export function AutoRestockApprovalGate() {
             disabled={loading}
             onClick={() => void submitDecision("skip")}
           >
-            ×
+            Skip
           </button>
         ) : null}
         <div className="modal-card__copy">
