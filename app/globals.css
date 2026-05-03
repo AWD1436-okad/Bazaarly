@@ -450,11 +450,11 @@ textarea {
 
 .sold-out-listing-actions {
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: max-content max-content;
   align-items: center;
   gap: 0.5rem;
   justify-content: flex-end;
-  flex-wrap: nowrap;
   width: max-content;
   min-width: max-content;
   min-height: 40px;
@@ -1255,9 +1255,24 @@ textarea {
   align-self: center;
 }
 
+.table-row__actions:has(.sold-out-listing-actions) {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  min-width: 178px;
+}
+
 .table-row__actions > *,
 .sold-out-listing-actions > * {
   flex: 0 0 auto;
+}
+
+.sold-out-listing-actions .stock-chip {
+  grid-column: 1;
+}
+
+.sold-out-listing-actions__toggle {
+  grid-column: 2;
 }
 
 .inline-form input {
@@ -1731,8 +1746,9 @@ textarea {
   }
 
   .sold-out-listing-actions {
+    justify-self: end;
     width: max-content;
-    min-width: max-content;
+    min-width: 178px;
     margin-left: auto;
   }
 
