@@ -114,6 +114,7 @@ model User {
   autoRestockQuantity    Int            @default(1)
   autoRestockLastRunAt   DateTime?
   currencyCode           String         @default("AUD")
+  appearancePreset       String         @default("current-tradex")
   balance                Int            @default(0)
   deletedAt              DateTime?
   createdAt              DateTime       @default(now())

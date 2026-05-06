@@ -2,6 +2,7 @@ import { LiveUpdatesWatcher } from "@/components/live-updates-watcher";
 import { Navigation } from "@/components/navigation";
 import { AutoRestockApprovalGate } from "@/components/auto-restock-approval-gate";
 import { SecuritySetupLock } from "@/components/security-setup-lock";
+import { normalizeAppearancePreset } from "@/lib/appearance";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
@@ -32,7 +33,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
   ]);
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-theme={normalizeAppearancePreset(user.appearancePreset)}>
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
       <AutoRestockApprovalGate />
       <Navigation

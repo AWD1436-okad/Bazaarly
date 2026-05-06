@@ -7,6 +7,7 @@ import {
   getNextRestockAt,
   getPlanMeta,
 } from "@/lib/auto-restock";
+import { APPEARANCE_PRESETS, normalizeAppearancePreset } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
@@ -64,6 +65,8 @@ export default async function SettingsPage() {
         currentShopName={user.shop?.name ?? null}
         canRenameStore={Boolean(user.shop)}
         currentCurrencyCode={currencyCode}
+        currentAppearancePreset={normalizeAppearancePreset(user.appearancePreset)}
+        appearancePresets={APPEARANCE_PRESETS}
         priceProfiles={getSupportedPriceProfiles()}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
         renameStoreCostLabel={formatCurrency(20000, currencyCode)}

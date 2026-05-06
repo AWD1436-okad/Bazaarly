@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tradex">
+  <rect width="64" height="64" rx="16" fill="#fffdf7"/>
+  <path d="M13 16h12l6 13h12v-8l12 11-12 11v-8H27L18 24h-5z" fill="#174f34"/>
+  <path d="M49 36v8H27l-9 10 8 7 6-7h23V36z" fill="#7a4a2a"/>
+  <path d="M26 32c5-2 7-4 9-10 2 6 4 8 10 10-6 2-8 4-10 10-2-6-4-8-9-10z" fill="#1f6b45"/>
+  <circle cx="21" cy="55" r="5" fill="#111512"/>
+  <circle cx="47" cy="55" r="5" fill="#111512"/>
+</svg>

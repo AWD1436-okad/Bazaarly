@@ -9,6 +9,7 @@ type SettingsActionsProps = {
   currentShopName: string | null;
   canRenameStore: boolean;
   currentCurrencyCode: string;
+  currentAppearancePreset: string;
   maskedBankNumber: string;
   renameStoreCostLabel: string;
   autoRestockSubscription: {
@@ -28,6 +29,11 @@ type SettingsActionsProps = {
     pro: string;
     max: string;
   };
+  appearancePresets: ReadonlyArray<{
+    value: string;
+    label: string;
+    description: string;
+  }>;
   priceProfiles: Array<{
     currencyCode: string;
     label: string;
@@ -62,10 +68,12 @@ export function SettingsActions({
   currentShopName,
   canRenameStore,
   currentCurrencyCode,
+  currentAppearancePreset,
   maskedBankNumber,
   renameStoreCostLabel,
   autoRestockSubscription,
   autoRestockPlanLabels,
+  appearancePresets,
   priceProfiles,
 }: SettingsActionsProps) {
   const router = useRouter();
@@ -93,6 +101,7 @@ export function SettingsActions({
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
+  const [appearancePreset, setAppearancePreset] = useState(currentAppearancePreset);
   const [clockNow, setClockNow] = useState(() => Date.now());
   const currentCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currentCurrencyCode);
   const initialCurrencySearch = currentCurrencyProfile
@@ -100,7 +109,16 @@ export function SettingsActions({
     : currentCurrencyCode;
   const [currencySearch, setCurrencySearch] = useState(initialCurrencySearch);
   const [submitting, setSubmitting] = useState<
-    null | "username" | "displayName" | "rename" | "bank" | "logout" | "delete" | "currency" | "autoRestock"
+    | null
+    | "username"
+    | "displayName"
+    | "rename"
+    | "bank"
+    | "logout"
+    | "delete"
+    | "currency"
+    | "appearance"
+    | "autoRestock"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
   const selectedCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currencyCode);
@@ -419,6 +437,42 @@ export function SettingsActions({
     }
   }
 
+  async function handleAppearanceChange() {
+    setSubmitting("appearance");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("appearancePreset", appearancePreset);
+
+      const response = await fetch("/settings/appearance", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        appearancePreset?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Appearance update failed");
+      }
+
+      setAppearancePreset(payload.appearancePreset ?? appearancePreset);
+      setState({ message: payload.message ?? "Appearance preset updated", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Appearance update failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   async function handleAutoRestockSubscription(action: "activate" | "cancel") {
     setSubmitting("autoRestock");
     resetMessages();
@@ -648,6 +702,46 @@ export function SettingsActions({
           another buyer while checkout still uses the stored AUD value.
         </p>
         <p className="muted">Exchange rates are static reference values in this build and are not live market feeds.</p>
+      </section>
+
+      <section className="card settings-card">
+        <div className="card-header">
+          <div className="card-header__copy">
+            <h2>Appearance</h2>
+            <p>Choose a polished Tradex theme and layout feel. Earth Market uses the final brown, green, and black logo direction.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleAppearanceChange()}
+            disabled={submitting !== null || appearancePreset === currentAppearancePreset}
+          >
+            {submitting === "appearance" ? "Applying..." : "Apply preset"}
+          </button>
+        </div>
+        <div className="appearance-grid" role="radiogroup" aria-label="Appearance preset">
+          {appearancePresets.map((preset) => (
+            <button
+              key={preset.value}
+              type="button"
+              className={
+                preset.value === appearancePreset
+                  ? "appearance-option appearance-option--selected"
+                  : "appearance-option"
+              }
+              onClick={() => {
+                setAppearancePreset(preset.value);
+                resetMessages();
+              }}
+              disabled={submitting !== null}
+              role="radio"
+              aria-checked={preset.value === appearancePreset}
+            >
+              <span className={`appearance-option__swatch appearance-option__swatch--${preset.value}`} />
+              <strong>{preset.label}</strong>
+              <small>{preset.description}</small>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="card settings-card">

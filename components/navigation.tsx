@@ -37,6 +37,20 @@ export function Navigation({
         </Link>
       </div>
 
+      <div className="topbar-status">
+        <span className="balance-pill">
+          <AppIcon icon={APP_ICONS.wallet} tone="gradient" />
+          {formatCurrency(balance, currencyCode)}
+        </span>
+        <Link href="/notifications" className="notification-pill">
+          <AppIcon icon={APP_ICONS.bell} />
+          Notifications
+          {unreadNotifications > 0 ? (
+            <strong>{unreadNotificationLabel ?? unreadNotifications}</strong>
+          ) : null}
+        </Link>
+      </div>
+
       <form action="/marketplace" className="search-bar">
         <input
           type="search"
@@ -55,17 +69,6 @@ export function Navigation({
       </form>
 
       <nav className="topbar-links">
-        <span className="balance-pill">
-          <AppIcon icon={APP_ICONS.wallet} tone="gradient" />
-          {formatCurrency(balance, currencyCode)}
-        </span>
-        <Link href="/notifications" className="notification-pill">
-          <AppIcon icon={APP_ICONS.bell} />
-          Notifications
-          {unreadNotifications > 0 ? (
-            <strong>{unreadNotificationLabel ?? unreadNotifications}</strong>
-          ) : null}
-        </Link>
         <Link href="/dashboard" className="topbar-link">
           <AppIcon icon={APP_ICONS.dashboard} />
           Dashboard
