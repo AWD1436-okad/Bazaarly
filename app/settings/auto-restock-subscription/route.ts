@@ -4,7 +4,7 @@ import {
   BusinessLedgerEntryCategory,
   NotificationType,
 } from "@prisma/client";
-import { addDays } from "date-fns";
+import { addHours } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -90,8 +90,7 @@ export async function POST(request: Request) {
       };
     }
 
-    const firstSimpleActivation = requestedPlan === AutoRestockPlan.SIMPLE && !existing;
-    const setupFee = firstSimpleActivation ? planMeta.setupFeeCents : 0;
+    const setupFee = 0;
     const upfrontCharge = planMeta.dailyCostCents + setupFee;
 
     if (freshUser.balance < upfrontCharge) {
@@ -111,7 +110,7 @@ export async function POST(request: Request) {
       userId: user.id,
       category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
       amount: planMeta.dailyCostCents,
-      description: `${planMeta.name} Auto Restock first daily fee`,
+      description: `${planMeta.name} Auto Restock first 48-hour fee`,
       data: {
         source: "auto_restock_subscription",
         plan: requestedPlan,
@@ -131,7 +130,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const nextChargeAt = addDays(now, 1);
+    const nextChargeAt = addHours(now, 48);
     await tx.autoRestockSubscription.upsert({
       where: { userId: user.id },
       create: {
@@ -142,6 +141,7 @@ export async function POST(request: Request) {
         setupFeeCents: setupFee,
         nextChargeAt,
         lastChargedAt: now,
+        fullAccessEnabled: false,
       },
       update: {
         plan: requestedPlan,
@@ -150,6 +150,7 @@ export async function POST(request: Request) {
         setupFeeCents: setupFee,
         nextChargeAt,
         lastChargedAt: now,
+        fullAccessEnabled: false,
       },
     });
 
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
         userId: user.id,
         type: NotificationType.SYSTEM,
         message:
-          requestedPlan === AutoRestockPlan.SIMPLE && setupFee > 0
+          setupFee > 0
             ? `Simple Auto Restock started. Charged ${formatCurrency(
                 upfrontCharge,
                 currencyCode,
@@ -166,7 +167,7 @@ export async function POST(request: Request) {
             : `${planMeta.name} Auto Restock started. Charged ${formatCurrency(
                 upfrontCharge,
                 currencyCode,
-              )}.`,
+              )} for 48 hours.`,
       },
     });
 

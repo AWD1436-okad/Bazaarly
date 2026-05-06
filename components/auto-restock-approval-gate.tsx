@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { HoldToShowInput } from "@/components/hold-to-show-input";
+
 type PendingRestock = {
   id: string;
   plan: "SIMPLE" | "PRO" | "MAX";
@@ -140,11 +142,11 @@ export function AutoRestockApprovalGate() {
             disabled={loading}
             onClick={() => void submitDecision("skip")}
           >
-            Skip
+            Close
           </button>
         ) : null}
         <div className="modal-card__copy">
-          <h3>Your {pending.planName} wants to buy:</h3>
+          <h3>Your {pending.planName} Restocker wants to restock:</h3>
           <p>
             {pending.items.length} sold-out item types ({totalItems} units) for about{" "}
             <strong>{pending.estimatedCost}</strong>.
@@ -181,11 +183,11 @@ export function AutoRestockApprovalGate() {
                 disabled={loading}
                 onClick={() => void submitDecision("skip")}
               >
-                {busyAction === "skip" ? "Skipping..." : "No, Cancel"}
+                {busyAction === "skip" ? "Skipping..." : "No, Skip"}
               </button>
             ) : null}
             <button type="button" disabled={loading} onClick={() => setStage("secure")}>
-              Yes, Buy Now
+              Yes, Continue
             </button>
           </div>
         ) : (
@@ -200,31 +202,31 @@ export function AutoRestockApprovalGate() {
             </div>
             <label className="modal-card__field">
               Bank number
-              <input
+              <HoldToShowInput
                 value={bankNumber}
                 onChange={(event) => setBankNumber(event.target.value)}
-                type="password"
                 inputMode="numeric"
                 disabled={loading}
+                autoComplete="off"
               />
             </label>
             <label className="modal-card__field">
               Checkout PIN
-              <input
+              <HoldToShowInput
                 value={checkoutPin}
                 onChange={(event) => setCheckoutPin(event.target.value)}
-                type="password"
                 inputMode="numeric"
                 disabled={loading}
+                autoComplete="off"
               />
             </label>
             <label className="modal-card__field">
               Password
-              <input
+              <HoldToShowInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
                 disabled={loading}
+                autoComplete="current-password"
               />
             </label>
             <div className="modal-card__actions">
@@ -248,7 +250,7 @@ export function AutoRestockApprovalGate() {
                 }
                 onClick={() => void submitDecision("approve")}
               >
-                {busyAction === "approve" ? "Buying..." : "Buy"}
+                {busyAction === "approve" ? "Restocking..." : "Confirm Restock"}
               </button>
             </div>
           </>

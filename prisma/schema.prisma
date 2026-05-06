@@ -252,6 +252,7 @@ model AutoRestockSubscription {
   status          AutoRestockSubscriptionStatus  @default(ACTIVE)
   dailyCostCents  Int
   setupFeeCents   Int                            @default(0)
+  fullAccessEnabled Boolean                      @default(false)
   startedAt       DateTime                       @default(now())
   nextChargeAt    DateTime
   lastChargedAt   DateTime?

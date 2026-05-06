@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
+import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { ProductVisual } from "@/components/product-visual";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
@@ -128,15 +129,15 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
         <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
           <label>
             Account password
-            <input name="password" type="password" required />
+            <HoldToShowInput name="password" required autoComplete="current-password" />
           </label>
           <label>
             Checkout PIN
-            <input name="checkoutPin" type="password" inputMode="numeric" required />
+            <HoldToShowInput name="checkoutPin" inputMode="numeric" required autoComplete="off" />
           </label>
           <label>
             Bank number
-            <input name="bankNumber" type="password" inputMode="numeric" required />
+            <HoldToShowInput name="bankNumber" inputMode="numeric" required autoComplete="off" />
           </label>
           <button type="submit" className="checkout-main-submit" disabled={hasUnavailableItems}>
             {hasUnavailableItems

@@ -136,20 +136,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Max plan requests cannot be skipped" }, { status: 400 });
     }
 
-    await prisma.autoRestockRequest.update({
-      where: { id: pending.id },
-      data: {
-        status: AutoRestockRequestStatus.SKIPPED,
-        decidedAt: new Date(),
-      },
-    });
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.autoRestockRequest.update({
+        where: { id: pending.id },
+        data: {
+          status: AutoRestockRequestStatus.SKIPPED,
+          decidedAt: now,
+        },
+      });
 
-    await prisma.notification.create({
-      data: {
-        userId: user.id,
-        type: NotificationType.SYSTEM,
-        message: "Auto Restock request skipped for this cycle.",
-      },
+      await tx.autoRestockSubscription.updateMany({
+        where: {
+          userId: user.id,
+          status: "ACTIVE",
+        },
+        data: {
+          lastRestockAt: now,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: user.id,
+          type: NotificationType.SYSTEM,
+          message: "Auto Restock request skipped for this cycle.",
+        },
+      });
     });
 
     return NextResponse.json({ ok: true, message: "Restock cycle skipped" });

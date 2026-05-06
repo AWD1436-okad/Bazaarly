@@ -7,12 +7,12 @@ export const APPEARANCE_PRESETS = [
   {
     value: "earth-market",
     label: "Planet Light",
-    description: "Bright cream surfaces with green and gold business-game energy.",
+    description: "Bright white-blue surfaces with teal action and gold progress accents.",
   },
   {
     value: "midnight-trade",
     label: "Space Tycoon",
-    description: "Deep navy and black with neon green and gold highlights.",
+    description: "Near-black space panels with cyan, emerald, and gold highlights.",
   },
   {
     value: "soft-light",
@@ -22,7 +22,7 @@ export const APPEARANCE_PRESETS = [
   {
     value: "clean-compact",
     label: "Classic Clean",
-    description: "Neutral, crisp, and simple with Profit Planet green-gold accents.",
+    description: "Neutral, crisp, and less game-heavy with restrained green-gold accents.",
   },
 ] as const;
 

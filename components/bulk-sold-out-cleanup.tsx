@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { HoldToShowInput } from "@/components/hold-to-show-input";
+
 type BulkSoldOutCleanupProps = {
   soldOutCount: number;
 };
@@ -132,10 +134,9 @@ export function BulkSoldOutCleanup({ soldOutCount }: BulkSoldOutCleanupProps) {
 
             <label className="modal-card__field">
               Confirm with your password
-              <input
+              <HoldToShowInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
                 autoComplete="current-password"
                 placeholder="Enter your password"
                 disabled={submitting}

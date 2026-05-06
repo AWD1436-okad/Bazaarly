@@ -2,6 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 
 type LoginPageProps = {
@@ -80,7 +81,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </label>
               <label>
                 Password
-                <input name="password" type="password" placeholder="Your password" required />
+                <HoldToShowInput name="password" placeholder="Your password" required autoComplete="current-password" />
               </label>
               <button type="submit">Log in</button>
             </form>
@@ -108,12 +109,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </label>
               <label>
                 Password
-                <input
+                <HoldToShowInput
                   name="password"
-                  type="password"
                   placeholder="At least 8 characters"
                   minLength={8}
                   required
+                  autoComplete="new-password"
                 />
               </label>
               <button type="submit">Create account</button>

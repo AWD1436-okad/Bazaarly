@@ -3,7 +3,6 @@ import {
   MAX_DAILY_COST_CENTS,
   PRO_DAILY_COST_CENTS,
   SIMPLE_DAILY_COST_CENTS,
-  SIMPLE_SETUP_FEE_CENTS,
   getNextRestockAt,
   getPlanMeta,
 } from "@/lib/auto-restock";
@@ -83,16 +82,14 @@ export default async function SettingsPage() {
                 cycleLabel: subscriptionPlanMeta?.cycleLabel ?? "",
                 lastRestockAt: subscription.lastRestockAt?.toISOString() ?? null,
                 lastChargedAt: subscription.lastChargedAt?.toISOString() ?? null,
+                fullAccessEnabled: subscription.fullAccessEnabled,
               }
             : null
         }
         autoRestockPlanLabels={{
-          simple: `${formatCurrency(SIMPLE_DAILY_COST_CENTS, currencyCode)}/day (+${formatCurrency(
-            SIMPLE_SETUP_FEE_CENTS,
-            currencyCode,
-          )} setup once)`,
-          pro: `${formatCurrency(PRO_DAILY_COST_CENTS, currencyCode)}/day`,
-          max: `${formatCurrency(MAX_DAILY_COST_CENTS, currencyCode)}/day`,
+          simple: `${formatCurrency(SIMPLE_DAILY_COST_CENTS, currencyCode)}/48h`,
+          pro: `${formatCurrency(PRO_DAILY_COST_CENTS, currencyCode)}/48h`,
+          max: `${formatCurrency(MAX_DAILY_COST_CENTS, currencyCode)}/48h`,
         }}
       />
 

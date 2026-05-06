@@ -1,4 +1,5 @@
 import { BrandLogo } from "@/components/brand-logo";
+import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { SecuritySetupResultPanel } from "@/components/security-setup-result-panel";
 import type { Route } from "next";
 
@@ -47,9 +48,8 @@ export function SecuritySetupLock({
             <form action="/security-setup/submit" method="post" className="stack-sm">
               <label>
                 New PIN
-                <input
+                <HoldToShowInput
                   name="pin"
-                  type="password"
                   inputMode="numeric"
                   pattern="[0-9]{4,8}"
                   placeholder="4-8 digits"
@@ -58,9 +58,8 @@ export function SecuritySetupLock({
               </label>
               <label>
                 Confirm PIN
-                <input
+                <HoldToShowInput
                   name="confirmPin"
-                  type="password"
                   inputMode="numeric"
                   pattern="[0-9]{4,8}"
                   placeholder="Repeat PIN"
@@ -69,9 +68,8 @@ export function SecuritySetupLock({
               </label>
               <label>
                 Bank number
-                <input
+                <HoldToShowInput
                   name="bankNumber"
-                  type="password"
                   inputMode="numeric"
                   pattern="[0-9]{6,12}"
                   placeholder="6-12 digits"
@@ -80,9 +78,8 @@ export function SecuritySetupLock({
               </label>
               <label>
                 Confirm bank number
-                <input
+                <HoldToShowInput
                   name="confirmBankNumber"
-                  type="password"
                   inputMode="numeric"
                   pattern="[0-9]{6,12}"
                   placeholder="Repeat bank number"

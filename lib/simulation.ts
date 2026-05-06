@@ -8,7 +8,7 @@ import {
   NotificationType,
   ProductCategory,
 } from "@prisma/client";
-import { addDays, subMinutes } from "date-fns";
+import { addHours, subMinutes } from "date-fns";
 
 import { getPlanMeta, isRestockCycleDue } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
@@ -599,6 +599,7 @@ async function runAutoRestock(now: Date, userId?: string) {
       nextChargeAt: true,
       lastChargedAt: true,
       lastRestockAt: true,
+      fullAccessEnabled: true,
       startedAt: true,
       createdAt: true,
       user: {
@@ -649,7 +650,7 @@ async function runAutoRestock(now: Date, userId?: string) {
             data: {
               userId: user.id,
               type: NotificationType.SYSTEM,
-              message: `Auto Restock cancelled: insufficient balance for daily fee (${formatCurrency(
+              message: `Auto Restock cancelled: insufficient balance for 48-hour renewal (${formatCurrency(
                 subscription.dailyCostCents,
                 user.currencyCode,
               )}).`,
@@ -673,9 +674,9 @@ async function runAutoRestock(now: Date, userId?: string) {
           userId: user.id,
           category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
           amount: subscription.dailyCostCents,
-          description: `${getPlanMeta(subscription.plan).name} Auto Restock daily fee`,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour fee`,
           data: {
-            source: "auto_restock_daily_charge",
+            source: "auto_restock_48_hour_charge",
             subscriptionId: subscription.id,
             plan: subscription.plan,
           },
@@ -685,14 +686,14 @@ async function runAutoRestock(now: Date, userId?: string) {
           where: { id: subscription.id },
           data: {
             lastChargedAt: now,
-            nextChargeAt: addDays(now, 1),
+            nextChargeAt: addHours(now, 48),
           },
         });
         await tx.notification.create({
           data: {
             userId: user.id,
             type: NotificationType.SYSTEM,
-            message: `${getPlanMeta(subscription.plan).name} Auto Restock daily fee charged: ${formatCurrency(
+            message: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour renewal charged: ${formatCurrency(
               subscription.dailyCostCents,
               user.currencyCode,
             )}.`,
@@ -708,6 +709,17 @@ async function runAutoRestock(now: Date, userId?: string) {
     ) {
       continue;
     }
+
+    const markCycleChecked = async () => {
+      if (subscription.plan === AutoRestockPlan.MAX) {
+        return;
+      }
+
+      await prisma.autoRestockSubscription.update({
+        where: { id: subscription.id },
+        data: { lastRestockAt: now },
+      });
+    };
 
     const soldOutListings = await prisma.listing.findMany({
       where: {
@@ -737,11 +749,13 @@ async function runAutoRestock(now: Date, userId?: string) {
     });
 
     if (soldOutListings.length === 0) {
+      await markCycleChecked();
       continue;
     }
 
     const withStock = soldOutListings.filter((listing) => sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0) > 0);
     if (withStock.length === 0) {
+      await markCycleChecked();
       continue;
     }
 
@@ -784,11 +798,231 @@ async function runAutoRestock(now: Date, userId?: string) {
       .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
     if (requestItems.length === 0) {
+      await markCycleChecked();
       continue;
     }
 
     const estimatedCost = requestItems.reduce((sum, item) => sum + item.lineTotal, 0);
     if (estimatedCost <= 0) {
+      await markCycleChecked();
+      continue;
+    }
+
+    if (subscription.fullAccessEnabled) {
+      await prisma.$transaction(async (tx) => {
+        const pendingInsideTransaction = await tx.autoRestockRequest.findFirst({
+          where: {
+            userId: user.id,
+            status: AutoRestockRequestStatus.PENDING,
+          },
+          select: { id: true },
+        });
+
+        if (pendingInsideTransaction) {
+          return;
+        }
+
+        const freshUser = await tx.user.findUnique({
+          where: { id: user.id },
+          select: { balance: true },
+        });
+
+        if (!freshUser) {
+          return;
+        }
+
+        let payableTotal = 0;
+        const resolved: Array<{
+          listingId: string;
+          productId: string;
+          productName: string;
+          quantity: number;
+          unitPrice: number;
+          lineTotal: number;
+        }> = [];
+
+        for (const item of requestItems) {
+          const listing = await tx.listing.findUnique({
+            where: { id: item.listingId },
+            select: {
+              id: true,
+              productId: true,
+              product: {
+                select: {
+                  name: true,
+                  marketState: {
+                    select: {
+                      currentSupplierPrice: true,
+                      supplierStock: true,
+                    },
+                  },
+                },
+              },
+              shop: {
+                select: {
+                  ownerId: true,
+                },
+              },
+            },
+          });
+
+          if (!listing || listing.shop.ownerId !== user.id) {
+            continue;
+          }
+
+          const supplierStock = sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0);
+          const quantity = Math.min(item.quantity, supplierStock);
+          if (quantity <= 0) {
+            continue;
+          }
+
+          const unitPrice = Math.max(1, listing.product.marketState?.currentSupplierPrice ?? item.unitPrice);
+          const lineTotal = unitPrice * quantity;
+          payableTotal += lineTotal;
+          resolved.push({
+            listingId: listing.id,
+            productId: listing.productId,
+            productName: listing.product.name,
+            quantity,
+            unitPrice,
+            lineTotal,
+          });
+        }
+
+        if (resolved.length === 0) {
+          await tx.autoRestockSubscription.update({
+            where: { id: subscription.id },
+            data: { lastRestockAt: now },
+          });
+          return;
+        }
+
+        if (freshUser.balance < payableTotal) {
+          await tx.autoRestockSubscription.update({
+            where: { id: subscription.id },
+            data: { lastRestockAt: now },
+          });
+          await tx.notification.create({
+            data: {
+              userId: user.id,
+              type: NotificationType.SYSTEM,
+              message: `${getPlanMeta(subscription.plan).name} Restocker found eligible items but balance was too low for ${formatCurrency(
+                payableTotal,
+                user.currencyCode,
+              )}.`,
+              createdAt: now,
+            },
+          });
+          return;
+        }
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            balance: {
+              decrement: payableTotal,
+            },
+          },
+        });
+
+        await recordBusinessExpense(tx, {
+          userId: user.id,
+          category: BusinessLedgerEntryCategory.AUTO_RESTOCK_PURCHASE,
+          amount: payableTotal,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock Full Access purchase`,
+          data: {
+            source: "auto_restock_full_access",
+            subscriptionId: subscription.id,
+            plan: subscription.plan,
+          },
+          createdAt: now,
+        });
+
+        for (const item of resolved) {
+          await tx.marketProductState.update({
+            where: { productId: item.productId },
+            data: {
+              supplierStock: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+          const inventory = await tx.inventory.upsert({
+            where: {
+              userId_productId: {
+                userId: user.id,
+                productId: item.productId,
+              },
+            },
+            update: {},
+            create: {
+              userId: user.id,
+              productId: item.productId,
+              quantity: 0,
+              allocatedQuantity: 0,
+              averageUnitCost: 0,
+            },
+            select: {
+              id: true,
+              quantity: true,
+              allocatedQuantity: true,
+              averageUnitCost: true,
+            },
+          });
+
+          const nextInventoryQuantity = inventory.quantity + item.quantity;
+          const currentValue = inventory.averageUnitCost * inventory.quantity;
+          const nextValue = currentValue + item.unitPrice * item.quantity;
+          const nextAverage =
+            nextInventoryQuantity > 0 ? Math.round(nextValue / nextInventoryQuantity) : item.unitPrice;
+
+          await tx.inventory.update({
+            where: { id: inventory.id },
+            data: {
+              quantity: {
+                increment: item.quantity,
+              },
+              allocatedQuantity: sanitizeStockCount(inventory.allocatedQuantity + item.quantity),
+              averageUnitCost: nextAverage,
+            },
+          });
+
+          await tx.listing.update({
+            where: { id: item.listingId },
+            data: {
+              quantity: {
+                increment: item.quantity,
+              },
+              active: true,
+              soldOutAt: null,
+              lastAutoRestockedAt: now,
+            },
+          });
+        }
+
+        await tx.autoRestockSubscription.update({
+          where: { id: subscription.id },
+          data: { lastRestockAt: now },
+        });
+
+        const itemSummary =
+          resolved.length === 1
+            ? resolved[0].productName
+            : `${resolved[0].productName} and ${resolved.length - 1} more`;
+
+        await tx.notification.create({
+          data: {
+            userId: user.id,
+            type: NotificationType.SYSTEM,
+            message: `${getPlanMeta(subscription.plan).name} Restocker bought/restocked ${itemSummary} for ${formatCurrency(
+              payableTotal,
+              user.currencyCode,
+            )}.`,
+            createdAt: now,
+          },
+        });
+      });
       continue;
     }
 

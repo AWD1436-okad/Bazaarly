@@ -1,7 +1,7 @@
 import { AutoRestockPlan } from "@prisma/client";
 
 export const SIMPLE_DAILY_COST_CENTS = 50_000;
-export const SIMPLE_SETUP_FEE_CENTS = 30_000;
+export const SIMPLE_SETUP_FEE_CENTS = 0;
 export const PRO_DAILY_COST_CENTS = 75_000;
 export const MAX_DAILY_COST_CENTS = 150_000;
 
@@ -21,7 +21,7 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     dailyCostCents: SIMPLE_DAILY_COST_CENTS,
     setupFeeCents: SIMPLE_SETUP_FEE_CENTS,
     cycleIntervalMs: 2 * 60_000,
-    cycleLabel: "Every 2 minutes",
+    cycleLabel: "Checks every 2 minutes",
     defaultQuantity: 1,
   },
   PRO: {
@@ -29,7 +29,7 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     dailyCostCents: PRO_DAILY_COST_CENTS,
     setupFeeCents: 0,
     cycleIntervalMs: 60_000,
-    cycleLabel: "Every 1 minute",
+    cycleLabel: "Checks every 1 minute",
     defaultQuantity: 2,
   },
   MAX: {

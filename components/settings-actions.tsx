@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { HoldToShowInput } from "@/components/hold-to-show-input";
+
 type SettingsActionsProps = {
   username: string;
   displayName: string;
@@ -23,6 +25,7 @@ type SettingsActionsProps = {
     cycleLabel: string;
     lastRestockAt: string | null;
     lastChargedAt: string | null;
+    fullAccessEnabled: boolean;
   } | null;
   autoRestockPlanLabels: {
     simple: string;
@@ -57,8 +60,16 @@ const initialState: ActionState = {
 
 function formatCountdown(ms: number) {
   const clampedSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const days = Math.floor(clampedSeconds / 86_400);
+  const hours = Math.floor((clampedSeconds % 86_400) / 3_600);
   const minutes = Math.floor(clampedSeconds / 60);
   const seconds = clampedSeconds % 60;
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${String(Math.floor((clampedSeconds % 3_600) / 60)).padStart(2, "0")}m`;
+  }
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
@@ -83,6 +94,7 @@ export function SettingsActions({
   const [bankOpen, setBankOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [fullAccessOpen, setFullAccessOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<"SIMPLE" | "PRO" | "MAX">(
     autoRestockSubscription?.plan ?? "SIMPLE",
   );
@@ -100,6 +112,8 @@ export function SettingsActions({
   const [deleteUsername, setDeleteUsername] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [fullAccessPassword, setFullAccessPassword] = useState("");
+  const [fullAccessPin, setFullAccessPin] = useState("");
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
   const [appearancePreset, setAppearancePreset] = useState(currentAppearancePreset);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -119,6 +133,7 @@ export function SettingsActions({
     | "currency"
     | "appearance"
     | "autoRestock"
+    | "fullAccess"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
   const selectedCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currencyCode);
@@ -152,17 +167,25 @@ export function SettingsActions({
   const nextRestockTime = activeRestockSubscription?.nextRestockAt
     ? new Date(activeRestockSubscription.nextRestockAt).getTime()
     : null;
+  const nextChargeTime = activeRestockSubscription?.nextChargeAt
+    ? new Date(activeRestockSubscription.nextChargeAt).getTime()
+    : null;
   const restockCountdownLabel =
     activeRestockSubscription?.plan === "MAX"
       ? "Restocks when an item sells out"
       : nextRestockTime
         ? nextRestockTime <= clockNow
-          ? "Checking for sold-out items now"
+          ? "Ready for the next sold-out check"
           : `Next restock in ${formatCountdown(nextRestockTime - clockNow)}`
         : "Waiting for the next restock window";
+  const renewalCountdownLabel = nextChargeTime
+    ? nextChargeTime <= clockNow
+      ? "Renewal will be checked shortly"
+      : `Renews in ${formatCountdown(nextChargeTime - clockNow)}`
+    : "No renewal scheduled";
 
   useEffect(() => {
-    if (!activeRestockSubscription || activeRestockSubscription.plan === "MAX") {
+    if (!activeRestockSubscription) {
       return;
     }
 
@@ -521,6 +544,42 @@ export function SettingsActions({
     }
   }
 
+  async function handleFullAccessUpdate(enabled: boolean) {
+    setSubmitting("fullAccess");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("enabled", String(enabled));
+      if (enabled) {
+        formData.set("password", fullAccessPassword);
+        formData.set("checkoutPin", fullAccessPin);
+      }
+
+      const response = await fetch("/settings/auto-restock-full-access", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string; message?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Full Access update failed");
+      }
+
+      setFullAccessOpen(false);
+      setFullAccessPassword("");
+      setFullAccessPin("");
+      setState({ message: payload.message ?? "Full Access updated", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Full Access update failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   return (
     <div className="settings-actions">
       {state.message ? (
@@ -591,20 +650,54 @@ export function SettingsActions({
               <span>{autoRestockSubscription.cycleLabel}</span>
             </div>
             <p className="muted">
-              Current plan: <strong>{autoRestockSubscription.planName}</strong> | Daily cost:{" "}
+              Current plan: <strong>{autoRestockSubscription.planName}</strong> | 48-hour cost:{" "}
               <strong>{autoRestockSubscription.dailyCostLabel}</strong>
             </p>
             <p className="muted">
-              Next charge: <strong>{new Date(autoRestockSubscription.nextChargeAt).toLocaleString()}</strong>
+              Next renewal: <strong>{new Date(autoRestockSubscription.nextChargeAt).toLocaleString()}</strong>{" "}
+              <span>({renewalCountdownLabel})</span>
             </p>
             <p className="muted">
               Last restock:{" "}
               <strong>
                 {autoRestockSubscription.lastRestockAt
                   ? new Date(autoRestockSubscription.lastRestockAt).toLocaleString()
-                  : "Not run yet"}
+                : "Not run yet"}
               </strong>
             </p>
+            <div className="status-banner">
+              <div>
+                <h3>Full Access is {autoRestockSubscription.fullAccessEnabled ? "on" : "off"}</h3>
+                <p>
+                  Allow your Restocker to buy eligible restocks automatically without asking each time.
+                  Full Access stays off until you confirm with password and PIN.
+                </p>
+              </div>
+              {autoRestockSubscription.fullAccessEnabled ? (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={submitting !== null}
+                  onClick={() => void handleFullAccessUpdate(false)}
+                >
+                  {submitting === "fullAccess" ? "Turning off..." : "Turn off Full Access"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={submitting !== null}
+                  onClick={() => {
+                    resetMessages();
+                    setFullAccessPassword("");
+                    setFullAccessPin("");
+                    setFullAccessOpen(true);
+                  }}
+                >
+                  Enable Full Access
+                </button>
+              )}
+            </div>
           </>
         ) : (
           <p className="muted">No active Auto Restock subscription.</p>
@@ -615,7 +708,7 @@ export function SettingsActions({
           </p>
         ) : null}
         <p className="muted">
-          Daily plan fees are charged automatically. If balance is too low at charge time, subscription auto-cancels.
+          Plan fees cover 48 hours and renew automatically. If balance is too low at renewal, subscription auto-cancels.
         </p>
       </section>
 
@@ -922,10 +1015,9 @@ export function SettingsActions({
             </label>
             <label className="modal-card__field">
               Password
-              <input
+              <HoldToShowInput
                 value={usernamePassword}
                 onChange={(event) => setUsernamePassword(event.target.value)}
-                type="password"
                 autoComplete="current-password"
                 disabled={submitting !== null}
               />
@@ -980,10 +1072,9 @@ export function SettingsActions({
             </label>
             <label className="modal-card__field">
               Password
-              <input
+              <HoldToShowInput
                 value={displayNamePassword}
                 onChange={(event) => setDisplayNamePassword(event.target.value)}
-                type="password"
                 autoComplete="current-password"
                 disabled={submitting !== null}
               />
@@ -1033,10 +1124,9 @@ export function SettingsActions({
             </label>
             <label className="modal-card__field">
               Password
-              <input
+              <HoldToShowInput
                 value={renamePassword}
                 onChange={(event) => setRenamePassword(event.target.value)}
-                type="password"
                 autoComplete="current-password"
                 disabled={submitting !== null}
               />
@@ -1106,21 +1196,19 @@ export function SettingsActions({
                 </div>
                 <label className="modal-card__field">
                   Password
-                  <input
+                  <HoldToShowInput
                     value={bankPassword}
                     onChange={(event) => setBankPassword(event.target.value)}
-                    type="password"
                     autoComplete="current-password"
                     disabled={submitting !== null}
                   />
                 </label>
                 <label className="modal-card__field">
                   Checkout PIN
-                  <input
+                  <HoldToShowInput
                     value={bankPin}
                     onChange={(event) => setBankPin(event.target.value)}
                     inputMode="numeric"
-                    type="password"
                     autoComplete="off"
                     disabled={submitting !== null}
                   />
@@ -1164,10 +1252,9 @@ export function SettingsActions({
             </div>
             <label className="modal-card__field">
               Password
-              <input
+              <HoldToShowInput
                 value={logoutPassword}
                 onChange={(event) => setLogoutPassword(event.target.value)}
-                type="password"
                 autoComplete="current-password"
                 disabled={submitting !== null}
               />
@@ -1188,6 +1275,67 @@ export function SettingsActions({
                 disabled={submitting !== null || logoutPassword.trim().length === 0}
               >
                 {submitting === "logout" ? "Logging out..." : "Logout"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {fullAccessOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setFullAccessOpen(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="full-access-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-card__copy">
+              <h3 id="full-access-title">Enable Full Access</h3>
+              <p>
+                Full Access lets your active Restocker buy eligible sold-out restocks automatically.
+                Confirm with your password and PIN first.
+              </p>
+            </div>
+            <label className="modal-card__field">
+              Password
+              <HoldToShowInput
+                value={fullAccessPassword}
+                onChange={(event) => setFullAccessPassword(event.target.value)}
+                autoComplete="current-password"
+                disabled={submitting !== null}
+              />
+            </label>
+            <label className="modal-card__field">
+              Checkout PIN
+              <HoldToShowInput
+                value={fullAccessPin}
+                onChange={(event) => setFullAccessPin(event.target.value)}
+                inputMode="numeric"
+                autoComplete="off"
+                disabled={submitting !== null}
+              />
+            </label>
+            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+            <div className="modal-card__actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setFullAccessOpen(false)}
+                disabled={submitting !== null}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleFullAccessUpdate(true)}
+                disabled={
+                  submitting !== null ||
+                  fullAccessPassword.trim().length === 0 ||
+                  fullAccessPin.trim().length === 0
+                }
+              >
+                {submitting === "fullAccess" ? "Enabling..." : "Enable Full Access"}
               </button>
             </div>
           </div>
@@ -1226,10 +1374,9 @@ export function SettingsActions({
             </label>
             <label className="modal-card__field">
               Password
-              <input
+              <HoldToShowInput
                 value={deletePassword}
                 onChange={(event) => setDeletePassword(event.target.value)}
-                type="password"
                 autoComplete="current-password"
                 disabled={submitting !== null}
               />
