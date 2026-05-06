@@ -15,6 +15,9 @@
   --radius: 24px;
   --radius-sm: 16px;
   --max-width: 1280px;
+  --control-height: 44px;
+  --control-height-sm: 38px;
+  --gutter: clamp(0.8rem, 2vw, 1.25rem);
 }
 
 * {
@@ -28,12 +31,19 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(111, 45, 245, 0.12), transparent 26%),
     radial-gradient(circle at top right, rgba(31, 125, 255, 0.13), transparent 24%),
     linear-gradient(180deg, #f9fbff 0%, var(--bg) 100%);
   color: var(--text);
   font-family: "Nunito", "Segoe UI", "Helvetica Neue", sans-serif;
+  line-height: 1.45;
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 a {
@@ -50,12 +60,21 @@ textarea {
 
 button {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   border: 0;
   border-radius: 999px;
   background: var(--primary-gradient);
   color: white;
-  padding: 0.8rem 1.2rem;
+  min-height: var(--control-height);
+  max-width: 100%;
+  padding: 0.72rem 1.05rem;
+  font-size: 0.95rem;
   font-weight: 700;
+  line-height: 1.12;
+  text-align: center;
   box-shadow: 0 10px 24px rgba(85, 69, 207, 0.28);
   transition:
     transform 0.15s ease,
@@ -78,8 +97,13 @@ button:hover {
   border-radius: 999px;
   background: var(--primary-gradient);
   color: white;
-  padding: 0.8rem 1.2rem;
+  min-height: var(--control-height);
+  max-width: 100%;
+  padding: 0.72rem 1.05rem;
+  font-size: 0.95rem;
   font-weight: 700;
+  line-height: 1.12;
+  text-align: center;
   box-shadow: 0 10px 24px rgba(85, 69, 207, 0.28);
   transition:
     transform 0.15s ease,
@@ -110,15 +134,23 @@ button:disabled,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.8rem 1.1rem;
+  min-height: var(--control-height);
+  max-width: 100%;
+  padding: 0.72rem 1rem;
   border: 1px solid #c7d0f2;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
   color: #1f2f74;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.12;
+  text-align: center;
 }
 
 .ghost-button.small {
-  padding: 0.5rem 0.8rem;
+  min-height: var(--control-height-sm);
+  padding: 0.52rem 0.78rem;
+  font-size: 0.9rem;
 }
 
 input,
@@ -128,8 +160,10 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: white;
-  padding: 0.85rem 1rem;
+  min-height: var(--control-height);
+  padding: 0.72rem 0.9rem;
   color: var(--text);
+  line-height: 1.2;
 }
 
 textarea {
@@ -138,9 +172,10 @@ textarea {
 }
 
 .app-shell {
+  width: min(100%, var(--max-width));
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: var(--gutter);
 }
 
 .topbar {
@@ -152,7 +187,7 @@ textarea {
   gap: 1rem;
   align-items: center;
   margin-bottom: 1.1rem;
-  padding: 0.9rem 1rem;
+  padding: 0.78rem 0.9rem;
   border: 1px solid rgba(198, 208, 244, 0.82);
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.88);
@@ -358,7 +393,7 @@ textarea {
 
 .search-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, 220px) max-content;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 190px) max-content;
   gap: 0.75rem;
   align-items: center;
   min-width: 0;
@@ -369,7 +404,7 @@ textarea {
 }
 
 .search-bar button {
-  min-height: 48px;
+  min-height: var(--control-height);
   align-self: stretch;
 }
 
@@ -399,9 +434,9 @@ textarea {
 }
 
 .balance-pill {
-  min-height: 52px;
+  min-height: 46px;
   max-width: 100%;
-  padding: 0.56rem 1rem 0.56rem 0.58rem;
+  padding: 0.5rem 0.9rem 0.5rem 0.52rem;
   border: 1px solid rgba(194, 206, 244, 0.95);
   background:
     radial-gradient(circle at 18% 50%, rgba(111, 45, 245, 0.12), transparent 34%),
@@ -415,9 +450,9 @@ textarea {
 }
 
 .balance-pill .app-icon {
-  width: 2.12rem;
-  height: 2.12rem;
-  font-size: 1rem;
+  width: 1.95rem;
+  height: 1.95rem;
+  font-size: 0.95rem;
   box-shadow: 0 8px 18px rgba(85, 69, 207, 0.22);
 }
 
@@ -529,8 +564,8 @@ textarea {
 
 .topbar-link,
 .notification-pill {
-  min-height: 48px;
-  padding: 0.55rem 0.9rem 0.55rem 0.6rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem 0.5rem 0.56rem;
   border: 1px solid rgba(194, 206, 244, 0.95);
   border-radius: 999px;
   background: linear-gradient(180deg, #ffffff, #eef3ff);
@@ -554,7 +589,7 @@ textarea {
 
 .page-grid {
   display: grid;
-  gap: 0.9rem;
+  gap: clamp(0.75rem, 1.6vw, 1rem);
 }
 
 .marketplace-page {
@@ -597,7 +632,7 @@ textarea {
 .hero-card,
 .auth-card,
 .status-banner {
-  padding: 1rem;
+  padding: clamp(0.85rem, 1.7vw, 1.15rem);
 }
 
 .hero-card {
@@ -638,7 +673,7 @@ textarea {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  padding: 1.35rem 1.4rem;
+  padding: clamp(1rem, 2vw, 1.35rem);
   border-radius: 28px;
   border: 1px solid rgba(194, 206, 244, 0.94);
   background:
@@ -753,7 +788,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  min-height: 42px;
+  min-height: 40px;
   padding: 0.22rem 0.35rem 0.22rem 0.2rem;
   border-radius: 999px;
   color: var(--text);
@@ -814,7 +849,7 @@ textarea {
 
 .supplier-filter-row .ghost-button,
 .supplier-filter-row button {
-  min-height: 48px;
+  min-height: var(--control-height);
 }
 
 .supplier-filter-row .ghost-button {
@@ -977,7 +1012,11 @@ textarea {
 }
 
 .metric-card {
-  padding: 0.85rem;
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: clamp(0.78rem, 1.5vw, 0.95rem);
   border-radius: 18px;
   background: linear-gradient(180deg, #ffffff, #f3f6ff);
   border: 1px solid var(--border);
@@ -985,8 +1024,10 @@ textarea {
 
 .metric-card strong {
   display: block;
-  margin-top: 0.55rem;
-  font-size: 1.55rem;
+  margin-top: 0.25rem;
+  font-size: clamp(1.25rem, 2.4vw, 1.55rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
 }
 
 .metric-card__helper {
@@ -1023,7 +1064,7 @@ textarea {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.8rem;
-  padding: 0.75rem 0.85rem;
+  padding: 0.7rem 0.8rem;
   border-radius: 16px;
   border: 1px solid rgba(194, 206, 244, 0.95);
   background: linear-gradient(135deg, rgba(111, 45, 245, 0.08), rgba(32, 132, 255, 0.08));
@@ -1032,7 +1073,7 @@ textarea {
 .challenge-row {
   display: grid;
   gap: 0.65rem;
-  padding: 0.82rem 0.9rem;
+  padding: clamp(0.72rem, 1.5vw, 0.9rem);
   border: 1px solid var(--border);
   border-radius: 16px;
   background:
@@ -1114,7 +1155,8 @@ textarea {
 .listing-card {
   display: grid;
   gap: 0.65rem;
-  padding: 0.9rem 0.95rem;
+  min-width: 0;
+  padding: clamp(0.8rem, 1.5vw, 0.98rem);
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(31, 41, 51, 0.06);
 }
@@ -1131,6 +1173,16 @@ textarea {
   align-items: center;
 }
 
+.section-row,
+.section-row > * {
+  min-width: 0;
+}
+
+.section-row h2,
+.section-row h3 {
+  overflow-wrap: anywhere;
+}
+
 .listing-card__body h3,
 .section-row h3 {
   margin: 0;
@@ -1139,11 +1191,13 @@ textarea {
 .listing-card__title-block {
   display: grid;
   gap: 0.18rem;
+  min-width: 0;
 }
 
 .listing-card__title-block h3 {
   margin: 0;
   font-size: 1.05rem;
+  overflow-wrap: anywhere;
 }
 
 .listing-card__description {
@@ -1196,8 +1250,9 @@ textarea {
 .listing-card__actions {
   padding-top: 0.5rem;
   border-top: 1px solid rgba(205, 215, 247, 0.84);
-  min-height: 54px;
+  min-height: 50px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .listing-card__actions .inline-cart-form {
@@ -1209,10 +1264,12 @@ textarea {
   gap: 0.6rem;
   width: auto;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .inline-cart-form input {
-  width: 72px;
+  width: 70px;
+  text-align: center;
 }
 
 .listing-card__purchase-stack,
@@ -1242,6 +1299,11 @@ textarea {
   gap: 0.6rem;
 }
 
+.stack-xs {
+  display: grid;
+  gap: 0.4rem;
+}
+
 .table-list {
   display: grid;
   gap: 0.55rem;
@@ -1251,9 +1313,9 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
-  gap: 0.85rem;
-  min-height: 64px;
-  padding: 0.72rem 0.86rem;
+  gap: 0.75rem;
+  min-height: 60px;
+  padding: clamp(0.64rem, 1.35vw, 0.82rem);
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface-alt);
@@ -1278,10 +1340,11 @@ textarea {
 .table-row__actions,
 .inline-form {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   align-items: center;
   justify-content: flex-end;
   min-height: 40px;
+  min-width: 0;
 }
 
 .table-row__actions {
@@ -1311,11 +1374,12 @@ textarea {
 }
 
 .inline-form input {
-  width: 96px;
+  width: 88px;
+  text-align: center;
 }
 
 .checkout-page {
-  padding-bottom: 6rem;
+  padding-bottom: clamp(5rem, 14vh, 7rem);
 }
 
 .cart-summary-actions {
@@ -1324,6 +1388,11 @@ textarea {
   justify-content: flex-end;
   gap: 0.8rem;
   flex-wrap: wrap;
+}
+
+.cart-summary-actions strong,
+.section-row > strong {
+  overflow-wrap: anywhere;
 }
 
 .cart-checkout-card-top {
@@ -1360,20 +1429,20 @@ textarea {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: clamp(0.8rem, 3vw, 1.5rem);
 }
 
 .auth-card {
   width: min(980px, 100%);
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  gap: 1rem;
+  gap: clamp(0.85rem, 2vw, 1.1rem);
 }
 
 .auth-game-panel {
   display: grid;
   gap: 0.7rem;
-  padding: 1rem;
+  padding: clamp(0.85rem, 2vw, 1rem);
   border: 1px solid rgba(194, 206, 244, 0.9);
   border-radius: 22px;
   background:
@@ -1440,7 +1509,7 @@ textarea {
 .order-row {
   display: grid;
   gap: 0.55rem;
-  padding: 1rem;
+  padding: clamp(0.78rem, 1.7vw, 1rem);
   border-radius: 18px;
   border: 1px solid var(--border);
   background: var(--surface-alt);
@@ -1478,17 +1547,19 @@ textarea {
   z-index: 100;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: clamp(0.75rem, 2vw, 1rem);
   background: rgba(31, 41, 51, 0.48);
   backdrop-filter: blur(4px);
 }
 
 .modal-card {
   position: relative;
-  width: min(480px, 100%);
+  width: min(480px, calc(100vw - 1.5rem));
+  max-height: min(86vh, 760px);
+  overflow: auto;
   display: grid;
-  gap: 1rem;
-  padding: 1.15rem;
+  gap: 0.85rem;
+  padding: clamp(0.9rem, 2vw, 1.15rem);
   border: 1px solid var(--border);
   border-radius: 24px;
   background: var(--surface);
@@ -1512,8 +1583,8 @@ textarea {
 }
 
 .modal-card--wide {
-  width: min(760px, 100%);
-  max-height: min(80vh, 760px);
+  width: min(760px, calc(100vw - 1.5rem));
+  max-height: min(84vh, 760px);
 }
 
 .modal-card--wide .table-list {
@@ -1546,7 +1617,7 @@ textarea {
 .modal-card__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.7rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
@@ -1613,7 +1684,7 @@ textarea {
 
 .currency-option {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr) minmax(8rem, 0.8fr);
+  grid-template-columns: minmax(3.8rem, 4.5rem) minmax(0, 1fr) minmax(7rem, 0.8fr);
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 0.85rem;
@@ -1622,6 +1693,13 @@ textarea {
   background: rgba(255, 255, 255, 0.86);
   color: var(--text);
   text-align: left;
+  min-width: 0;
+}
+
+.currency-option strong,
+.currency-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .currency-option:hover,
@@ -1647,6 +1725,7 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
 }
 
 .status-banner__content {
@@ -1732,10 +1811,15 @@ textarea {
 
   .topbar {
     position: static;
+    gap: 0.75rem;
   }
 
   .brand-link > span {
     display: none;
+  }
+
+  .search-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 180px) max-content;
   }
 
   .category-sidebar {
@@ -1747,12 +1831,12 @@ textarea {
     left: 50%;
     bottom: 1rem;
     z-index: 45;
-    width: min(calc(100% - 2rem), var(--max-width));
+    width: min(calc(100% - 1.5rem), var(--max-width));
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.8rem;
-    padding: 0.78rem 0.9rem;
+    padding: 0.7rem 0.8rem;
     border: 1px solid rgba(189, 201, 241, 0.95);
     border-radius: 22px;
     background: rgba(255, 255, 255, 0.95);
@@ -1768,6 +1852,19 @@ textarea {
 }
 
 @media (max-width: 840px) {
+  :root {
+    --control-height: 42px;
+    --control-height-sm: 36px;
+  }
+
+  body {
+    font-size: 15px;
+  }
+
+  .app-shell {
+    padding: 0.75rem;
+  }
+
   .search-bar,
   .filters-grid,
   .metrics-grid {
@@ -1799,6 +1896,12 @@ textarea {
     width: 100%;
   }
 
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+
   .inline-cart-form,
   .inline-form,
   .inline-actions,
@@ -1808,11 +1911,13 @@ textarea {
   .table-row__actions {
     width: 100%;
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .table-row {
     grid-template-columns: 1fr;
     align-items: stretch;
+    min-height: auto;
   }
 
   .table-row__meta--with-visual,
@@ -1823,14 +1928,14 @@ textarea {
   .table-row__actions,
   .sold-out-listing-actions {
     justify-self: stretch;
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
 
   .sold-out-listing-actions {
-    justify-self: end;
+    justify-self: start;
     width: max-content;
-    min-width: 178px;
-    margin-left: auto;
+    min-width: 0;
+    margin-left: 0;
   }
 
   .cart-summary-actions,
@@ -1859,7 +1964,7 @@ textarea {
 
   .inline-cart-form input,
   .inline-form input {
-    width: 100%;
+    width: min(100%, 8rem);
   }
 
   .listing-card__price {
@@ -1879,5 +1984,106 @@ textarea {
   .modal-card__actions button,
   .modal-card__actions .ghost-button {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-header,
+  .card,
+  .hero-card,
+  .auth-card,
+  .status-banner {
+    border-radius: 18px;
+  }
+
+  .topbar {
+    padding: 0.65rem;
+    border-radius: 20px;
+  }
+
+  .brand-link {
+    gap: 0.65rem;
+  }
+
+  .product-heading,
+  .table-row__meta--with-visual {
+    gap: 0.6rem;
+  }
+
+  .product-visual--compact {
+    width: 46px;
+    height: 46px;
+  }
+
+  .product-visual--card {
+    width: 64px;
+    height: 64px;
+  }
+
+  .listing-card__header,
+  .listing-card__summary,
+  .section-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 0.55rem;
+  }
+
+  .listing-card__actions {
+    align-items: stretch;
+  }
+
+  .listing-card__actions .inline-cart-form,
+  .listing-card__purchase-stack {
+    width: 100%;
+  }
+
+  .inline-cart-form {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 0.35fr) minmax(0, 1fr);
+  }
+
+  .inline-cart-form input,
+  .inline-form input {
+    width: 100%;
+  }
+
+  .cart-item-quantity-form .inline-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cart-item-quantity-form .inline-form input {
+    grid-column: span 2;
+  }
+
+  .cart-item-quantity-form .inline-form button {
+    width: 100%;
+  }
+
+  .supplier-buy-form {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-card__header,
+  .supplier-card__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-card__header {
+    display: grid;
+  }
+
+  .currency-option {
+    padding: 0.68rem 0.72rem;
+  }
+
+  .checkout-sticky-bottom {
+    bottom: 0.65rem;
+    border-radius: 18px;
+  }
+
+  .checkout-sticky-bottom button {
+    min-width: 8.2rem;
   }
 }
