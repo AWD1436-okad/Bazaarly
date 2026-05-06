@@ -605,9 +605,13 @@ textarea {
 
 .product-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
   gap: 0.85rem;
+}
+
+.product-heading > :last-child {
+  min-width: 0;
 }
 
 .brand-lockup {
@@ -776,6 +780,12 @@ textarea {
     radial-gradient(circle at top left, var(--accent-soft), transparent 44%),
     var(--soft-panel);
   border: 1px solid var(--border);
+  max-width: 100%;
+  width: fit-content;
+  min-height: 2rem;
+  line-height: 1.12;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .notification-pill strong {
@@ -1271,13 +1281,17 @@ textarea {
 }
 
 .supplier-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(0.85rem, 1.6vw, 1.15rem);
 }
 
 .supplier-card {
   display: grid;
-  gap: 0.8rem;
+  align-content: start;
+  gap: 0.85rem;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(0.9rem, 1.8vw, 1.1rem);
 }
 
 .supplier-card p {
@@ -1285,45 +1299,105 @@ textarea {
 }
 
 .supplier-card__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.9rem;
-  align-items: flex-start;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+  align-items: start;
 }
 
 .supplier-card__title {
   display: grid;
-  gap: 0.35rem;
+  align-content: start;
+  gap: 0.38rem;
+  min-width: 0;
 }
 
-.supplier-card__title h2 {
+.supplier-card__title h2,
+.supplier-card__title h3 {
   margin: 0;
-  font-size: 1.14rem;
+  font-size: clamp(1.08rem, 1.2vw, 1.18rem);
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.supplier-card__price {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.48rem 0.72rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: clamp(0.98rem, 1.1vw, 1.08rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.supplier-card__description {
+  display: -webkit-box;
+  min-height: 3.05rem;
+  overflow: hidden;
+  color: var(--muted);
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .supplier-card__meta {
   display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: 0.45rem 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.42rem 0.75rem;
   align-items: center;
+  min-width: 0;
+  padding: 0.72rem 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-elevated);
+}
+
+.supplier-card__meta strong {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .supplier-buy-form {
   display: grid;
-  grid-template-columns: minmax(92px, 120px) auto;
-  gap: 0.8rem;
+  grid-template-columns: minmax(5.25rem, 6.75rem) minmax(0, 1fr);
+  gap: 0.7rem;
   align-items: end;
-  padding-top: 0.9rem;
+  min-width: 0;
+  padding-top: 0.85rem;
   border-top: 1px solid var(--border);
 }
 
 .supplier-buy-form__quantity {
   display: grid;
   gap: 0.35rem;
+  min-width: 0;
+}
+
+.supplier-buy-form button {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 0.85rem;
+  white-space: normal;
+}
+
+.supplier-buy-form .muted,
+.supplier-buy-form .status-text {
+  grid-column: 1 / -1;
 }
 
 .orders-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1180px) {
+  .catalog-layout .supplier-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .metric-card h3,
@@ -1572,6 +1646,7 @@ textarea {
   justify-items: end;
   gap: 0.15rem;
   text-align: right;
+  min-width: min(100%, 9rem);
 }
 
 .listing-card__price strong {
@@ -1598,7 +1673,7 @@ textarea {
 
 .listing-card__actions {
   padding-top: 0.5rem;
-  border-top: 1px solid rgba(205, 215, 247, 0.84);
+  border-top: 1px solid var(--border);
   min-height: 50px;
   align-items: center;
   flex-wrap: wrap;
@@ -1614,11 +1689,17 @@ textarea {
   width: auto;
   flex-wrap: wrap;
   align-items: center;
+  min-width: 0;
 }
 
 .inline-cart-form input {
-  width: 70px;
+  width: 5.25rem;
   text-align: center;
+}
+
+.inline-cart-form button {
+  min-width: 8.5rem;
+  white-space: normal;
 }
 
 .listing-card__purchase-stack,
@@ -1627,6 +1708,18 @@ textarea {
 .dashboard-listing-form__actions {
   display: grid;
   gap: 0.35rem;
+}
+
+.listing-card.supplier-card .listing-card__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.listing-card.supplier-card .listing-card__price {
+  justify-items: start;
+  text-align: left;
 }
 
 .status-text {
@@ -2525,6 +2618,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .supplier-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  }
+
   .modal-card__actions {
     width: 100%;
     justify-content: stretch;
@@ -2639,9 +2736,21 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .supplier-card {
+    padding: 0.9rem;
+  }
+
+  .supplier-card__description {
+    min-height: auto;
+  }
+
   .supplier-card__header,
   .supplier-card__meta {
     grid-template-columns: 1fr;
+  }
+
+  .supplier-card__meta strong {
+    text-align: left;
   }
 
   .supplier-card__header {

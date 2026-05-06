@@ -374,10 +374,12 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                         <h2>{item.name}</h2>
                       </div>
                     </div>
-                    <strong>{formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)}</strong>
+                    <strong className="supplier-card__price">
+                      {formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)}
+                    </strong>
                   </div>
 
-                  <p>{item.description}</p>
+                  <p className="supplier-card__description">{item.description}</p>
 
                   <div className="supplier-card__meta">
                     <span className="muted">Unit basis</span>

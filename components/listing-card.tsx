@@ -67,7 +67,7 @@ export function ListingCard({
         </div>
       </div>
 
-      <p className="listing-card__description">{listing.product.description}</p>
+      <p className="supplier-card__description listing-card__description">{listing.product.description}</p>
 
       <div className="supplier-card__meta listing-card__meta-grid">
         <span className="muted">Unit basis</span>
