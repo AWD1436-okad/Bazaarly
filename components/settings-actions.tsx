@@ -737,8 +737,20 @@ export function SettingsActions({
               aria-checked={preset.value === appearancePreset}
             >
               <span className={`appearance-option__swatch appearance-option__swatch--${preset.value}`} />
-              <strong>{preset.label}</strong>
-              <small>{preset.description}</small>
+              <span className="appearance-option__copy">
+                <strong>{preset.label}</strong>
+                <small>{preset.description}</small>
+              </span>
+              <span className={`appearance-preview appearance-preview--${preset.value}`} aria-hidden="true">
+                <span className="appearance-preview__card">
+                  <span className="appearance-preview__line appearance-preview__line--strong" />
+                  <span className="appearance-preview__line" />
+                  <span className="appearance-preview__controls">
+                    <span className="appearance-preview__button" />
+                    <span className="appearance-preview__badge" />
+                  </span>
+                </span>
+              </span>
             </button>
           ))}
         </div>
