@@ -11,8 +11,8 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     name: string;
     dailyCostCents: number;
     setupFeeCents: number;
-    minIntervalMs: number;
-    maxIntervalMs: number;
+    cycleIntervalMs: number | null;
+    cycleLabel: string;
     defaultQuantity: number;
   }
 > = {
@@ -20,24 +20,24 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     name: "Simple",
     dailyCostCents: SIMPLE_DAILY_COST_CENTS,
     setupFeeCents: SIMPLE_SETUP_FEE_CENTS,
-    minIntervalMs: 60_000,
-    maxIntervalMs: 120_000,
+    cycleIntervalMs: 2 * 60_000,
+    cycleLabel: "Every 2 minutes",
     defaultQuantity: 1,
   },
   PRO: {
     name: "Pro",
     dailyCostCents: PRO_DAILY_COST_CENTS,
     setupFeeCents: 0,
-    minIntervalMs: 3 * 60_000,
-    maxIntervalMs: 5 * 60_000,
+    cycleIntervalMs: 60_000,
+    cycleLabel: "Every 1 minute",
     defaultQuantity: 2,
   },
   MAX: {
     name: "Max",
     dailyCostCents: MAX_DAILY_COST_CENTS,
     setupFeeCents: 0,
-    minIntervalMs: 60_000,
-    maxIntervalMs: 2 * 60_000,
+    cycleIntervalMs: null,
+    cycleLabel: "Restocks when an item sells out",
     defaultQuantity: 3,
   },
 };
@@ -46,8 +46,60 @@ export function getPlanMeta(plan: AutoRestockPlan) {
   return AUTO_RESTOCK_PLAN_META[plan];
 }
 
+export function getRestockCycleMs(plan: AutoRestockPlan) {
+  return getPlanMeta(plan).cycleIntervalMs;
+}
+
+export function getNextRestockAt(
+  plan: AutoRestockPlan,
+  subscription: {
+    lastRestockAt?: Date | null;
+    lastChargedAt?: Date | null;
+    startedAt?: Date | null;
+    createdAt?: Date | null;
+  },
+  now = new Date(),
+) {
+  const intervalMs = getRestockCycleMs(plan);
+  if (intervalMs === null) {
+    return null;
+  }
+
+  const anchor =
+    subscription.lastRestockAt ??
+    subscription.lastChargedAt ??
+    subscription.startedAt ??
+    subscription.createdAt ??
+    now;
+  const firstDueAt = new Date(anchor.getTime() + intervalMs);
+  return firstDueAt;
+}
+
+export function isRestockCycleDue(
+  plan: AutoRestockPlan,
+  subscription: {
+    lastRestockAt?: Date | null;
+    lastChargedAt?: Date | null;
+    startedAt?: Date | null;
+    createdAt?: Date | null;
+  },
+  now = new Date(),
+) {
+  const intervalMs = getRestockCycleMs(plan);
+  if (intervalMs === null) {
+    return true;
+  }
+
+  const anchor =
+    subscription.lastRestockAt ??
+    subscription.lastChargedAt ??
+    subscription.startedAt ??
+    subscription.createdAt ??
+    now;
+
+  return now.getTime() - anchor.getTime() >= intervalMs;
+}
+
 export function getNextRestockDelayMs(plan: AutoRestockPlan) {
-  const meta = getPlanMeta(plan);
-  const range = Math.max(0, meta.maxIntervalMs - meta.minIntervalMs);
-  return meta.minIntervalMs + Math.floor(Math.random() * (range + 1));
+  return getRestockCycleMs(plan) ?? Number.POSITIVE_INFINITY;
 }

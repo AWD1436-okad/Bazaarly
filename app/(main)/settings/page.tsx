@@ -4,6 +4,8 @@ import {
   PRO_DAILY_COST_CENTS,
   SIMPLE_DAILY_COST_CENTS,
   SIMPLE_SETUP_FEE_CENTS,
+  getNextRestockAt,
+  getPlanMeta,
 } from "@/lib/auto-restock";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
@@ -20,6 +22,11 @@ export default async function SettingsPage() {
   const subscription = await prisma.autoRestockSubscription.findUnique({
     where: { userId: user.id },
   });
+  const subscriptionPlanMeta = subscription ? getPlanMeta(subscription.plan) : null;
+  const nextRestockAt =
+    subscription?.status === "ACTIVE"
+      ? getNextRestockAt(subscription.plan, subscription)
+      : null;
 
   return (
     <div className="page-grid">
@@ -65,9 +72,12 @@ export default async function SettingsPage() {
             ? {
                 plan: subscription.plan,
                 status: subscription.status,
+                planName: subscriptionPlanMeta?.name ?? subscription.plan,
                 dailyCostCents: subscription.dailyCostCents,
                 dailyCostLabel: formatCurrency(subscription.dailyCostCents, currencyCode),
                 nextChargeAt: subscription.nextChargeAt.toISOString(),
+                nextRestockAt: nextRestockAt?.toISOString() ?? null,
+                cycleLabel: subscriptionPlanMeta?.cycleLabel ?? "",
                 lastRestockAt: subscription.lastRestockAt?.toISOString() ?? null,
                 lastChargedAt: subscription.lastChargedAt?.toISOString() ?? null,
               }

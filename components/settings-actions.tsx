@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type SettingsActionsProps = {
   username: string;
@@ -14,9 +14,12 @@ type SettingsActionsProps = {
   autoRestockSubscription: {
     plan: "SIMPLE" | "PRO" | "MAX";
     status: "ACTIVE" | "CANCELLED";
+    planName: string;
     dailyCostCents: number;
     dailyCostLabel: string;
     nextChargeAt: string;
+    nextRestockAt: string | null;
+    cycleLabel: string;
     lastRestockAt: string | null;
     lastChargedAt: string | null;
   } | null;
@@ -45,6 +48,13 @@ const initialState: ActionState = {
   message: null,
   error: null,
 };
+
+function formatCountdown(ms: number) {
+  const clampedSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(clampedSeconds / 60);
+  const seconds = clampedSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
 
 export function SettingsActions({
   username,
@@ -83,6 +93,7 @@ export function SettingsActions({
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const currentCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currentCurrencyCode);
   const initialCurrencySearch = currentCurrencyProfile
     ? `${currentCurrencyProfile.currencyCode} - ${currentCurrencyProfile.currencyName}`
@@ -119,6 +130,27 @@ export function SettingsActions({
       return haystack.includes(normalizedCurrencySearch);
     })
     .slice(0, 8);
+  const activeRestockSubscription = autoRestockSubscription?.status === "ACTIVE" ? autoRestockSubscription : null;
+  const nextRestockTime = activeRestockSubscription?.nextRestockAt
+    ? new Date(activeRestockSubscription.nextRestockAt).getTime()
+    : null;
+  const restockCountdownLabel =
+    activeRestockSubscription?.plan === "MAX"
+      ? "Restocks when an item sells out"
+      : nextRestockTime
+        ? nextRestockTime <= clockNow
+          ? "Checking for sold-out items now"
+          : `Next restock in ${formatCountdown(nextRestockTime - clockNow)}`
+        : "Waiting for the next restock window";
+
+  useEffect(() => {
+    if (!activeRestockSubscription || activeRestockSubscription.plan === "MAX") {
+      return;
+    }
+
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [activeRestockSubscription]);
 
   function resetMessages() {
     setState(initialState);
@@ -499,8 +531,13 @@ export function SettingsActions({
         </label>
         {autoRestockSubscription?.status === "ACTIVE" ? (
           <>
+            <div className="auto-restock-timer">
+              <span className="auto-restock-timer__label">Auto Restocker</span>
+              <strong>{restockCountdownLabel}</strong>
+              <span>{autoRestockSubscription.cycleLabel}</span>
+            </div>
             <p className="muted">
-              Current plan: <strong>{autoRestockSubscription.plan}</strong> | Daily cost:{" "}
+              Current plan: <strong>{autoRestockSubscription.planName}</strong> | Daily cost:{" "}
               <strong>{autoRestockSubscription.dailyCostLabel}</strong>
             </p>
             <p className="muted">

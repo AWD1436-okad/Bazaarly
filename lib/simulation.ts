@@ -10,7 +10,7 @@ import {
 } from "@prisma/client";
 import { addDays, subMinutes } from "date-fns";
 
-import { getNextRestockDelayMs, getPlanMeta } from "@/lib/auto-restock";
+import { getPlanMeta, isRestockCycleDue } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
@@ -597,7 +597,10 @@ async function runAutoRestock(now: Date, userId?: string) {
       plan: true,
       dailyCostCents: true,
       nextChargeAt: true,
+      lastChargedAt: true,
       lastRestockAt: true,
+      startedAt: true,
+      createdAt: true,
       user: {
         select: {
           id: true,
@@ -699,8 +702,10 @@ async function runAutoRestock(now: Date, userId?: string) {
       });
     }
 
-    const delayMs = getNextRestockDelayMs(subscription.plan);
-    if (subscription.lastRestockAt && now.getTime() - subscription.lastRestockAt.getTime() < delayMs) {
+    if (
+      subscription.plan !== AutoRestockPlan.MAX &&
+      !isRestockCycleDue(subscription.plan, subscription, now)
+    ) {
       continue;
     }
 
@@ -788,6 +793,18 @@ async function runAutoRestock(now: Date, userId?: string) {
     }
 
     await prisma.$transaction(async (tx) => {
+      const pendingInsideTransaction = await tx.autoRestockRequest.findFirst({
+        where: {
+          userId: user.id,
+          status: AutoRestockRequestStatus.PENDING,
+        },
+        select: { id: true },
+      });
+
+      if (pendingInsideTransaction) {
+        return;
+      }
+
       await tx.autoRestockRequest.create({
         data: {
           userId: user.id,
