@@ -28,19 +28,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div>
             <div className="brand-lockup">
               <BrandLogo size={58} />
-              <span className="tag">Tradex</span>
+              <span className="tag">Profit Planet</span>
             </div>
             <Image
-              src="/tradex-final-logo.png"
-              alt="Tradex"
-              width={420}
-              height={180}
+              src="/profit-planet-logo.png"
+              alt="Profit Planet"
+              width={1254}
+              height={1254}
               className="auth-final-logo"
               priority
             />
-            <h1>Enter the global marketplace.</h1>
+            <h1>Grow your profit planet.</h1>
             <p className="muted">
-              Build a shop, buy stock, set prices, and turn smart trades into real profit.
+              Build a shop, buy stock, set prices, and turn smart trades into a stronger business world.
             </p>
           </div>
 

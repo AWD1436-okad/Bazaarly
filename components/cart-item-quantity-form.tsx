@@ -51,7 +51,7 @@ export function CartItemQuantityForm({
         method: "POST",
         body: formData,
         headers: {
-          "x-tradex-async": "1",
+          "x-profit-planet-async": "1",
         },
       });
 
@@ -86,7 +86,7 @@ export function CartItemQuantityForm({
         method: "POST",
         body: formData,
         headers: {
-          "x-tradex-async": "1",
+          "x-profit-planet-async": "1",
         },
       });
 
@@ -116,7 +116,7 @@ export function CartItemQuantityForm({
         method: "POST",
         body: formData,
         headers: {
-          "x-tradex-async": "1",
+          "x-profit-planet-async": "1",
         },
       });
 

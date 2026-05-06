@@ -1,7 +1,7 @@
 {
-  "name": "tradex",
+  "name": "profit-planet",
   "version": "1.0.0",
-  "description": "Tradex is a shared-economy online marketplace simulator built with Next.js and Prisma.",
+  "description": "Profit Planet is a business trading game built with Next.js and Prisma.",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -24,7 +24,7 @@
     "postgresql",
     "marketplace",
     "simulation",
-    "tradex"
+    "profit-planet"
   ],
   "author": "OpenAI Codex",
   "license": "ISC",

@@ -1,8 +1,8 @@
-# Tradex Project Brief
+# Profit Planet Project Brief
 
 ## Purpose
 
-Tradex is a kids-friendly multiplayer marketplace simulation where players share one persistent economy, each own one shop, buy stock from a supplier, publish listings, compete on price and rating, and sell to both human players and bots.
+Profit Planet is a kids-friendly multiplayer marketplace simulation where players share one persistent economy, each own one shop, buy stock from a supplier, publish listings, compete on price and rating, and sell to both human players and bots.
 
 ## Current Product Reality
 
@@ -40,9 +40,9 @@ This is a continuation project, not a fresh build. The app already has working c
 
 ## Source Of Truth
 
-- [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\README.md)
-- [docs/ARCHITECTURE.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\ARCHITECTURE.md)
-- [docs/HANDOFF.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\HANDOFF.md)
-- [docs/PROGRESS.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\PROGRESS.md)
-- [docs/KNOWN_ISSUES.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\docs\KNOWN_ISSUES.md)
-- [prisma/schema.prisma](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\prisma\schema.prisma)
+- [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\README.md)
+- [docs/ARCHITECTURE.md](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\docs\ARCHITECTURE.md)
+- [docs/HANDOFF.md](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\docs\HANDOFF.md)
+- [docs/PROGRESS.md](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\docs\PROGRESS.md)
+- [docs/KNOWN_ISSUES.md](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\docs\KNOWN_ISSUES.md)
+- [prisma/schema.prisma](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\prisma\schema.prisma)

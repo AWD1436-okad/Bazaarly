@@ -22,7 +22,7 @@ const TIER_KEYS = [
 type TierKey = (typeof TIER_KEYS)[number];
 
 function isAsyncRequest(request: Request) {
-  return request.headers.get("x-tradex-async") === "1";
+  return request.headers.get("x-profit-planet-async") === "1";
 }
 
 function redirectWithError(request: Request, message: string) {

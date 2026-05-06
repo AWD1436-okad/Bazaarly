@@ -628,7 +628,7 @@ export const SHOP_THEMES = [
 export const INITIAL_USERS = [
   {
     username: "avery",
-    email: "avery@tradex.local",
+    email: "avery@profitplanet.local",
     displayName: "Avery",
     balance: 28400,
     shop: {
@@ -644,7 +644,7 @@ export const INITIAL_USERS = [
   },
   {
     username: "jordan",
-    email: "jordan@tradex.local",
+    email: "jordan@profitplanet.local",
     displayName: "Jordan",
     balance: 25150,
     shop: {
@@ -660,7 +660,7 @@ export const INITIAL_USERS = [
   },
   {
     username: "mia",
-    email: "mia@tradex.local",
+    email: "mia@profitplanet.local",
     displayName: "Mia",
     balance: 23920,
     shop: {
@@ -676,7 +676,7 @@ export const INITIAL_USERS = [
   },
   {
     username: "noah",
-    email: "noah@tradex.local",
+    email: "noah@profitplanet.local",
     displayName: "Noah",
     balance: 26270,
     shop: {

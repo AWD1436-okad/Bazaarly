@@ -1,9 +1,9 @@
-# Tradex Deployment and Handover
+# Profit Planet Deployment and Handover
 
 ## Live Setup
 
 - Hosting platform: Vercel
-- Production app URL: [https://tradex.vercel.app](https://tradex.vercel.app)
+- Production app URL: [https://profitplanet.win](https://profitplanet.win)
 - Database provider: Neon
 - Database engine: PostgreSQL
 - ORM: Prisma
@@ -27,7 +27,7 @@
 - This project-memory folder adds milestone continuity and audit history
 - Milestone 1 is effectively complete from a performance and cost-control perspective
 - Milestone 2 is effectively complete for the smallest sensible hardening goal
-- Tradex should now be treated as v1-ready pending migration and verification
+- Profit Planet should now be treated as v1-ready pending migration and verification
 - Before any future launch or major handoff, this file should be updated with:
   - latest production state
   - latest verification results
@@ -48,7 +48,7 @@ If local verification is needed later, try these steps in this order:
 4. rerun `npm run build`
 5. rerun `npm run dev`
 
-This is currently documented as an environment issue, not as a confirmed Tradex application defect.
+This is currently documented as an environment issue, not as a confirmed Profit Planet application defect.
 
 ## Launch Checklist Summary
 

@@ -1,8 +1,8 @@
-# Tradex Architecture
+# Profit Planet Architecture
 
 ## Overview
 
-Tradex is a server-rendered Next.js application backed by PostgreSQL through Prisma. In production, the app is hosted on Vercel and the shared database is hosted on Neon. The app uses one shared database and one shared market state so every player exists in the same world.
+Profit Planet is a server-rendered Next.js application backed by PostgreSQL through Prisma. In production, the app is hosted on Vercel and the shared database is hosted on Neon. The app uses one shared database and one shared market state so every player exists in the same world.
 
 ## Main Layers
 
@@ -60,4 +60,4 @@ Tradex is a server-rendered Next.js application backed by PostgreSQL through Pri
 - Production database provider is Neon
 - Prisma uses the `postgresql` datasource provider
 - `vercel.json` pins the app to `syd1` to stay close to the Australia-hosted database
-- Production URL is [https://tradex.vercel.app](https://tradex.vercel.app)
+- Production URL is [https://profitplanet.win](https://profitplanet.win)

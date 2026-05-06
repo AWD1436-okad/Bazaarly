@@ -163,7 +163,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
                 : item.listing?.quantity ?? 0;
             const sourceName =
               item.source === "SUPPLIER"
-                ? "Tradex Supplier"
+                ? "Profit Planet Supplier"
                 : item.listing?.shop.name ?? cart.shop?.name ?? "Marketplace shop";
 
             return (

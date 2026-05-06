@@ -56,7 +56,7 @@ export function SupplierRestockNeededForm({ items }: SupplierRestockNeededFormPr
         method: "POST",
         body: formData,
         headers: {
-          "x-tradex-async": "1",
+          "x-profit-planet-async": "1",
         },
       });
 

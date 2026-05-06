@@ -14,7 +14,7 @@ export function SimulationHeartbeat({
   useEffect(() => {
     let active = true;
     let timeout: number | undefined;
-    const cooldownKey = "tradex:last-simulation-heartbeat";
+    const cooldownKey = "profit-planet:last-simulation-heartbeat";
 
     const getNextDelayMs = () => {
       const marketPulse = Math.floor(Math.random() * intervalMs);

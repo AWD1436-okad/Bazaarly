@@ -91,7 +91,7 @@ export default async function CartPage({ searchParams }: CartProps) {
             <div className="section-row">
               <div>
                 <h2>Cart total</h2>
-                <p>{cart.shop?.name ?? "Tradex Supplier"}</p>
+                <p>{cart.shop?.name ?? "Profit Planet Supplier"}</p>
               </div>
               <div className="cart-summary-actions">
                 <strong>{formatCurrency(total, currencyCode)}</strong>
@@ -126,7 +126,7 @@ export default async function CartPage({ searchParams }: CartProps) {
                   (item.source === "MARKETPLACE" && (!item.listing || !item.listing.active || item.listing.isPaused));
                 const sourceName =
                   item.source === "SUPPLIER"
-                    ? "Tradex Supplier"
+                    ? "Profit Planet Supplier"
                     : item.listing?.shop.name ?? cart.shop?.name ?? "Marketplace shop";
 
                 return (

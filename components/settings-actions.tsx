@@ -708,7 +708,7 @@ export function SettingsActions({
         <div className="card-header">
           <div className="card-header__copy">
             <h2>Appearance</h2>
-            <p>Choose a polished Tradex theme and layout feel. Earth Market uses the final brown, green, and black logo direction.</p>
+            <p>Choose a polished Profit Planet theme. Each preset has its own readable game-market style.</p>
           </div>
           <button
             type="button"
@@ -967,7 +967,7 @@ export function SettingsActions({
           >
             <div className="modal-card__copy">
               <h3 id="change-display-name-title">Change Display Name</h3>
-              <p>Enter the name people should see across Tradex.</p>
+              <p>Enter the name people should see across Profit Planet.</p>
             </div>
             <label className="modal-card__field">
               New display name

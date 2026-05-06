@@ -20,7 +20,15 @@ function shouldTriggerSimulation(request: NextRequest) {
 }
 
 export function middleware(request: NextRequest, event: NextFetchEvent) {
+  const host = request.headers.get("host")?.toLowerCase();
   const pathname = request.nextUrl.pathname;
+
+  if (host === "www.profitplanet.win") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.hostname = "profitplanet.win";
+    redirectUrl.protocol = "https:";
+    return NextResponse.redirect(redirectUrl, 308);
+  }
 
   if (pathname.startsWith("/branch") || pathname.startsWith("/settings/branch-availability")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -34,7 +42,7 @@ export function middleware(request: NextRequest, event: NextFetchEvent) {
         method: "POST",
         cache: "no-store",
         headers: {
-          "x-tradex-simulation": "middleware",
+          "x-profit-planet-simulation": "middleware",
         },
       }).catch(() => undefined),
     );
@@ -53,5 +61,6 @@ export const config = {
     "/shop/:path*",
     "/branch/:path*",
     "/settings/branch-availability/:path*",
+    "/:path*",
   ],
 };

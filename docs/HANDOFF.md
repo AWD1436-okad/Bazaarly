@@ -1,8 +1,8 @@
-# Tradex Handoff
+# Profit Planet Handoff
 
 ## Project Status
 
-Tradex is live as a persistent multiplayer marketplace app with working buy/sell flow, stored users, real inventory updates, persistent orders, and shared economy simulation.
+Profit Planet is live as a persistent multiplayer marketplace app with working buy/sell flow, stored users, real inventory updates, persistent orders, and shared economy simulation.
 
 Current release posture:
 
@@ -30,8 +30,8 @@ Current release posture:
 - Database provider: Neon
 - Database engine: PostgreSQL
 - ORM: Prisma
-- GitHub repo: `AWD1436-okad/Tradex`
-- Production URL: [https://tradex.vercel.app](https://tradex.vercel.app)
+- GitHub repo: `AWD1436-okad/Profit Planet`
+- Production URL: [https://profitplanet.win](https://profitplanet.win)
 - Region preference: Sydney via `vercel.json`
 
 ## Operational Notes
@@ -57,13 +57,13 @@ Apply these in order:
 
 ## Files To Check First
 
-- [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\README.md)
-- [prisma/schema.prisma](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\prisma\schema.prisma)
-- [prisma/seed.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\prisma\seed.ts)
-- [app/(main)/dashboard/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\app\(main)\dashboard\page.tsx)
-- [app/(main)/marketplace/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\app\(main)\marketplace\page.tsx)
-- [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\marketplace.ts)
-- [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Tradex\lib\simulation.ts)
+- [README.md](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\README.md)
+- [prisma/schema.prisma](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\prisma\schema.prisma)
+- [prisma/seed.ts](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\prisma\seed.ts)
+- [app/(main)/dashboard/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\app\(main)\dashboard\page.tsx)
+- [app/(main)/marketplace/page.tsx](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\app\(main)\marketplace\page.tsx)
+- [lib/marketplace.ts](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\lib\marketplace.ts)
+- [lib/simulation.ts](C:\Users\abdul\OneDrive\Documents\Projects\Profit Planet\lib\simulation.ts)
 
 ## Launch Blocking Caveat
 

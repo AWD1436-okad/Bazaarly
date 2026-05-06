@@ -499,7 +499,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="card-header__copy">
                 <h2>Create or update a listing</h2>
                 <p>
-                  Pick an inventory item you own and publish it live. Tradex will move
+                  Pick an inventory item you own and publish it live. Profit Planet will move
                   all free units for that product into your active listing automatically.
                 </p>
               </div>

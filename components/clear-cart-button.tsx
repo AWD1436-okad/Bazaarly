@@ -29,7 +29,7 @@ export function ClearCartButton() {
       const response = await fetch("/cart/clear", {
         method: "POST",
         headers: {
-          "x-tradex-async": "1",
+          "x-profit-planet-async": "1",
         },
       });
       const payload = (await response.json()) as { ok?: boolean; error?: string };

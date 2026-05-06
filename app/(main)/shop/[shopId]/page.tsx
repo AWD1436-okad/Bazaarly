@@ -56,7 +56,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
           >
             <strong>Shop live status</strong>
             <p className="muted">
-              Competes with other Tradex stores on price, stock, rating, and visibility.
+              Competes with other Profit Planet stores on price, stock, rating, and visibility.
             </p>
           </div>
         </div>

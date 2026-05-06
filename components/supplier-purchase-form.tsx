@@ -48,7 +48,7 @@ export function SupplierPurchaseForm({
         method: "POST",
         body: formData,
         headers: {
-          "x-tradex-async": "1",
+          "x-profit-planet-async": "1",
         },
       });
 

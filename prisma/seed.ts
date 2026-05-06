@@ -24,7 +24,7 @@ import { buildCatalogPriceProfiles } from "../lib/price-profiles";
 
 const prisma = new PrismaClient();
 const shouldReset = process.env.SEED_MODE === "reset";
-const SEEDED_ACCOUNT_PASSWORD = "Tradex123!";
+const SEEDED_ACCOUNT_PASSWORD = "ProfitPlanet123!";
 
 type CatalogProduct = (typeof PRODUCT_CATALOG)[number];
 
@@ -514,16 +514,16 @@ async function main() {
   const botWalletUser = await prisma.user.upsert({
     where: { username: "bot_market" },
     update: {
-      email: "bot-market@tradex.local",
-      displayName: "Tradex Bot Market",
+      email: "bot-market@profitplanet.local",
+      displayName: "Profit Planet Bot Market",
       hasCompletedOnboarding: true,
       passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
       ...seededSecurityDetails(99),
     },
     create: {
       username: "bot_market",
-      email: "bot-market@tradex.local",
-      displayName: "Tradex Bot Market",
+      email: "bot-market@profitplanet.local",
+      displayName: "Profit Planet Bot Market",
       passwordHash: hashPassword(`bot-market-${SEEDED_ACCOUNT_PASSWORD}`),
       balance: 500000,
       hasCompletedOnboarding: true,
@@ -534,8 +534,8 @@ async function main() {
   const botWalletShop = await prisma.shop.upsert({
     where: { ownerId: botWalletUser.id },
     update: {
-      name: "Tradex Bot Ledger",
-      slug: "tradex-bot-ledger",
+      name: "Profit Planet Bot Ledger",
+      slug: "profit-planet-bot-ledger",
       description: "Internal wallet for automated marketplace customers.",
       accentColor: "#6B7280",
       status: "INACTIVE",
@@ -543,8 +543,8 @@ async function main() {
     },
     create: {
       ownerId: botWalletUser.id,
-      name: "Tradex Bot Ledger",
-      slug: "tradex-bot-ledger",
+      name: "Profit Planet Bot Ledger",
+      slug: "profit-planet-bot-ledger",
       description: "Internal wallet for automated marketplace customers.",
       accentColor: "#6B7280",
       status: "INACTIVE",
@@ -810,7 +810,7 @@ async function main() {
         {
           userId: users.get("jordan")!.id,
           type: NotificationType.MARKET,
-          message: "Heatwave event is active. Drinks demand is up across Tradex.",
+          message: "Heatwave event is active. Drinks demand is up across Profit Planet.",
           createdAt: subHours(new Date(), 1),
         },
         {

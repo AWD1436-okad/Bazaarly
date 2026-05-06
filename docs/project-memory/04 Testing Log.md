@@ -1,4 +1,4 @@
-# Tradex Testing Log
+# Profit Planet Testing Log
 
 ## Audit Pass - 2026-04-19
 
@@ -409,7 +409,7 @@ Plain-English theory:
 
 Cleanup attempts made:
 
-- checked for local Tradex listeners on ports `3000` and `3001`
+- checked for local Profit Planet listeners on ports `3000` and `3001`
 - identified stale `node` processes that were not serving the app
 - stopped local `node` processes
 - attempted to remove `.next`

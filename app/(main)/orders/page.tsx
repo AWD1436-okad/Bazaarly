@@ -137,7 +137,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
     <div className="page-grid">
       <section className="page-header">
         <h1>Order history</h1>
-        <p>Review both sides of your Tradex economy: what you bought and what you sold.</p>
+        <p>Review both sides of your Profit Planet economy: what you bought and what you sold.</p>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 

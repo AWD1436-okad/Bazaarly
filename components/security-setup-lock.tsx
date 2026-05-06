@@ -19,11 +19,11 @@ export function SecuritySetupLock({
         <div>
           <div className="brand-lockup">
             <BrandLogo size={64} />
-            <span className="tag">Tradex</span>
+            <span className="tag">Profit Planet</span>
           </div>
           <h1>Security setup required</h1>
           <p className="muted">
-            Set your checkout PIN and bank number before entering Tradex.
+            Set your checkout PIN and bank number before entering Profit Planet.
           </p>
         </div>
 

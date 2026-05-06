@@ -29,10 +29,10 @@ export function Navigation({
           <BrandLogo />
           <span>
             <strong className="brand-wordmark">
-              <span className="brand-wordmark__trade">trade</span>
-              <span className="brand-wordmark__x">x</span>
+              <span className="brand-wordmark__trade">Profit</span>
+              <span className="brand-wordmark__x">Planet</span>
             </strong>
-            <small>Shared global marketplace</small>
+            <small>Play. Trade. Earn.</small>
           </span>
         </Link>
       </div>
@@ -55,7 +55,7 @@ export function Navigation({
         <input
           type="search"
           name="q"
-          placeholder="Search apples, cheap juice, fruit shop..."
+          placeholder="Search apples, cheap juice, planet shops..."
           defaultValue={currentSearch}
         />
         <select name="sort" defaultValue={currentSort ?? "relevance"}>
