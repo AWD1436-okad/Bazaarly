@@ -12,17 +12,17 @@ export const APPEARANCE_PRESETS = [
   {
     value: "midnight-trade",
     label: "Midnight Trade",
-    description: "Dark navy panels with bright blue-green market accents.",
+    description: "Dark trading-floor panels with cyan and emerald lighting.",
   },
   {
     value: "soft-light",
     label: "Soft Light",
-    description: "Clean bright cards, gentle blue accents, and extra calm spacing.",
+    description: "Clean ivory surfaces with sage and sky accents for a calmer mood.",
   },
   {
     value: "clean-compact",
-    label: "Clean Compact",
-    description: "Tighter spacing for power users who want denser management screens.",
+    label: "Arcade Market",
+    description: "A playful premium market look with coral, teal, and gold energy.",
   },
 ] as const;
 
