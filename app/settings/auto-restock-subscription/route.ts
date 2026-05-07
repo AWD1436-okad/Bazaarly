@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
-import { getPlanMeta } from "@/lib/auto-restock";
+import { getAutoRestockRenewalCostCents, getPlanMeta } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -83,8 +83,17 @@ export async function POST(request: Request) {
       where: { userId: user.id },
     });
 
+    if (existing?.status === AutoRestockSubscriptionStatus.ACTIVE && existing.plan === requestedPlan) {
+      return {
+        alreadyActive: true,
+        requiresReplaceConfirmation: false,
+        existingPlan: existing.plan,
+      };
+    }
+
     if (existing?.status === AutoRestockSubscriptionStatus.ACTIVE && !confirmReplace && existing.plan !== requestedPlan) {
       return {
+        alreadyActive: false,
         requiresReplaceConfirmation: true,
         existingPlan: existing.plan,
       };
@@ -137,7 +146,7 @@ export async function POST(request: Request) {
         userId: user.id,
         plan: requestedPlan,
         status: AutoRestockSubscriptionStatus.ACTIVE,
-        dailyCostCents: planMeta.dailyCostCents,
+        dailyCostCents: getAutoRestockRenewalCostCents(requestedPlan, false),
         setupFeeCents: setupFee,
         nextChargeAt,
         lastChargedAt: now,
@@ -146,7 +155,7 @@ export async function POST(request: Request) {
       update: {
         plan: requestedPlan,
         status: AutoRestockSubscriptionStatus.ACTIVE,
-        dailyCostCents: planMeta.dailyCostCents,
+        dailyCostCents: getAutoRestockRenewalCostCents(requestedPlan, false),
         setupFeeCents: setupFee,
         nextChargeAt,
         lastChargedAt: now,
@@ -172,10 +181,18 @@ export async function POST(request: Request) {
     });
 
     return {
+      alreadyActive: false,
       requiresReplaceConfirmation: false,
       existingPlan: existing?.plan ?? null,
     };
   });
+
+  if (result.alreadyActive) {
+    return NextResponse.json({
+      ok: true,
+      message: `${planMeta.name} Auto Restock is already active`,
+    });
+  }
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");

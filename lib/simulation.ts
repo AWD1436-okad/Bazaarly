@@ -10,7 +10,7 @@ import {
 } from "@prisma/client";
 import { addHours, subMinutes } from "date-fns";
 
-import { getPlanMeta, isRestockCycleDue } from "@/lib/auto-restock";
+import { getAutoRestockRenewalCostCents, getPlanMeta, isRestockCycleDue } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
@@ -637,13 +637,16 @@ async function runAutoRestock(now: Date, userId?: string) {
       continue;
     }
 
+    const renewalCostCents = getAutoRestockRenewalCostCents(subscription.plan, subscription.fullAccessEnabled);
+
     if (subscription.nextChargeAt <= now) {
-      if (user.balance < subscription.dailyCostCents) {
+      if (user.balance < renewalCostCents) {
         await prisma.$transaction(async (tx) => {
           await tx.autoRestockSubscription.update({
             where: { id: subscription.id },
             data: {
               status: AutoRestockSubscriptionStatus.CANCELLED,
+              dailyCostCents: renewalCostCents,
             },
           });
           await tx.notification.create({
@@ -651,7 +654,7 @@ async function runAutoRestock(now: Date, userId?: string) {
               userId: user.id,
               type: NotificationType.SYSTEM,
               message: `Auto Restock cancelled: insufficient balance for 48-hour renewal (${formatCurrency(
-                subscription.dailyCostCents,
+                renewalCostCents,
                 user.currencyCode,
               )}).`,
               createdAt: now,
@@ -666,19 +669,22 @@ async function runAutoRestock(now: Date, userId?: string) {
           where: { id: user.id },
           data: {
             balance: {
-              decrement: subscription.dailyCostCents,
+              decrement: renewalCostCents,
             },
           },
         });
         await recordBusinessExpense(tx, {
           userId: user.id,
           category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
-          amount: subscription.dailyCostCents,
-          description: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour fee`,
+          amount: renewalCostCents,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour fee${
+            subscription.fullAccessEnabled ? " with Full Access" : ""
+          }`,
           data: {
             source: "auto_restock_48_hour_charge",
             subscriptionId: subscription.id,
             plan: subscription.plan,
+            fullAccessEnabled: subscription.fullAccessEnabled,
           },
           createdAt: now,
         });
@@ -687,6 +693,7 @@ async function runAutoRestock(now: Date, userId?: string) {
           data: {
             lastChargedAt: now,
             nextChargeAt: addHours(now, 48),
+            dailyCostCents: renewalCostCents,
           },
         });
         await tx.notification.create({
@@ -694,9 +701,9 @@ async function runAutoRestock(now: Date, userId?: string) {
             userId: user.id,
             type: NotificationType.SYSTEM,
             message: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour renewal charged: ${formatCurrency(
-              subscription.dailyCostCents,
+              renewalCostCents,
               user.currencyCode,
-            )}.`,
+            )}${subscription.fullAccessEnabled ? " including Full Access." : "."}`,
             createdAt: now,
           },
         });
@@ -760,14 +767,9 @@ async function runAutoRestock(now: Date, userId?: string) {
     }
 
     let selectedListings = withStock;
-    if (subscription.plan === AutoRestockPlan.SIMPLE) {
-      const poolSize = Math.min(withStock.length, randomIntInclusive(1, 3));
-      selectedListings = withStock
-        .slice()
-        .sort(() => Math.random() - 0.5)
-        .slice(0, poolSize);
-    } else if (subscription.plan === AutoRestockPlan.PRO) {
-      const targetCount = Math.max(1, Math.ceil(withStock.length * 0.65));
+    if (subscription.plan !== AutoRestockPlan.MAX) {
+      const coveragePercent = randomIntInclusive(40, 45) / 100;
+      const targetCount = Math.max(1, Math.min(withStock.length, Math.round(withStock.length * coveragePercent)));
       selectedListings = withStock
         .slice()
         .sort(() => Math.random() - 0.5)
@@ -775,7 +777,7 @@ async function runAutoRestock(now: Date, userId?: string) {
     }
 
     const defaultQty = getPlanMeta(subscription.plan).defaultQuantity;
-    const requestItems = selectedListings
+    let requestItems = selectedListings
       .map((listing) => {
         const supplierStock = sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0);
         if (supplierStock <= 0) return null;
@@ -797,8 +799,25 @@ async function runAutoRestock(now: Date, userId?: string) {
       })
       .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
+    let affordableRunningTotal = 0;
+    requestItems = requestItems.filter((item) => {
+      if (affordableRunningTotal + item.lineTotal > user.balance) {
+        return false;
+      }
+      affordableRunningTotal += item.lineTotal;
+      return true;
+    });
+
     if (requestItems.length === 0) {
       await markCycleChecked();
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: NotificationType.SYSTEM,
+          message: `${getPlanMeta(subscription.plan).name} Restocker found sold-out items, but balance was too low for an affordable proposal.`,
+          createdAt: now,
+        },
+      });
       continue;
     }
 

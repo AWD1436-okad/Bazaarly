@@ -4,6 +4,7 @@ export const SIMPLE_DAILY_COST_CENTS = 50_000;
 export const SIMPLE_SETUP_FEE_CENTS = 0;
 export const PRO_DAILY_COST_CENTS = 75_000;
 export const MAX_DAILY_COST_CENTS = 150_000;
+export const FULL_ACCESS_48H_COST_CENTS = 25_000;
 
 export const AUTO_RESTOCK_PLAN_META: Record<
   AutoRestockPlan,
@@ -44,6 +45,10 @@ export const AUTO_RESTOCK_PLAN_META: Record<
 
 export function getPlanMeta(plan: AutoRestockPlan) {
   return AUTO_RESTOCK_PLAN_META[plan];
+}
+
+export function getAutoRestockRenewalCostCents(plan: AutoRestockPlan, fullAccessEnabled: boolean) {
+  return getPlanMeta(plan).dailyCostCents + (fullAccessEnabled ? FULL_ACCESS_48H_COST_CENTS : 0);
 }
 
 export function getRestockCycleMs(plan: AutoRestockPlan) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { HoldToShowInput } from "@/components/hold-to-show-input";
 
@@ -32,6 +32,7 @@ type SettingsActionsProps = {
     pro: string;
     max: string;
   };
+  fullAccessCostLabel: string;
   appearancePresets: ReadonlyArray<{
     value: string;
     label: string;
@@ -84,6 +85,7 @@ export function SettingsActions({
   renameStoreCostLabel,
   autoRestockSubscription,
   autoRestockPlanLabels,
+  fullAccessCostLabel,
   appearancePresets,
   priceProfiles,
 }: SettingsActionsProps) {
@@ -117,6 +119,8 @@ export function SettingsActions({
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
   const [appearancePreset, setAppearancePreset] = useState(currentAppearancePreset);
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const [restockStatusMessage, setRestockStatusMessage] = useState<string | null>(null);
+  const lastRestockProbeAt = useRef(0);
   const currentCurrencyProfile = priceProfiles.find((profile) => profile.currencyCode === currentCurrencyCode);
   const initialCurrencySearch = currentCurrencyProfile
     ? `${currentCurrencyProfile.currencyCode} - ${currentCurrencyProfile.currencyName}`
@@ -164,6 +168,8 @@ export function SettingsActions({
     })
     .slice(0, 8);
   const activeRestockSubscription = autoRestockSubscription?.status === "ACTIVE" ? autoRestockSubscription : null;
+  const selectedPlanMatchesActive =
+    Boolean(activeRestockSubscription) && activeRestockSubscription?.plan === selectedPlan;
   const nextRestockTime = activeRestockSubscription?.nextRestockAt
     ? new Date(activeRestockSubscription.nextRestockAt).getTime()
     : null;
@@ -175,7 +181,7 @@ export function SettingsActions({
       ? "Restocks when an item sells out"
       : nextRestockTime
         ? nextRestockTime <= clockNow
-          ? "Ready for the next sold-out check"
+          ? restockStatusMessage ?? "Checking sold-out items..."
           : `Next restock in ${formatCountdown(nextRestockTime - clockNow)}`
         : "Waiting for the next restock window";
   const renewalCountdownLabel = nextChargeTime
@@ -192,6 +198,31 @@ export function SettingsActions({
     const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [activeRestockSubscription]);
+
+  useEffect(() => {
+    if (!activeRestockSubscription || activeRestockSubscription.plan === "MAX" || !nextRestockTime) {
+      return;
+    }
+    if (nextRestockTime > clockNow) {
+      return;
+    }
+    if (clockNow - lastRestockProbeAt.current < 12_000) {
+      return;
+    }
+
+    lastRestockProbeAt.current = clockNow;
+    void fetch("/api/auto-restock/pending", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ pending?: unknown }>)
+      .then((payload) => {
+        setRestockStatusMessage(
+          payload.pending ? "Restock proposal ready" : "No sold-out items found. Next check is resetting...",
+        );
+        router.refresh();
+      })
+      .catch(() => {
+        setRestockStatusMessage("Restock check will retry shortly");
+      });
+  }, [activeRestockSubscription, clockNow, nextRestockTime, router]);
 
   function resetMessages() {
     setState(initialState);
@@ -872,7 +903,7 @@ export function SettingsActions({
             <div>
               <span className="settings-section__eyebrow">Auto Restocker</span>
               <h2>Subscription and access</h2>
-              <p>Choose one paid plan. Full Access stays protected behind password and PIN checks.</p>
+              <p>Choose one paid plan. Full Access adds {fullAccessCostLabel} and still charges item costs.</p>
             </div>
             <div className="inline-actions">
               {autoRestockSubscription?.status === "ACTIVE" ? (
@@ -885,13 +916,19 @@ export function SettingsActions({
                   {submitting === "autoRestock" ? "Cancelling..." : "Cancel"}
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={() => void handleAutoRestockSubscription("activate")}
-                disabled={submitting !== null}
-              >
-                {submitting === "autoRestock" ? "Saving..." : "Activate plan"}
-              </button>
+              {!selectedPlanMatchesActive ? (
+                <button
+                  type="button"
+                  onClick={() => void handleAutoRestockSubscription("activate")}
+                  disabled={submitting !== null}
+                >
+                  {submitting === "autoRestock"
+                    ? "Saving..."
+                    : activeRestockSubscription
+                      ? "Switch plan"
+                      : "Activate plan"}
+                </button>
+              ) : null}
             </div>
           </div>
           <label className="modal-card__field">
@@ -923,7 +960,7 @@ export function SettingsActions({
                   <strong>{autoRestockSubscription.planName}</strong>
                 </div>
                 <div className="settings-row settings-row--compact">
-                  <span>48-hour cost</span>
+                  <span>48-hour renewal</span>
                   <strong>{autoRestockSubscription.dailyCostLabel}</strong>
                 </div>
                 <div className="settings-row settings-row--compact">
@@ -943,7 +980,8 @@ export function SettingsActions({
                 <div>
                   <h3>Full Access is {autoRestockSubscription.fullAccessEnabled ? "on" : "off"}</h3>
                   <p>
-                    Allow your Restocker to buy eligible restocks automatically without asking each time.
+                    Allow your Restocker to buy eligible restocks automatically. Item costs are still deducted,
+                    and Full Access adds {fullAccessCostLabel} to each 48-hour renewal.
                   </p>
                 </div>
                 {autoRestockSubscription.fullAccessEnabled ? (
@@ -1312,8 +1350,8 @@ export function SettingsActions({
             <div className="modal-card__copy">
               <h3 id="full-access-title">Enable Full Access</h3>
               <p>
-                Full Access lets your active Restocker buy eligible sold-out restocks automatically.
-                Confirm with your password and PIN first.
+                Full Access lets your Restocker buy automatically. Item costs will still be
+                deducted from your balance, and Full Access adds {fullAccessCostLabel} to each renewal.
               </p>
             </div>
             <label className="modal-card__field">

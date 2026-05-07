@@ -145,59 +145,71 @@ export function AutoRestockApprovalGate() {
             Close
           </button>
         ) : null}
-        <div className="modal-card__copy">
-          <h3>Your {pending.planName} Restocker wants to restock:</h3>
-          <p>
-            {pending.items.length} sold-out item types ({totalItems} units) for about{" "}
-            <strong>{pending.estimatedCost}</strong>.
-          </p>
-        </div>
-
-        <div className="table-list">
-          {pending.items.map((item) => (
-            <div key={item.id} className="table-row">
-              <div className="table-row__meta">
-                <strong>{item.name}</strong>
-                <span className="muted">Qty {item.quantity} - {item.unitLabel}</span>
-              </div>
-              <strong>{item.lineTotal}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="card">
-          <p className="muted">
-            Current balance: <strong>{pending.currentBalance}</strong>
-          </p>
-          <p className="muted">
-            Balance after purchase: <strong>{pending.balanceAfter}</strong>
-          </p>
-        </div>
-
         {stage === "summary" ? (
-          <div className="modal-card__actions">
-            {pending.canSkip ? (
-              <button
-                type="button"
-                className="ghost-button"
-                disabled={loading}
-                onClick={() => void submitDecision("skip")}
-              >
-                {busyAction === "skip" ? "Skipping..." : "No, Skip"}
-              </button>
-            ) : null}
-            <button type="button" disabled={loading} onClick={() => setStage("secure")}>
-              Yes, Continue
-            </button>
-          </div>
-        ) : (
           <>
+            <div className="modal-card__copy">
+              <h3>Your Restocker wants to buy:</h3>
+              <p>
+                {pending.planName} found {pending.items.length} sold-out item types ({totalItems} units)
+                for about <strong>{pending.estimatedCost}</strong>.
+              </p>
+            </div>
+
+            <div className="table-list">
+              {pending.items.map((item) => (
+                <div key={item.id} className="table-row">
+                  <div className="table-row__meta">
+                    <strong>{item.name}</strong>
+                    <span className="muted">Qty {item.quantity} - {item.unitLabel}</span>
+                  </div>
+                  <strong>{item.lineTotal}</strong>
+                </div>
+              ))}
+            </div>
+
             <div className="card">
               <p className="muted">
-                Final item total: <strong>{pending.estimatedCost}</strong>
+                Total price: <strong>{pending.estimatedCost}</strong>
               </p>
               <p className="muted">
-                Enter your secure checkout details before Auto Restock can buy anything.
+                Current balance: <strong>{pending.currentBalance}</strong>
+              </p>
+              <p className="muted">
+                Balance after purchase: <strong>{pending.balanceAfter}</strong>
+              </p>
+            </div>
+
+            <div className="modal-card__actions">
+              {pending.canSkip ? (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={loading}
+                  onClick={() => void submitDecision("skip")}
+                >
+                  {busyAction === "skip" ? "Skipping..." : "No"}
+                </button>
+              ) : null}
+              <button type="button" disabled={loading} onClick={() => setStage("secure")}>
+                Yes
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="modal-card__copy">
+              <h3>Confirm Restock</h3>
+              <p>Enter your secure checkout details before Auto Restock can buy anything.</p>
+            </div>
+            <div className="card">
+              <p className="muted">
+                Total restock price: <strong>{pending.estimatedCost}</strong>
+              </p>
+              <p className="muted">
+                Current balance: <strong>{pending.currentBalance}</strong>
+              </p>
+              <p className="muted">
+                Balance after purchase: <strong>{pending.balanceAfter}</strong>
               </p>
             </div>
             <label className="modal-card__field">

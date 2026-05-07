@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { getAutoRestockRenewalCostCents } from "@/lib/auto-restock";
 import { verifyPassword } from "@/lib/password";
 import { verifyCheckoutPin } from "@/lib/pin";
 import { prisma } from "@/lib/prisma";
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
       where: { id: subscription.id },
       data: {
         fullAccessEnabled: enabled,
+        dailyCostCents: getAutoRestockRenewalCostCents(subscription.plan, enabled),
       },
     });
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
         userId: user.id,
         type: NotificationType.SYSTEM,
         message: enabled
-          ? "Auto Restock Full Access enabled. Eligible restocks can be bought automatically."
+          ? "Auto Restock Full Access enabled. Eligible restocks can be bought automatically, but item costs still come from your balance."
           : "Auto Restock Full Access turned off. Future eligible restocks will ask first.",
       },
     });

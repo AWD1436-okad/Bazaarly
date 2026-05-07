@@ -3,6 +3,8 @@ import {
   MAX_DAILY_COST_CENTS,
   PRO_DAILY_COST_CENTS,
   SIMPLE_DAILY_COST_CENTS,
+  FULL_ACCESS_48H_COST_CENTS,
+  getAutoRestockRenewalCostCents,
   getNextRestockAt,
   getPlanMeta,
 } from "@/lib/auto-restock";
@@ -75,8 +77,14 @@ export default async function SettingsPage() {
                 plan: subscription.plan,
                 status: subscription.status,
                 planName: subscriptionPlanMeta?.name ?? subscription.plan,
-                dailyCostCents: subscription.dailyCostCents,
-                dailyCostLabel: formatCurrency(subscription.dailyCostCents, currencyCode),
+                dailyCostCents: getAutoRestockRenewalCostCents(
+                  subscription.plan,
+                  subscription.fullAccessEnabled,
+                ),
+                dailyCostLabel: formatCurrency(
+                  getAutoRestockRenewalCostCents(subscription.plan, subscription.fullAccessEnabled),
+                  currencyCode,
+                ),
                 nextChargeAt: subscription.nextChargeAt.toISOString(),
                 nextRestockAt: nextRestockAt?.toISOString() ?? null,
                 cycleLabel: subscriptionPlanMeta?.cycleLabel ?? "",
@@ -91,6 +99,7 @@ export default async function SettingsPage() {
           pro: `${formatCurrency(PRO_DAILY_COST_CENTS, currencyCode)}/48h`,
           max: `${formatCurrency(MAX_DAILY_COST_CENTS, currencyCode)}/48h`,
         }}
+        fullAccessCostLabel={`${formatCurrency(FULL_ACCESS_48H_COST_CENTS, currencyCode)}/48h`}
       />
 
     </div>

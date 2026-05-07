@@ -284,6 +284,23 @@ export async function POST(request: Request) {
     }
 
     if (freshUser.balance < payableTotal) {
+      await tx.autoRestockRequest.update({
+        where: { id: freshRequest.id },
+        data: {
+          status: AutoRestockRequestStatus.FAILED,
+          decidedAt: new Date(),
+          failureReason: "Not enough balance",
+        },
+      });
+      await tx.autoRestockSubscription.updateMany({
+        where: {
+          userId: user.id,
+          status: "ACTIVE",
+        },
+        data: {
+          lastRestockAt: new Date(),
+        },
+      });
       return { ok: false, error: "Not enough balance for this restock purchase" };
     }
 
