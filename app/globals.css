@@ -2029,6 +2029,118 @@ textarea {
   max-height: min(84vh, 760px);
 }
 
+.auto-restock-modal {
+  width: min(820px, calc(100vw - 1.5rem));
+  gap: clamp(0.85rem, 1.7vw, 1.1rem);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 38%),
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 34%),
+    var(--surface-elevated);
+}
+
+.auto-restock-modal__hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  padding-right: 4.8rem;
+}
+
+.auto-restock-modal__hero h3 {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.auto-restock-modal__orb {
+  width: 3.2rem;
+  height: 3.2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1.1rem;
+  color: var(--primary-text);
+  font-size: 1.55rem;
+  font-weight: 900;
+  background: var(--primary-gradient);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+.auto-restock-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.auto-restock-summary-card {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 1.05rem;
+  background: var(--soft-panel);
+}
+
+.auto-restock-summary-card span,
+.auto-restock-summary-card small,
+.auto-restock-item span {
+  color: var(--muted);
+}
+
+.auto-restock-summary-card strong {
+  color: var(--text);
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  overflow-wrap: anywhere;
+}
+
+.auto-restock-items {
+  display: grid;
+  gap: 0.55rem;
+  max-height: min(40vh, 340px);
+  overflow: auto;
+  padding: 0.1rem 0.35rem 0.1rem 0.05rem;
+}
+
+.auto-restock-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(max-content, auto);
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 68px;
+  padding: 0.72rem 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: 1.05rem;
+  background: color-mix(in srgb, var(--surface-alt) 82%, var(--surface-elevated));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.auto-restock-item__mark {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.85rem;
+  color: var(--primary-strong);
+  font-weight: 900;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+}
+
+.auto-restock-item__copy {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.auto-restock-item__copy strong {
+  overflow-wrap: anywhere;
+}
+
+.auto-restock-item__price {
+  justify-self: end;
+  white-space: nowrap;
+  color: var(--text);
+}
+
 .modal-card--wide .table-list {
   overflow: auto;
   max-height: min(52vh, 460px);
@@ -2221,6 +2333,25 @@ textarea {
 
 .settings-restocker-grid > .status-banner {
   grid-column: 1 / -1;
+}
+
+.restock-interval-control {
+  display: flex;
+  align-items: end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface-alt);
+}
+
+.restock-interval-control .modal-card__field {
+  flex: 1 1 220px;
+}
+
+.restock-interval-control input {
+  max-width: 180px;
 }
 
 .settings-section--danger {
@@ -2801,6 +2932,29 @@ textarea {
   .modal-card__actions button,
   .modal-card__actions .ghost-button {
     width: 100%;
+  }
+
+  .auto-restock-modal {
+    max-height: min(88vh, 760px);
+    overflow: auto;
+  }
+
+  .auto-restock-modal__hero {
+    grid-template-columns: 1fr;
+    padding-right: 0;
+  }
+
+  .auto-restock-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .auto-restock-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .auto-restock-item__price {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 

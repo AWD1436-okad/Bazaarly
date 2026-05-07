@@ -5,8 +5,11 @@ import {
   SIMPLE_DAILY_COST_CENTS,
   FULL_ACCESS_48H_COST_CENTS,
   getAutoRestockRenewalCostCents,
+  getRestockCoverageLabel,
+  getRestockCycleLabel,
   getNextRestockAt,
   getPlanMeta,
+  normalizeRestockIntervalMinutes,
 } from "@/lib/auto-restock";
 import { APPEARANCE_PRESETS, normalizeAppearancePreset } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
@@ -86,9 +89,14 @@ export default async function SettingsPage() {
                   getAutoRestockRenewalCostCents(subscription.plan, subscription.fullAccessEnabled),
                   currencyCode,
                 ),
+                restockIntervalMinutes: normalizeRestockIntervalMinutes(
+                  subscription.plan,
+                  subscription.restockIntervalMinutes,
+                ),
                 nextChargeAt: subscription.nextChargeAt.toISOString(),
                 nextRestockAt: nextRestockAt?.toISOString() ?? null,
-                cycleLabel: subscriptionPlanMeta?.cycleLabel ?? "",
+                cycleLabel: getRestockCycleLabel(subscription.plan, subscription.restockIntervalMinutes),
+                coverageLabel: getRestockCoverageLabel(subscription.plan),
                 lastRestockAt: subscription.lastRestockAt?.toISOString() ?? null,
                 lastChargedAt: subscription.lastChargedAt?.toISOString() ?? null,
                 fullAccessEnabled: subscription.fullAccessEnabled,

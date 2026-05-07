@@ -177,36 +177,57 @@ export function AutoRestockApprovalGate() {
         ) : null}
         {stage === "summary" ? (
           <>
-            <div className="modal-card__copy">
-              <h3>Your Restocker wants to buy:</h3>
-              <p>
-                {pending.planName} found {pending.items.length} sold-out item types ({totalItems} units)
-                for about <strong>{pending.estimatedCost}</strong>.
-              </p>
+            <div className="auto-restock-modal__hero">
+              <div className="auto-restock-modal__orb" aria-hidden="true">
+                ↗
+              </div>
+              <div className="modal-card__copy">
+                <span className="settings-section__eyebrow">{pending.planName} Restocker</span>
+                <h3>Your {pending.planName} Restocker wants to buy</h3>
+                <p>
+                  Review this sold-out restock proposal before any item cost is charged to your balance.
+                </p>
+              </div>
             </div>
 
-            <div className="table-list">
+            <div className="auto-restock-summary-grid" aria-label="Auto Restock proposal summary">
+              <div className="auto-restock-summary-card">
+                <span>Items</span>
+                <strong>{pending.items.length}</strong>
+                <small>{totalItems} units</small>
+              </div>
+              <div className="auto-restock-summary-card">
+                <span>Total cost</span>
+                <strong>{pending.estimatedCost}</strong>
+                <small>Item cost only</small>
+              </div>
+              <div className="auto-restock-summary-card">
+                <span>Balance now</span>
+                <strong>{pending.currentBalance}</strong>
+                <small>Before restock</small>
+              </div>
+              <div className="auto-restock-summary-card">
+                <span>After buy</span>
+                <strong>{pending.balanceAfter}</strong>
+                <small>Estimated</small>
+              </div>
+            </div>
+
+            <div className="auto-restock-items" aria-label="Items in this restock proposal">
               {pending.items.map((item) => (
-                <div key={item.id} className="table-row">
-                  <div className="table-row__meta">
-                    <strong>{item.name}</strong>
-                    <span className="muted">Qty {item.quantity} - {item.unitLabel}</span>
+                <div key={item.id} className="auto-restock-item">
+                  <div className="auto-restock-item__mark" aria-hidden="true">
+                    {item.quantity}
                   </div>
-                  <strong>{item.lineTotal}</strong>
+                  <div className="auto-restock-item__copy">
+                    <strong>{item.name}</strong>
+                    <span>
+                      Qty {item.quantity} · {item.unitLabel}
+                    </span>
+                  </div>
+                  <strong className="auto-restock-item__price">{item.lineTotal}</strong>
                 </div>
               ))}
-            </div>
-
-            <div className="card">
-              <p className="muted">
-                Total price: <strong>{pending.estimatedCost}</strong>
-              </p>
-              <p className="muted">
-                Current balance: <strong>{pending.currentBalance}</strong>
-              </p>
-              <p className="muted">
-                Balance after purchase: <strong>{pending.balanceAfter}</strong>
-              </p>
             </div>
 
             <div className="modal-card__actions">
@@ -217,11 +238,11 @@ export function AutoRestockApprovalGate() {
                   disabled={loading}
                   onClick={() => void submitDecision("skip")}
                 >
-                  {busyAction === "skip" ? "Skipping..." : "No"}
+                  {busyAction === "skip" ? "Skipping..." : "No, Skip"}
                 </button>
               ) : null}
               <button type="button" disabled={loading} onClick={() => setStage("secure")}>
-                Yes
+                Yes, Continue
               </button>
             </div>
           </>

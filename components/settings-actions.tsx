@@ -22,9 +22,11 @@ type SettingsActionsProps = {
     planName: string;
     dailyCostCents: number;
     dailyCostLabel: string;
+    restockIntervalMinutes: number;
     nextChargeAt: string;
     nextRestockAt: string | null;
     cycleLabel: string;
+    coverageLabel: string;
     lastRestockAt: string | null;
     lastChargedAt: string | null;
     fullAccessEnabled: boolean;
@@ -74,6 +76,24 @@ function formatCountdown(ms: number) {
     return `${hours}h ${String(Math.floor((clampedSeconds % 3_600) / 60)).padStart(2, "0")}m`;
   }
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+const RESTOCK_INTERVAL_LIMITS: Record<
+  "SIMPLE" | "PRO" | "MAX",
+  { min: number; max: number; defaultValue: number; customizable: boolean }
+> = {
+  SIMPLE: { min: 5, max: 5, defaultValue: 5, customizable: false },
+  PRO: { min: 2, max: 10, defaultValue: 5, customizable: true },
+  MAX: { min: 1, max: 20, defaultValue: 3, customizable: true },
+};
+
+function clampRestockInterval(plan: "SIMPLE" | "PRO" | "MAX", value: number) {
+  const limits = RESTOCK_INTERVAL_LIMITS[plan];
+  if (!limits.customizable) {
+    return limits.defaultValue;
+  }
+
+  return Math.min(limits.max, Math.max(limits.min, Math.round(value || limits.defaultValue)));
 }
 
 function ProtectedValueDisplay({
@@ -164,6 +184,10 @@ export function SettingsActions({
   const [selectedPlan, setSelectedPlan] = useState<"SIMPLE" | "PRO" | "MAX">(
     autoRestockSubscription?.plan ?? "SIMPLE",
   );
+  const [selectedRestockInterval, setSelectedRestockInterval] = useState(
+    autoRestockSubscription?.restockIntervalMinutes ??
+      RESTOCK_INTERVAL_LIMITS[autoRestockSubscription?.plan ?? "SIMPLE"].defaultValue,
+  );
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [nextUsername, setNextUsername] = useState(username);
   const [usernamePassword, setUsernamePassword] = useState("");
@@ -201,6 +225,7 @@ export function SettingsActions({
     | "currency"
     | "appearance"
     | "autoRestock"
+    | "restockInterval"
     | "fullAccess"
   >(null);
   const [state, setState] = useState<ActionState>(initialState);
@@ -234,20 +259,23 @@ export function SettingsActions({
   const activeRestockSubscription = autoRestockSubscription?.status === "ACTIVE" ? autoRestockSubscription : null;
   const selectedPlanMatchesActive =
     Boolean(activeRestockSubscription) && activeRestockSubscription?.plan === selectedPlan;
+  const selectedPlanIntervalLimits = RESTOCK_INTERVAL_LIMITS[selectedPlan];
+  const activeIntervalIsDirty =
+    Boolean(activeRestockSubscription) &&
+    selectedPlanMatchesActive &&
+    activeRestockSubscription?.restockIntervalMinutes !==
+      clampRestockInterval(selectedPlan, selectedRestockInterval);
   const nextRestockTime = activeRestockSubscription?.nextRestockAt
     ? new Date(activeRestockSubscription.nextRestockAt).getTime()
     : null;
   const nextChargeTime = activeRestockSubscription?.nextChargeAt
     ? new Date(activeRestockSubscription.nextChargeAt).getTime()
     : null;
-  const restockCountdownLabel =
-    activeRestockSubscription?.plan === "MAX"
-      ? "Restocks when an item sells out"
-      : nextRestockTime
-        ? nextRestockTime <= clockNow
-          ? restockStatusMessage ?? "Checking sold-out items..."
-          : `Next restock in ${formatCountdown(nextRestockTime - clockNow)}`
-        : "Waiting for the next restock window";
+  const restockCountdownLabel = nextRestockTime
+    ? nextRestockTime <= clockNow
+      ? restockStatusMessage ?? "Checking sold-out items..."
+      : `Next restock in ${formatCountdown(nextRestockTime - clockNow)}`
+    : "Waiting for the next restock window";
   const renewalCountdownLabel = nextChargeTime
     ? nextChargeTime <= clockNow
       ? "Renewal will be checked shortly"
@@ -264,7 +292,7 @@ export function SettingsActions({
   }, [activeRestockSubscription]);
 
   useEffect(() => {
-    if (!activeRestockSubscription || activeRestockSubscription.plan === "MAX" || !nextRestockTime) {
+    if (!activeRestockSubscription || !nextRestockTime) {
       return;
     }
     if (nextRestockTime > clockNow) {
@@ -601,6 +629,10 @@ export function SettingsActions({
       if (action === "activate") {
         formData.set("plan", selectedPlan);
         formData.set("confirmReplace", String(confirmReplace));
+        formData.set(
+          "restockIntervalMinutes",
+          String(clampRestockInterval(selectedPlan, selectedRestockInterval)),
+        );
       }
 
       const response = await fetch("/settings/auto-restock-subscription", {
@@ -633,6 +665,53 @@ export function SettingsActions({
       setState({
         message: null,
         error: error instanceof Error ? error.message : "Auto Restock update failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function handleRestockIntervalUpdate() {
+    if (!activeRestockSubscription || !selectedPlanMatchesActive) {
+      return;
+    }
+
+    setSubmitting("restockInterval");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("action", "updateInterval");
+      formData.set("plan", selectedPlan);
+      formData.set(
+        "restockIntervalMinutes",
+        String(clampRestockInterval(selectedPlan, selectedRestockInterval)),
+      );
+
+      const response = await fetch("/settings/auto-restock-subscription", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        restockIntervalMinutes?: number;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Restock interval update failed");
+      }
+
+      setSelectedRestockInterval(
+        payload.restockIntervalMinutes ?? clampRestockInterval(selectedPlan, selectedRestockInterval),
+      );
+      setState({ message: payload.message ?? "Restock interval updated", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Restock interval update failed",
       });
     } finally {
       setSubmitting(null);
@@ -1020,7 +1099,13 @@ export function SettingsActions({
             <select
               value={selectedPlan}
               onChange={(event) => {
-                setSelectedPlan(event.target.value as "SIMPLE" | "PRO" | "MAX");
+                const nextPlan = event.target.value as "SIMPLE" | "PRO" | "MAX";
+                setSelectedPlan(nextPlan);
+                setSelectedRestockInterval(
+                  nextPlan === autoRestockSubscription?.plan
+                    ? autoRestockSubscription.restockIntervalMinutes
+                    : RESTOCK_INTERVAL_LIMITS[nextPlan].defaultValue,
+                );
                 setConfirmReplace(false);
                 resetMessages();
               }}
@@ -1031,12 +1116,45 @@ export function SettingsActions({
               <option value="MAX">Max - {autoRestockPlanLabels.max}</option>
             </select>
           </label>
+          {selectedPlanIntervalLimits.customizable ? (
+            <div className="restock-interval-control">
+              <label className="modal-card__field">
+                <span>
+                  Restock every {selectedPlanIntervalLimits.min}-{selectedPlanIntervalLimits.max} minutes
+                </span>
+                <input
+                  type="number"
+                  min={selectedPlanIntervalLimits.min}
+                  max={selectedPlanIntervalLimits.max}
+                  step={1}
+                  value={selectedRestockInterval}
+                  onChange={(event) =>
+                    setSelectedRestockInterval(clampRestockInterval(selectedPlan, Number(event.target.value)))
+                  }
+                  disabled={submitting !== null}
+                />
+              </label>
+              {activeIntervalIsDirty ? (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => void handleRestockIntervalUpdate()}
+                  disabled={submitting !== null}
+                >
+                  {submitting === "restockInterval" ? "Saving..." : "Save interval"}
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="muted">Simple Restocker checks every 5 minutes with no custom timer.</p>
+          )}
           {autoRestockSubscription?.status === "ACTIVE" ? (
             <div className="settings-restocker-grid">
               <div className="auto-restock-timer">
                 <span className="auto-restock-timer__label">Next cycle</span>
                 <strong>{restockCountdownLabel}</strong>
                 <span>{autoRestockSubscription.cycleLabel}</span>
+                <span>{autoRestockSubscription.coverageLabel} per cycle</span>
               </div>
               <div className="settings-list">
                 <div className="settings-row settings-row--compact">

@@ -10,7 +10,12 @@ import {
 } from "@prisma/client";
 import { addHours, subMinutes } from "date-fns";
 
-import { getAutoRestockRenewalCostCents, getPlanMeta, isRestockCycleDue } from "@/lib/auto-restock";
+import {
+  getAutoRestockRenewalCostCents,
+  getPlanMeta,
+  getRestockCoveragePercent,
+  isRestockCycleDue,
+} from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
@@ -617,6 +622,7 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       nextChargeAt: true,
       lastChargedAt: true,
       lastRestockAt: true,
+      restockIntervalMinutes: true,
       fullAccessEnabled: true,
       startedAt: true,
       createdAt: true,
@@ -749,10 +755,7 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       });
     }
 
-    if (
-      subscription.plan !== AutoRestockPlan.MAX &&
-      !isRestockCycleDue(subscription.plan, subscription, now)
-    ) {
+    if (!isRestockCycleDue(subscription.plan, subscription, now)) {
       results.push({
         status: "not_due",
         message: "Next restock check is still counting down.",
@@ -761,10 +764,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
     }
 
     const markCycleChecked = async () => {
-      if (subscription.plan === AutoRestockPlan.MAX) {
-        return;
-      }
-
       await prisma.autoRestockSubscription.update({
         where: { id: subscription.id },
         data: { lastRestockAt: now },
@@ -816,15 +815,15 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       continue;
     }
 
-    let selectedListings = withStock;
-    if (subscription.plan !== AutoRestockPlan.MAX) {
-      const coveragePercent = randomIntInclusive(40, 45) / 100;
-      const targetCount = Math.max(1, Math.min(withStock.length, Math.round(withStock.length * coveragePercent)));
-      selectedListings = withStock
-        .slice()
-        .sort(() => Math.random() - 0.5)
-        .slice(0, targetCount);
-    }
+    const coveragePercent = getRestockCoveragePercent(subscription.plan);
+    const targetCount = Math.max(1, Math.min(withStock.length, Math.ceil(withStock.length * coveragePercent)));
+    const selectedListings =
+      coveragePercent >= 1
+        ? withStock
+        : withStock
+            .slice()
+            .sort(() => Math.random() - 0.5)
+            .slice(0, targetCount);
 
     const defaultQty = getPlanMeta(subscription.plan).defaultQuantity;
     let requestItems = selectedListings

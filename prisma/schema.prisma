@@ -253,6 +253,7 @@ model AutoRestockSubscription {
   dailyCostCents  Int
   setupFeeCents   Int                            @default(0)
   fullAccessEnabled Boolean                      @default(false)
+  restockIntervalMinutes Int?
   startedAt       DateTime                       @default(now())
   nextChargeAt    DateTime
   lastChargedAt   DateTime?

@@ -9,7 +9,11 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
-import { getAutoRestockRenewalCostCents, getPlanMeta } from "@/lib/auto-restock";
+import {
+  getAutoRestockRenewalCostCents,
+  getPlanMeta,
+  normalizeRestockIntervalMinutes,
+} from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -64,11 +68,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, message: "Subscription cancelled" });
   }
 
+  if (action === "updateInterval") {
+    if (!requestedPlan) {
+      return NextResponse.json({ ok: false, error: "Invalid restocker plan" }, { status: 400 });
+    }
+
+    const rawInterval = Number(formData.get("restockIntervalMinutes"));
+    const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan, rawInterval);
+    const subscription = await prisma.autoRestockSubscription.findFirst({
+      where: {
+        userId: user.id,
+        plan: requestedPlan,
+        status: AutoRestockSubscriptionStatus.ACTIVE,
+      },
+      select: { id: true, plan: true },
+    });
+
+    if (!subscription) {
+      return NextResponse.json({ ok: false, error: "No active matching restocker plan" }, { status: 400 });
+    }
+
+    await prisma.autoRestockSubscription.update({
+      where: { id: subscription.id },
+      data: { restockIntervalMinutes },
+    });
+
+    revalidatePath("/settings");
+    revalidatePath("/dashboard");
+    return NextResponse.json({
+      ok: true,
+      message: `${getPlanMeta(requestedPlan).name} Restocker now checks every ${restockIntervalMinutes} minutes`,
+      restockIntervalMinutes,
+    });
+  }
+
   if (action !== "activate" || !requestedPlan) {
     return NextResponse.json({ ok: false, error: "Invalid subscription action" }, { status: 400 });
   }
 
   const planMeta = getPlanMeta(requestedPlan);
+  const rawInterval = Number(formData.get("restockIntervalMinutes"));
+  const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan, rawInterval);
 
   const result = await prisma.$transaction(async (tx) => {
     const freshUser = await tx.user.findUnique({
@@ -150,6 +190,7 @@ export async function POST(request: Request) {
         setupFeeCents: setupFee,
         nextChargeAt,
         lastChargedAt: now,
+        restockIntervalMinutes,
         fullAccessEnabled: false,
       },
       update: {
@@ -159,6 +200,7 @@ export async function POST(request: Request) {
         setupFeeCents: setupFee,
         nextChargeAt,
         lastChargedAt: now,
+        restockIntervalMinutes,
         fullAccessEnabled: false,
       },
     });
