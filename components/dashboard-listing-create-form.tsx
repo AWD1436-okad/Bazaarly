@@ -95,7 +95,7 @@ export function DashboardListingCreateForm({
         >
           {listingOptions.map((item) => (
             <option key={item.inventoryId} value={item.productId}>
-              {item.productName} - {item.availableToList} available to list -{" "}
+              {item.productName} - {item.availableToList} in stock to sell -{" "}
               {item.displayMarketAverageLabel} {item.unitLabel}
             </option>
           ))}

@@ -105,7 +105,11 @@ export async function POST(request: Request) {
       const quantityToList = sanitizeStockCount(inventoryQuantity - allocatedQuantity);
 
       if (quantityToList <= 0) {
-        throw new Error("No free inventory is available to list");
+        throw new Error(
+          inventoryQuantity <= 0
+            ? "Buy this item from the supplier before listing it."
+            : "All your stock for this item is already listed.",
+        );
       }
 
       const existingListingQuantity = sanitizeStockCount(listing?.quantity);
