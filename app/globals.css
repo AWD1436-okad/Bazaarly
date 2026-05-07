@@ -2165,6 +2165,46 @@ textarea {
   background: var(--accent-soft);
 }
 
+.protected-value {
+  display: inline-grid;
+  grid-template-columns: minmax(6.5rem, auto) auto;
+  align-items: center;
+  justify-content: end;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.32rem 0.36rem 0.32rem 0.72rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+.protected-value__text {
+  min-width: 0;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.protected-value__text--revealed {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.protected-value__button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
 .settings-section__actions {
   display: flex;
   justify-content: flex-end;
@@ -2895,10 +2935,16 @@ textarea {
   }
 
   .settings-row > button,
+  .settings-row > .protected-value,
   .settings-section__actions button,
   .settings-section__header--inline button {
     width: 100%;
     justify-self: stretch;
+  }
+
+  .protected-value {
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-content: stretch;
   }
 
   .settings-section__header--inline .inline-actions {

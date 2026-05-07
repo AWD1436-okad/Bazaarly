@@ -1,11 +1,13 @@
 "use client";
 
+import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { HoldToShowInput } from "@/components/hold-to-show-input";
 
 type SettingsActionsProps = {
+  email: string | null;
   username: string;
   displayName: string;
   currentShopName: string | null;
@@ -74,7 +76,69 @@ function formatCountdown(ms: number) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function ProtectedValueDisplay({
+  maskedValue,
+  revealText,
+  label = "Hold to show",
+}: {
+  maskedValue: string;
+  revealText: string;
+  label?: string;
+}) {
+  const [revealed, setRevealed] = useState(false);
+
+  function show() {
+    setRevealed(true);
+  }
+
+  function hide() {
+    setRevealed(false);
+  }
+
+  return (
+    <span className="protected-value">
+      <span className={revealed ? "protected-value__text protected-value__text--revealed" : "protected-value__text"}>
+        {revealed ? revealText : maskedValue}
+      </span>
+      <button
+        type="button"
+        className="protected-value__button"
+        aria-label={label}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          show();
+        }}
+        onPointerUp={hide}
+        onPointerCancel={hide}
+        onPointerLeave={hide}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          show();
+        }}
+        onMouseUp={hide}
+        onMouseLeave={hide}
+        onTouchStart={(event) => {
+          event.preventDefault();
+          show();
+        }}
+        onTouchEnd={hide}
+        onTouchCancel={hide}
+        onKeyDown={(event) => {
+          if (event.key === " " || event.key === "Enter") {
+            show();
+          }
+        }}
+        onKeyUp={hide}
+        onBlur={hide}
+      >
+        <Eye size={16} aria-hidden="true" />
+      </button>
+    </span>
+  );
+}
+
 export function SettingsActions({
+  email,
   username,
   displayName,
   currentShopName,
@@ -641,6 +705,12 @@ export function SettingsActions({
           <div className="settings-list">
             <div className="settings-row">
               <div>
+                <strong>Email</strong>
+                <p className="muted">{email?.trim() ? email : "No email connected"}</p>
+              </div>
+            </div>
+            <div className="settings-row">
+              <div>
                 <strong>Display name</strong>
                 <p className="muted">{displayName}</p>
               </div>
@@ -694,6 +764,13 @@ export function SettingsActions({
               >
                 Logout
               </button>
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Password</strong>
+                <p className="muted">Passwords are hashed and cannot be revealed.</p>
+              </div>
+              <ProtectedValueDisplay maskedValue="••••••••" revealText="Password is protected" />
             </div>
           </div>
         </section>
@@ -758,6 +835,13 @@ export function SettingsActions({
               >
                 View Bank Number
               </button>
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Bank PIN</strong>
+                <p className="muted">PIN is hashed and used only for verification.</p>
+              </div>
+              <ProtectedValueDisplay maskedValue="••••" revealText="PIN is protected" />
             </div>
             <div className="settings-note">
               Sensitive fields use hold-to-show controls and reset when their modal closes.

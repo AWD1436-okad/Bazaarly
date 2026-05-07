@@ -61,6 +61,7 @@ export default async function SettingsPage() {
       </section>
 
       <SettingsActions
+        email={user.email ?? null}
         username={user.username}
         displayName={user.displayName}
         currentShopName={user.shop?.name ?? null}
