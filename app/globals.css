@@ -2068,6 +2068,128 @@ textarea {
   gap: 0.9rem;
 }
 
+.settings-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.85rem, 2vw, 1.2rem);
+  align-items: start;
+}
+
+.settings-section,
+.settings-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.settings-section {
+  min-width: 0;
+  align-content: start;
+}
+
+.settings-section--wide {
+  grid-column: 1 / -1;
+}
+
+.settings-section__header {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.settings-section__header--inline {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+}
+
+.settings-section__header h2,
+.settings-section__header p {
+  margin: 0;
+}
+
+.settings-section__eyebrow {
+  width: fit-content;
+  padding: 0.24rem 0.56rem;
+  border-radius: 999px;
+  color: var(--primary-strong);
+  background: var(--accent-soft);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.72rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-elevated);
+}
+
+.settings-row--compact {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  padding: 0.62rem 0.7rem;
+}
+
+.settings-row strong,
+.settings-row span,
+.settings-row p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-row p {
+  margin: 0.18rem 0 0;
+}
+
+.settings-row > button {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.settings-note {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+  border-radius: 16px;
+  color: var(--muted);
+  background: var(--accent-soft);
+}
+
+.settings-section__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.settings-restocker-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(260px, 1.15fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.settings-restocker-grid > .status-banner {
+  grid-column: 1 / -1;
+}
+
+.settings-section--danger {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
+  background:
+    linear-gradient(180deg, var(--status-error-bg), var(--surface-elevated)),
+    var(--surface);
+}
+
 .auto-restock-status {
   position: fixed;
   right: 1rem;
@@ -2084,7 +2206,7 @@ textarea {
 .auto-restock-timer {
   display: grid;
   gap: 0.2rem;
-  margin: 0.75rem 0 0.9rem;
+  margin: 0;
   padding: 0.9rem 1rem;
   border: 1px solid var(--border);
   border-radius: 1.2rem;
@@ -2111,11 +2233,6 @@ textarea {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.settings-card {
-  display: grid;
-  gap: 0.35rem;
 }
 
 .appearance-grid {
@@ -2457,6 +2574,20 @@ textarea {
     grid-template-columns: minmax(0, 1fr) minmax(120px, 180px) max-content;
   }
 
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-section__header--inline,
+  .settings-restocker-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-section__header--inline > button,
+  .settings-section__header--inline > .inline-actions {
+    justify-self: stretch;
+  }
+
   .category-sidebar {
     position: static;
   }
@@ -2757,8 +2888,33 @@ textarea {
     display: grid;
   }
 
+  .settings-row,
+  .settings-row--compact {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .settings-row > button,
+  .settings-section__actions button,
+  .settings-section__header--inline button {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .settings-section__header--inline .inline-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
   .currency-option {
+    grid-template-columns: minmax(3.5rem, 0.55fr) minmax(0, 1fr);
     padding: 0.68rem 0.72rem;
+  }
+
+  .currency-option small {
+    grid-column: 1 / -1;
+    text-align: left;
   }
 
   .checkout-sticky-bottom {

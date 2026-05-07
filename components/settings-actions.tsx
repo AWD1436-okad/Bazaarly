@@ -600,396 +600,415 @@ export function SettingsActions({
         </div>
       ) : null}
 
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Auto Restock</h2>
-            <p>Choose one paid plan. Only one Auto Restock subscription can be active at a time.</p>
+      <div className="settings-layout">
+        <section className="card settings-card settings-section">
+          <div className="settings-section__header">
+            <span className="settings-section__eyebrow">Account</span>
+            <h2>Player identity</h2>
+            <p>Manage your name, handle, and signed-in session from one place.</p>
           </div>
-          <div className="inline-actions">
-            {autoRestockSubscription?.status === "ACTIVE" ? (
+          <div className="settings-list">
+            <div className="settings-row">
+              <div>
+                <strong>Display name</strong>
+                <p className="muted">{displayName}</p>
+              </div>
               <button
                 type="button"
                 className="ghost-button"
-                onClick={() => void handleAutoRestockSubscription("cancel")}
-                disabled={submitting !== null}
-              >
-                {submitting === "autoRestock" ? "Cancelling..." : "Cancel subscription"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void handleAutoRestockSubscription("activate")}
-              disabled={submitting !== null}
-            >
-              {submitting === "autoRestock" ? "Saving..." : "Activate plan"}
-            </button>
-          </div>
-        </div>
-        <label className="modal-card__field">
-          <span>Plan</span>
-          <select
-            value={selectedPlan}
-            onChange={(event) => {
-              setSelectedPlan(event.target.value as "SIMPLE" | "PRO" | "MAX");
-              setConfirmReplace(false);
-              resetMessages();
-            }}
-            disabled={submitting !== null}
-          >
-            <option value="SIMPLE">Simple - {autoRestockPlanLabels.simple}</option>
-            <option value="PRO">Pro - {autoRestockPlanLabels.pro}</option>
-            <option value="MAX">Max - {autoRestockPlanLabels.max}</option>
-          </select>
-        </label>
-        {autoRestockSubscription?.status === "ACTIVE" ? (
-          <>
-            <div className="auto-restock-timer">
-              <span className="auto-restock-timer__label">Auto Restocker</span>
-              <strong>{restockCountdownLabel}</strong>
-              <span>{autoRestockSubscription.cycleLabel}</span>
-            </div>
-            <p className="muted">
-              Current plan: <strong>{autoRestockSubscription.planName}</strong> | 48-hour cost:{" "}
-              <strong>{autoRestockSubscription.dailyCostLabel}</strong>
-            </p>
-            <p className="muted">
-              Next renewal: <strong>{new Date(autoRestockSubscription.nextChargeAt).toLocaleString()}</strong>{" "}
-              <span>({renewalCountdownLabel})</span>
-            </p>
-            <p className="muted">
-              Last restock:{" "}
-              <strong>
-                {autoRestockSubscription.lastRestockAt
-                  ? new Date(autoRestockSubscription.lastRestockAt).toLocaleString()
-                : "Not run yet"}
-              </strong>
-            </p>
-            <div className="status-banner">
-              <div>
-                <h3>Full Access is {autoRestockSubscription.fullAccessEnabled ? "on" : "off"}</h3>
-                <p>
-                  Allow your Restocker to buy eligible restocks automatically without asking each time.
-                  Full Access stays off until you confirm with password and PIN.
-                </p>
-              </div>
-              {autoRestockSubscription.fullAccessEnabled ? (
-                <button
-                  type="button"
-                  className="ghost-button"
-                  disabled={submitting !== null}
-                  onClick={() => void handleFullAccessUpdate(false)}
-                >
-                  {submitting === "fullAccess" ? "Turning off..." : "Turn off Full Access"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="ghost-button"
-                  disabled={submitting !== null}
-                  onClick={() => {
-                    resetMessages();
-                    setFullAccessPassword("");
-                    setFullAccessPin("");
-                    setFullAccessOpen(true);
-                  }}
-                >
-                  Enable Full Access
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <p className="muted">No active Auto Restock subscription.</p>
-        )}
-        {confirmReplace ? (
-          <p className="status-text status-text--error">
-            Confirmed replacement is enabled. Activating now will replace your current active plan.
-          </p>
-        ) : null}
-        <p className="muted">
-          Plan fees cover 48 hours and renew automatically. If balance is too low at renewal, subscription auto-cancels.
-        </p>
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Display Currency</h2>
-            <p>
-              Prices are stored in a base value. Your selected currency only changes how prices
-              appear on your screen. Other users may see the same item in their own currency.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleCurrencyChange()}
-            disabled={submitting !== null || currencyCode === currentCurrencyCode}
-          >
-            {submitting === "currency" ? "Updating..." : "Update Currency"}
-          </button>
-        </div>
-        <label>
-          Search currency by code, name, or country
-          <input
-            value={currencySearch}
-            onChange={(event) => {
-              const nextSearch = event.target.value;
-              const exactProfile = priceProfiles.find((profile) => {
-                const normalized = nextSearch.trim().toLowerCase();
-                return (
-                  profile.currencyCode.toLowerCase() === normalized ||
-                  profile.currencyName.toLowerCase() === normalized ||
-                  profile.countryName.toLowerCase() === normalized
-                );
-              });
-
-              setCurrencySearch(nextSearch);
-              if (exactProfile) {
-                setCurrencyCode(exactProfile.currencyCode);
-              }
-              resetMessages();
-            }}
-            disabled={submitting !== null}
-            placeholder="Pakistan, Australian Dollar, $, USD..."
-          />
-        </label>
-        <div className="currency-results" role="listbox" aria-label="Currency search results">
-          {filteredPriceProfiles.length > 0 ? (
-            filteredPriceProfiles.map((profile) => (
-              <button
-                key={profile.currencyCode}
-                type="button"
-                className={
-                  profile.currencyCode === currencyCode
-                    ? "currency-option currency-option--selected"
-                    : "currency-option"
-                }
                 onClick={() => {
-                  setCurrencyCode(profile.currencyCode);
-                  setCurrencySearch(`${profile.currencyCode} - ${profile.currencyName}`);
                   resetMessages();
+                  setNextDisplayName(displayName);
+                  setDisplayNamePassword("");
+                  setDisplayNameOpen(true);
                 }}
                 disabled={submitting !== null}
-                role="option"
-                aria-selected={profile.currencyCode === currencyCode}
               >
-                <strong>{profile.currencyCode}</strong>
-                <span>{profile.currencyName}</span>
-                <small>{profile.symbol}</small>
+                Rename
               </button>
-            ))
-          ) : (
-            <p className="muted">No matching currency found. Try a currency code, country, or currency name.</p>
-          )}
-        </div>
-        {selectedCurrencyProfile ? (
-          <p className="muted">
-            Selected: <strong>{selectedCurrencyProfile.currencyCode}</strong> -{" "}
-            {selectedCurrencyProfile.currencyName} - {selectedCurrencyProfile.symbol}.
-          </p>
-        ) : null}
-        <p className="muted">
-          Current currency: {currentCurrencyCode}. Sellers and buyers can use different display
-          currencies, so one listing may appear as PKR to the seller, AUD to one buyer, and USD to
-          another buyer while checkout still uses the stored AUD value.
-        </p>
-        <p className="muted">Exchange rates are static reference values in this build and are not live market feeds.</p>
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Appearance</h2>
-            <p>Choose a polished Profit Planet theme. Each preset has its own readable game-market style.</p>
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Username</strong>
+                <p className="muted">@{username}</p>
+              </div>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  resetMessages();
+                  setNextUsername(username);
+                  setUsernamePassword("");
+                  setUsernameOpen(true);
+                }}
+                disabled={submitting !== null}
+              >
+                Rename
+              </button>
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Logout</strong>
+                <p className="muted">Requires your password before signing out.</p>
+              </div>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  resetMessages();
+                  setLogoutPassword("");
+                  setLogoutOpen(true);
+                }}
+                disabled={submitting !== null}
+              >
+                Logout
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => void handleAppearanceChange()}
-            disabled={submitting !== null || appearancePreset === currentAppearancePreset}
-          >
-            {submitting === "appearance" ? "Applying..." : "Apply preset"}
-          </button>
-        </div>
-        <div className="appearance-grid" role="radiogroup" aria-label="Appearance preset">
-          {appearancePresets.map((preset) => (
-            <button
-              key={preset.value}
-              type="button"
-              className={
-                preset.value === appearancePreset
-                  ? "appearance-option appearance-option--selected"
-                  : "appearance-option"
-              }
-              onClick={() => {
-                setAppearancePreset(preset.value);
+        </section>
+
+        <section className="card settings-card settings-section">
+          <div className="settings-section__header">
+            <span className="settings-section__eyebrow">Shop</span>
+            <h2>Store profile</h2>
+            <p>Keep your public seller name tidy. Rename cost: {renameStoreCostLabel}.</p>
+          </div>
+          <div className="settings-list">
+            <div className="settings-row">
+              <div>
+                <strong>Store name</strong>
+                {canRenameStore ? (
+                  <p className="muted">{currentShopName}</p>
+                ) : (
+                  <p className="muted">Create a shop before renaming it.</p>
+                )}
+              </div>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  resetMessages();
+                  setRenameOpen(true);
+                }}
+                disabled={!canRenameStore || submitting !== null}
+              >
+                Rename store
+              </button>
+            </div>
+            <div className="settings-note">
+              Store renames require password confirmation and charge your in-game balance.
+            </div>
+          </div>
+        </section>
+
+        <section className="card settings-card settings-section">
+          <div className="settings-section__header">
+            <span className="settings-section__eyebrow">Security</span>
+            <h2>Bank and verification</h2>
+            <p>Your bank number stays hidden unless password and PIN checks pass.</p>
+          </div>
+          <div className="settings-list">
+            <div className="settings-row">
+              <div>
+                <strong>Bank number</strong>
+                <p className="muted">Stored value: {maskedBankNumber}</p>
+              </div>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  resetMessages();
+                  setBankPassword("");
+                  setBankPin("");
+                  setRevealedBankNumber(null);
+                  setBankOpen(true);
+                }}
+                disabled={submitting !== null}
+              >
+                View Bank Number
+              </button>
+            </div>
+            <div className="settings-note">
+              Sensitive fields use hold-to-show controls and reset when their modal closes.
+            </div>
+          </div>
+        </section>
+
+        <section className="card settings-card settings-section">
+          <div className="settings-section__header">
+            <span className="settings-section__eyebrow">Currency</span>
+            <h2>Display currency</h2>
+            <p>Prices stay stored safely in base values. This only changes your display currency.</p>
+          </div>
+          <label className="modal-card__field">
+            <span>Search currency by code, name, or country</span>
+            <input
+              value={currencySearch}
+              onChange={(event) => {
+                const nextSearch = event.target.value;
+                const exactProfile = priceProfiles.find((profile) => {
+                  const normalized = nextSearch.trim().toLowerCase();
+                  return (
+                    profile.currencyCode.toLowerCase() === normalized ||
+                    profile.currencyName.toLowerCase() === normalized ||
+                    profile.countryName.toLowerCase() === normalized
+                  );
+                });
+
+                setCurrencySearch(nextSearch);
+                if (exactProfile) {
+                  setCurrencyCode(exactProfile.currencyCode);
+                }
                 resetMessages();
               }}
               disabled={submitting !== null}
-              role="radio"
-              aria-checked={preset.value === appearancePreset}
+              placeholder="Pakistan, Australian Dollar, USD..."
+            />
+          </label>
+          <div className="currency-results" role="listbox" aria-label="Currency search results">
+            {filteredPriceProfiles.length > 0 ? (
+              filteredPriceProfiles.map((profile) => (
+                <button
+                  key={profile.currencyCode}
+                  type="button"
+                  className={
+                    profile.currencyCode === currencyCode
+                      ? "currency-option currency-option--selected"
+                      : "currency-option"
+                  }
+                  onClick={() => {
+                    setCurrencyCode(profile.currencyCode);
+                    setCurrencySearch(`${profile.currencyCode} - ${profile.currencyName}`);
+                    resetMessages();
+                  }}
+                  disabled={submitting !== null}
+                  role="option"
+                  aria-selected={profile.currencyCode === currencyCode}
+                >
+                  <strong>{profile.currencyCode}</strong>
+                  <span>{profile.currencyName}</span>
+                  <small>{profile.symbol}</small>
+                </button>
+              ))
+            ) : (
+              <p className="muted">No matching currency found. Try a currency code, country, or currency name.</p>
+            )}
+          </div>
+          {selectedCurrencyProfile ? (
+            <p className="muted">
+              Selected: <strong>{selectedCurrencyProfile.currencyCode}</strong> -{" "}
+              {selectedCurrencyProfile.currencyName} - {selectedCurrencyProfile.symbol}.
+            </p>
+          ) : null}
+          <p className="muted">
+            Current currency: {currentCurrencyCode}. Exchange rates are static reference values in this build.
+          </p>
+          <div className="settings-section__actions">
+            <button
+              type="button"
+              onClick={() => void handleCurrencyChange()}
+              disabled={submitting !== null || currencyCode === currentCurrencyCode}
             >
-              <span className={`appearance-option__swatch appearance-option__swatch--${preset.value}`} />
-              <span className="appearance-option__copy">
-                <strong>{preset.label}</strong>
-                <small>{preset.description}</small>
-              </span>
-              <span className={`appearance-preview appearance-preview--${preset.value}`} aria-hidden="true">
-                <span className="appearance-preview__card">
-                  <span className="appearance-preview__line appearance-preview__line--strong" />
-                  <span className="appearance-preview__line" />
-                  <span className="appearance-preview__controls">
-                    <span className="appearance-preview__button" />
-                    <span className="appearance-preview__badge" />
+              {submitting === "currency" ? "Updating..." : "Update Currency"}
+            </button>
+          </div>
+        </section>
+
+        <section className="card settings-card settings-section settings-section--wide">
+          <div className="settings-section__header settings-section__header--inline">
+            <div>
+              <span className="settings-section__eyebrow">Appearance</span>
+              <h2>Theme presets</h2>
+              <p>Choose a Profit Planet look. Each preview shows cards, badges, and controls.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleAppearanceChange()}
+              disabled={submitting !== null || appearancePreset === currentAppearancePreset}
+            >
+              {submitting === "appearance" ? "Applying..." : "Apply preset"}
+            </button>
+          </div>
+          <div className="appearance-grid" role="radiogroup" aria-label="Appearance preset">
+            {appearancePresets.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                className={
+                  preset.value === appearancePreset
+                    ? "appearance-option appearance-option--selected"
+                    : "appearance-option"
+                }
+                onClick={() => {
+                  setAppearancePreset(preset.value);
+                  resetMessages();
+                }}
+                disabled={submitting !== null}
+                role="radio"
+                aria-checked={preset.value === appearancePreset}
+              >
+                <span className={`appearance-option__swatch appearance-option__swatch--${preset.value}`} />
+                <span className="appearance-option__copy">
+                  <strong>{preset.label}</strong>
+                  <small>{preset.description}</small>
+                </span>
+                <span className={`appearance-preview appearance-preview--${preset.value}`} aria-hidden="true">
+                  <span className="appearance-preview__card">
+                    <span className="appearance-preview__line appearance-preview__line--strong" />
+                    <span className="appearance-preview__line" />
+                    <span className="appearance-preview__controls">
+                      <span className="appearance-preview__button" />
+                      <span className="appearance-preview__badge" />
+                    </span>
                   </span>
                 </span>
-              </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="card settings-card settings-section settings-section--wide">
+          <div className="settings-section__header settings-section__header--inline">
+            <div>
+              <span className="settings-section__eyebrow">Auto Restocker</span>
+              <h2>Subscription and access</h2>
+              <p>Choose one paid plan. Full Access stays protected behind password and PIN checks.</p>
+            </div>
+            <div className="inline-actions">
+              {autoRestockSubscription?.status === "ACTIVE" ? (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => void handleAutoRestockSubscription("cancel")}
+                  disabled={submitting !== null}
+                >
+                  {submitting === "autoRestock" ? "Cancelling..." : "Cancel"}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void handleAutoRestockSubscription("activate")}
+                disabled={submitting !== null}
+              >
+                {submitting === "autoRestock" ? "Saving..." : "Activate plan"}
+              </button>
+            </div>
+          </div>
+          <label className="modal-card__field">
+            <span>Plan</span>
+            <select
+              value={selectedPlan}
+              onChange={(event) => {
+                setSelectedPlan(event.target.value as "SIMPLE" | "PRO" | "MAX");
+                setConfirmReplace(false);
+                resetMessages();
+              }}
+              disabled={submitting !== null}
+            >
+              <option value="SIMPLE">Simple - {autoRestockPlanLabels.simple}</option>
+              <option value="PRO">Pro - {autoRestockPlanLabels.pro}</option>
+              <option value="MAX">Max - {autoRestockPlanLabels.max}</option>
+            </select>
+          </label>
+          {autoRestockSubscription?.status === "ACTIVE" ? (
+            <div className="settings-restocker-grid">
+              <div className="auto-restock-timer">
+                <span className="auto-restock-timer__label">Next cycle</span>
+                <strong>{restockCountdownLabel}</strong>
+                <span>{autoRestockSubscription.cycleLabel}</span>
+              </div>
+              <div className="settings-list">
+                <div className="settings-row settings-row--compact">
+                  <span>Current plan</span>
+                  <strong>{autoRestockSubscription.planName}</strong>
+                </div>
+                <div className="settings-row settings-row--compact">
+                  <span>48-hour cost</span>
+                  <strong>{autoRestockSubscription.dailyCostLabel}</strong>
+                </div>
+                <div className="settings-row settings-row--compact">
+                  <span>Next renewal</span>
+                  <strong>{renewalCountdownLabel}</strong>
+                </div>
+                <div className="settings-row settings-row--compact">
+                  <span>Last restock</span>
+                  <strong>
+                    {autoRestockSubscription.lastRestockAt
+                      ? new Date(autoRestockSubscription.lastRestockAt).toLocaleString()
+                      : "Not run yet"}
+                  </strong>
+                </div>
+              </div>
+              <div className="status-banner">
+                <div>
+                  <h3>Full Access is {autoRestockSubscription.fullAccessEnabled ? "on" : "off"}</h3>
+                  <p>
+                    Allow your Restocker to buy eligible restocks automatically without asking each time.
+                  </p>
+                </div>
+                {autoRestockSubscription.fullAccessEnabled ? (
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={submitting !== null}
+                    onClick={() => void handleFullAccessUpdate(false)}
+                  >
+                    {submitting === "fullAccess" ? "Turning off..." : "Turn off"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={submitting !== null}
+                    onClick={() => {
+                      resetMessages();
+                      setFullAccessPassword("");
+                      setFullAccessPin("");
+                      setFullAccessOpen(true);
+                    }}
+                  >
+                    Enable Full Access
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="muted">No active Auto Restock subscription.</p>
+          )}
+          {confirmReplace ? (
+            <p className="status-text status-text--error">
+              Confirmed replacement is enabled. Activating now will replace your current active plan.
+            </p>
+          ) : null}
+          <p className="muted">
+            Plan fees cover 48 hours and renew automatically. If balance is too low at renewal, subscription auto-cancels.
+          </p>
+        </section>
+
+        <section className="card settings-card settings-section settings-section--danger settings-section--wide">
+          <div className="settings-section__header settings-section__header--inline">
+            <div>
+              <span className="settings-section__eyebrow">Danger Zone</span>
+              <h2>Delete account</h2>
+              <p>This deactivates your account, hides your shop, and signs you out.</p>
+            </div>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={() => {
+                resetMessages();
+                setDeleteOpen(true);
+              }}
+              disabled={submitting !== null}
+            >
+              Delete Account
             </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Bank Details</h2>
-            <p>Bank number is masked by default and can be revealed after password and PIN checks.</p>
           </div>
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={() => {
-              resetMessages();
-              setBankPassword("");
-              setBankPin("");
-              setRevealedBankNumber(null);
-              setBankOpen(true);
-            }}
-            disabled={submitting !== null}
-          >
-            View Bank Number
-          </button>
-        </div>
-        <p className="muted">
-          Bank number is hidden by default for security.
-          {" "}
-          Stored value: <strong>{maskedBankNumber}</strong>
-        </p>
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Change Username</h2>
-            <p>Update your login handle after password confirmation.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              resetMessages();
-              setNextUsername(username);
-              setUsernamePassword("");
-              setUsernameOpen(true);
-            }}
-            disabled={submitting !== null}
-          >
-            Change Username
-          </button>
-        </div>
-        <p className="muted">Current username: @{username}</p>
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Change Display Name</h2>
-            <p>Update the name other users see across orders, sales, and account screens.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              resetMessages();
-              setNextDisplayName(displayName);
-              setDisplayNamePassword("");
-              setDisplayNameOpen(true);
-            }}
-            disabled={submitting !== null}
-          >
-            Change Display Name
-          </button>
-        </div>
-        <p className="muted">Current display name: {displayName}</p>
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Rename Store</h2>
-            <p>Cost: {renameStoreCostLabel}. This updates your public shop name after password confirmation.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              resetMessages();
-              setRenameOpen(true);
-            }}
-            disabled={!canRenameStore || submitting !== null}
-          >
-            Rename Store
-          </button>
-        </div>
-        {!canRenameStore ? (
-          <p className="muted">Create a shop before renaming it.</p>
-        ) : (
-          <p className="muted">Current store name: {currentShopName}</p>
-        )}
-      </section>
-
-      <section className="card settings-card">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Logout</h2>
-            <p>Sign out of this device after confirming your password.</p>
-          </div>
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={() => {
-              resetMessages();
-              setLogoutPassword("");
-              setLogoutOpen(true);
-            }}
-            disabled={submitting !== null}
-          >
-            Logout
-          </button>
-        </div>
-        <p className="muted">Easy to find here, but no longer exposed in the main navigation.</p>
-      </section>
-
-      <section className="card settings-card settings-card--danger">
-        <div className="card-header">
-          <div className="card-header__copy">
-            <h2>Delete Account</h2>
-            <p>This deactivates your account, hides your shop, and signs you out.</p>
-          </div>
-          <button
-            type="button"
-            className="danger-button"
-            onClick={() => {
-              resetMessages();
-              setDeleteOpen(true);
-            }}
-            disabled={submitting !== null}
-          >
-            Delete Account
-          </button>
-        </div>
-        <p className="muted">
-          Order history stays available for marketplace integrity, but your account can no longer
-          be used.
-        </p>
-      </section>
+          <p className="muted">
+            Order history stays available for marketplace integrity, but your account can no longer be used.
+          </p>
+        </section>
+      </div>
 
       {usernameOpen ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setUsernameOpen(false)}>
