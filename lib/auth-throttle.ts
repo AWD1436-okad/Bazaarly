@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
 
-type AuthThrottleAction = "LOGIN" | "REGISTER";
+type AuthThrottleAction = "LOGIN" | "REGISTER" | "PASSWORD_RESET" | "PIN_RESET";
 
 type AuthThrottlePolicy = {
   maxAttempts: number;
@@ -20,6 +20,16 @@ const AUTH_THROTTLE_POLICIES: Record<AuthThrottleAction, AuthThrottlePolicy> = {
     maxAttempts: 3,
     windowMs: 15 * 60 * 1000,
     blockMs: 15 * 60 * 1000,
+  },
+  PASSWORD_RESET: {
+    maxAttempts: 3,
+    windowMs: 15 * 60 * 1000,
+    blockMs: 15 * 60 * 1000,
+  },
+  PIN_RESET: {
+    maxAttempts: 5,
+    windowMs: 10 * 60 * 1000,
+    blockMs: 10 * 60 * 1000,
   },
 };
 
@@ -59,6 +69,14 @@ export function createLoginThrottleKey(request: Request, usernameOrEmail: string
 
 export function createRegisterThrottleKey(request: Request) {
   return buildThrottleHash("REGISTER", getRequestFingerprint(request));
+}
+
+export function createPasswordResetThrottleKey(request: Request, usernameOrEmail: string) {
+  return buildThrottleHash("PASSWORD_RESET", `${getRequestFingerprint(request)}|${usernameOrEmail}`);
+}
+
+export function createPinResetThrottleKey(request: Request, userId: string) {
+  return buildThrottleHash("PIN_RESET", `${getRequestFingerprint(request)}|${userId}`);
 }
 
 export async function getAuthThrottleBlock(

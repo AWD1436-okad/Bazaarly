@@ -85,6 +85,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </label>
               <button type="submit">Log in</button>
             </form>
+            <p className="auth-card__helper">
+              <a href="/forgot-password">Forgot password?</a>
+            </p>
           </div>
         </div>
 

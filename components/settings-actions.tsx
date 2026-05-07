@@ -1,6 +1,5 @@
 "use client";
 
-import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -96,67 +95,6 @@ function clampRestockInterval(plan: "SIMPLE" | "PRO" | "MAX", value: number) {
   return Math.min(limits.max, Math.max(limits.min, Math.round(value || limits.defaultValue)));
 }
 
-function ProtectedValueDisplay({
-  maskedValue,
-  revealText,
-  label = "Hold to show",
-}: {
-  maskedValue: string;
-  revealText: string;
-  label?: string;
-}) {
-  const [revealed, setRevealed] = useState(false);
-
-  function show() {
-    setRevealed(true);
-  }
-
-  function hide() {
-    setRevealed(false);
-  }
-
-  return (
-    <span className="protected-value">
-      <span className={revealed ? "protected-value__text protected-value__text--revealed" : "protected-value__text"}>
-        {revealed ? revealText : maskedValue}
-      </span>
-      <button
-        type="button"
-        className="protected-value__button"
-        aria-label={label}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          show();
-        }}
-        onPointerUp={hide}
-        onPointerCancel={hide}
-        onPointerLeave={hide}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          show();
-        }}
-        onMouseUp={hide}
-        onMouseLeave={hide}
-        onTouchStart={(event) => {
-          event.preventDefault();
-          show();
-        }}
-        onTouchEnd={hide}
-        onTouchCancel={hide}
-        onKeyDown={(event) => {
-          if (event.key === " " || event.key === "Enter") {
-            show();
-          }
-        }}
-        onKeyUp={hide}
-        onBlur={hide}
-      >
-        <Eye size={16} aria-hidden="true" />
-      </button>
-    </span>
-  );
-}
-
 export function SettingsActions({
   email,
   username,
@@ -178,6 +116,7 @@ export function SettingsActions({
   const [displayNameOpen, setDisplayNameOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
+  const [pinResetOpen, setPinResetOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [fullAccessOpen, setFullAccessOpen] = useState(false);
@@ -198,6 +137,9 @@ export function SettingsActions({
   const [bankPassword, setBankPassword] = useState("");
   const [bankPin, setBankPin] = useState("");
   const [revealedBankNumber, setRevealedBankNumber] = useState<string | null>(null);
+  const [pinResetPassword, setPinResetPassword] = useState("");
+  const [nextPin, setNextPin] = useState("");
+  const [confirmNextPin, setConfirmNextPin] = useState("");
   const [logoutPassword, setLogoutPassword] = useState("");
   const [deleteUsername, setDeleteUsername] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
@@ -220,6 +162,7 @@ export function SettingsActions({
     | "displayName"
     | "rename"
     | "bank"
+    | "pinReset"
     | "logout"
     | "delete"
     | "currency"
@@ -508,6 +451,42 @@ export function SettingsActions({
       setState({
         message: null,
         error: error instanceof Error ? error.message : "Bank number reveal failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function handlePinReset() {
+    setSubmitting("pinReset");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("password", pinResetPassword);
+      formData.set("newPin", nextPin);
+      formData.set("confirmPin", confirmNextPin);
+
+      const response = await fetch("/settings/reset-pin", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string; message?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "PIN reset failed");
+      }
+
+      setPinResetOpen(false);
+      setPinResetPassword("");
+      setNextPin("");
+      setConfirmNextPin("");
+      setState({ message: payload.message ?? "Bank PIN reset securely", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "PIN reset failed",
       });
     } finally {
       setSubmitting(null);
@@ -847,9 +826,11 @@ export function SettingsActions({
             <div className="settings-row">
               <div>
                 <strong>Password</strong>
-                <p className="muted">Passwords are hashed and cannot be revealed.</p>
+                <p className="muted">Protected. Passwords are hashed and cannot be revealed.</p>
               </div>
-              <ProtectedValueDisplay maskedValue="••••••••" revealText="Password is protected" />
+              <a href="/forgot-password" className="ghost-button">
+                Reset Password
+              </a>
             </div>
           </div>
         </section>
@@ -918,12 +899,25 @@ export function SettingsActions({
             <div className="settings-row">
               <div>
                 <strong>Bank PIN</strong>
-                <p className="muted">PIN is hashed and used only for verification.</p>
+                <p className="muted">Protected. For security, we can’t show your old PIN.</p>
               </div>
-              <ProtectedValueDisplay maskedValue="••••" revealText="PIN is protected" />
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  resetMessages();
+                  setPinResetPassword("");
+                  setNextPin("");
+                  setConfirmNextPin("");
+                  setPinResetOpen(true);
+                }}
+                disabled={submitting !== null}
+              >
+                Forgot PIN?
+              </button>
             </div>
             <div className="settings-note">
-              Sensitive fields use hold-to-show controls and reset when their modal closes.
+              Stored secrets stay protected. Hold-to-show only appears while typing new secure details.
             </div>
           </div>
         </section>
@@ -1492,6 +1486,89 @@ export function SettingsActions({
                 </div>
               </>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {pinResetOpen ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => {
+            setPinResetOpen(false);
+            setPinResetPassword("");
+            setNextPin("");
+            setConfirmNextPin("");
+          }}
+        >
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pin-reset-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-card__copy">
+              <h3 id="pin-reset-title">Reset Bank PIN</h3>
+              <p>For security, we can’t show your old PIN. Confirm your password and create a new one.</p>
+            </div>
+            <label className="modal-card__field">
+              Password
+              <HoldToShowInput
+                value={pinResetPassword}
+                onChange={(event) => setPinResetPassword(event.target.value)}
+                autoComplete="current-password"
+                disabled={submitting !== null}
+              />
+            </label>
+            <label className="modal-card__field">
+              New bank PIN
+              <HoldToShowInput
+                value={nextPin}
+                onChange={(event) => setNextPin(event.target.value)}
+                inputMode="numeric"
+                autoComplete="off"
+                disabled={submitting !== null}
+              />
+            </label>
+            <label className="modal-card__field">
+              Confirm new PIN
+              <HoldToShowInput
+                value={confirmNextPin}
+                onChange={(event) => setConfirmNextPin(event.target.value)}
+                inputMode="numeric"
+                autoComplete="off"
+                disabled={submitting !== null}
+              />
+            </label>
+            {state.error ? <span className="status-text status-text--error">{state.error}</span> : null}
+            <div className="modal-card__actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  setPinResetOpen(false);
+                  setPinResetPassword("");
+                  setNextPin("");
+                  setConfirmNextPin("");
+                }}
+                disabled={submitting !== null}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handlePinReset()}
+                disabled={
+                  submitting !== null ||
+                  pinResetPassword.trim().length === 0 ||
+                  nextPin.trim().length === 0 ||
+                  confirmNextPin.trim().length === 0
+                }
+              >
+                {submitting === "pinReset" ? "Resetting..." : "Reset Bank PIN"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

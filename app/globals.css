@@ -1881,6 +1881,38 @@ textarea {
   gap: clamp(0.85rem, 2vw, 1.1rem);
 }
 
+.auth-layout--compact {
+  align-items: start;
+  padding-top: clamp(1.5rem, 7vh, 4rem);
+}
+
+.auth-card--single {
+  width: min(560px, 100%);
+  grid-template-columns: 1fr;
+}
+
+.reset-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.auth-card__helper {
+  margin: 0.25rem 0 0;
+  text-align: right;
+}
+
+.ghost-link,
+.auth-card__helper a {
+  color: var(--primary-strong);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ghost-link:hover,
+.auth-card__helper a:hover {
+  text-decoration: underline;
+}
+
 .auth-game-panel {
   display: grid;
   gap: 0.7rem;
