@@ -60,6 +60,23 @@ type BotCandidateListing = {
   };
 };
 
+export type AutoRestockCycleResult = {
+  status:
+    | "not_due"
+    | "pending_exists"
+    | "no_active_subscription"
+    | "subscription_cancelled"
+    | "no_sold_out_items"
+    | "no_supplier_stock"
+    | "insufficient_balance"
+    | "proposal_created"
+    | "full_access_completed"
+    | "full_access_waiting";
+  message: string;
+  itemCount?: number;
+  totalCostCents?: number;
+};
+
 type ActiveBotRecord = {
   id: string;
   displayName: string;
@@ -585,7 +602,8 @@ function getDesiredBotQuantity(
   return randomIntInclusive(1, maxPurchaseableUnits);
 }
 
-async function runAutoRestock(now: Date, userId?: string) {
+async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCycleResult[]> {
+  const results: AutoRestockCycleResult[] = [];
   const activeSubscriptions = await prisma.autoRestockSubscription.findMany({
     where: {
       status: AutoRestockSubscriptionStatus.ACTIVE,
@@ -620,9 +638,22 @@ async function runAutoRestock(now: Date, userId?: string) {
     },
   });
 
+  if (userId && activeSubscriptions.length === 0) {
+    return [
+      {
+        status: "no_active_subscription",
+        message: "No active Auto Restocker subscription.",
+      },
+    ];
+  }
+
   for (const subscription of activeSubscriptions) {
     const user = subscription.user;
     if (!user || user.deletedAt || !user.securitySetupCompleted || !user.shop || user.shop.status !== "ACTIVE") {
+      results.push({
+        status: "no_active_subscription",
+        message: "Auto Restocker needs an active shop and completed security setup.",
+      });
       continue;
     }
 
@@ -634,6 +665,10 @@ async function runAutoRestock(now: Date, userId?: string) {
       select: { id: true },
     });
     if (activePendingRequest) {
+      results.push({
+        status: "pending_exists",
+        message: "Restock proposal is already waiting for confirmation.",
+      });
       continue;
     }
 
@@ -660,6 +695,10 @@ async function runAutoRestock(now: Date, userId?: string) {
               createdAt: now,
             },
           });
+        });
+        results.push({
+          status: "subscription_cancelled",
+          message: "Auto Restock subscription cancelled because renewal balance was too low.",
         });
         continue;
       }
@@ -714,6 +753,10 @@ async function runAutoRestock(now: Date, userId?: string) {
       subscription.plan !== AutoRestockPlan.MAX &&
       !isRestockCycleDue(subscription.plan, subscription, now)
     ) {
+      results.push({
+        status: "not_due",
+        message: "Next restock check is still counting down.",
+      });
       continue;
     }
 
@@ -733,7 +776,6 @@ async function runAutoRestock(now: Date, userId?: string) {
         shopId: user.shop.id,
         quantity: { lte: 0 },
         isPaused: false,
-        active: true,
       },
       select: {
         id: true,
@@ -757,12 +799,20 @@ async function runAutoRestock(now: Date, userId?: string) {
 
     if (soldOutListings.length === 0) {
       await markCycleChecked();
+      results.push({
+        status: "no_sold_out_items",
+        message: "No sold-out items found.",
+      });
       continue;
     }
 
     const withStock = soldOutListings.filter((listing) => sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0) > 0);
     if (withStock.length === 0) {
       await markCycleChecked();
+      results.push({
+        status: "no_supplier_stock",
+        message: "Sold-out items were found, but supplier stock is unavailable.",
+      });
       continue;
     }
 
@@ -818,16 +868,25 @@ async function runAutoRestock(now: Date, userId?: string) {
           createdAt: now,
         },
       });
+      results.push({
+        status: "insufficient_balance",
+        message: "Sold-out items were found, but balance was too low for an affordable restock.",
+      });
       continue;
     }
 
     const estimatedCost = requestItems.reduce((sum, item) => sum + item.lineTotal, 0);
     if (estimatedCost <= 0) {
       await markCycleChecked();
+      results.push({
+        status: "insufficient_balance",
+        message: "Restock check could not build a payable proposal.",
+      });
       continue;
     }
 
     if (subscription.fullAccessEnabled) {
+      let fullAccessCompleted = false;
       await prisma.$transaction(async (tx) => {
         const pendingInsideTransaction = await tx.autoRestockRequest.findFirst({
           where: {
@@ -1041,10 +1100,20 @@ async function runAutoRestock(now: Date, userId?: string) {
             createdAt: now,
           },
         });
+        fullAccessCompleted = true;
+      });
+      results.push({
+        status: fullAccessCompleted ? "full_access_completed" : "full_access_waiting",
+        message: fullAccessCompleted
+          ? `${getPlanMeta(subscription.plan).name} Restocker bought eligible items automatically.`
+          : "Full Access checked eligible items but could not complete a purchase.",
+        itemCount: requestItems.length,
+        totalCostCents: estimatedCost,
       });
       continue;
     }
 
+    let proposalCreated = false;
     await prisma.$transaction(async (tx) => {
       const pendingInsideTransaction = await tx.autoRestockRequest.findFirst({
         where: {
@@ -1089,12 +1158,29 @@ async function runAutoRestock(now: Date, userId?: string) {
           createdAt: now,
         },
       });
+      proposalCreated = true;
+    });
+    results.push({
+      status: proposalCreated ? "proposal_created" : "pending_exists",
+      message: proposalCreated
+        ? `${getPlanMeta(subscription.plan).name} Restocker prepared a proposal.`
+        : "Restock proposal is already waiting for confirmation.",
+      itemCount: requestItems.length,
+      totalCostCents: estimatedCost,
     });
   }
+
+  return results;
 }
 
 export async function prepareAutoRestockProposalForUser(userId: string) {
-  await runAutoRestock(new Date(), userId);
+  const results = await runAutoRestock(new Date(), userId);
+  return (
+    results[0] ?? {
+      status: "no_active_subscription",
+      message: "No active Auto Restocker subscription.",
+    }
+  );
 }
 
 export async function runMarketSimulation(force = false, debug = false) {

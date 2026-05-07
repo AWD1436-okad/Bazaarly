@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { HoldToShowInput } from "@/components/hold-to-show-input";
 
@@ -26,6 +26,12 @@ type PendingRestock = {
   }>;
 };
 
+type CycleResult = {
+  status?: string;
+  message?: string;
+  itemCount?: number;
+};
+
 export function AutoRestockApprovalGate() {
   const router = useRouter();
   const [pending, setPending] = useState<PendingRestock | null>(null);
@@ -37,6 +43,7 @@ export function AutoRestockApprovalGate() {
   const [bankNumber, setBankNumber] = useState("");
   const [busyAction, setBusyAction] = useState<null | "skip" | "approve">(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const lastCycleStatusRef = useRef<string | null>(null);
 
   const isMax = pending?.plan === "MAX";
   const totalItems = useMemo(
@@ -51,8 +58,14 @@ export function AutoRestockApprovalGate() {
     const poll = async () => {
       if (!active) return;
       try {
-        const response = await fetch("/api/auto-restock/pending", { cache: "no-store" });
-        const payload = (await response.json()) as { pending?: PendingRestock | null };
+        const response = await fetch("/api/auto-restock/pending", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        const payload = (await response.json()) as {
+          pending?: PendingRestock | null;
+          cycleResult?: CycleResult;
+        };
         if (!active) return;
         const nextPending = payload.pending ?? null;
         setPending(nextPending);
@@ -62,6 +75,23 @@ export function AutoRestockApprovalGate() {
           setCheckoutPin("");
           setBankNumber("");
           setError(null);
+          if (
+            payload.cycleResult?.message &&
+            payload.cycleResult.status &&
+            payload.cycleResult.status !== "not_due" &&
+            payload.cycleResult.status !== "pending_exists" &&
+            payload.cycleResult.status !== lastCycleStatusRef.current
+          ) {
+            lastCycleStatusRef.current = payload.cycleResult.status;
+            setSuccessMessage(payload.cycleResult.message);
+            window.setTimeout(() => setSuccessMessage(null), 4500);
+          }
+          if (
+            payload.cycleResult?.status === "full_access_completed" ||
+            payload.cycleResult?.status === "subscription_cancelled"
+          ) {
+            router.refresh();
+          }
         }
       } catch {
         // Ignore intermittent polling failures.
@@ -78,7 +108,7 @@ export function AutoRestockApprovalGate() {
         window.clearTimeout(timeout);
       }
     };
-  }, []);
+  }, [router]);
 
   async function submitDecision(action: "skip" | "approve") {
     if (!pending || loading) return;

@@ -19,7 +19,7 @@ export async function GET() {
   }
 
   const currencyCode = await getActiveCurrencyCode(user.id);
-  await prepareAutoRestockProposalForUser(user.id);
+  const cycleResult = await prepareAutoRestockProposalForUser(user.id);
 
   const pending = await prisma.autoRestockRequest.findFirst({
     where: {
@@ -44,12 +44,13 @@ export async function GET() {
   });
 
   if (!pending) {
-    return NextResponse.json({ ok: true, pending: null });
+    return NextResponse.json({ ok: true, pending: null, cycleResult });
   }
 
   const planMeta = getPlanMeta(pending.plan);
   return NextResponse.json({
     ok: true,
+    cycleResult,
     pending: {
       id: pending.id,
       plan: pending.plan,
