@@ -37,6 +37,12 @@ export default async function ChallengesPage() {
   });
 
   const completedCount = challengeSet.challenges.filter((challenge) => challenge.completed).length;
+  const playSmarterText =
+    playerModeConfig.value === "LITTLE"
+      ? "Buy things, sell things, and try small tasks."
+      : playerModeConfig.value === "JUNIOR"
+        ? "Buy stock, sell items, and keep your shop moving without spending too much."
+        : "Sell items, list stock, keep shelves active, and grow net profit after costs.";
 
   return (
     <div className="page-grid challenges-page">
@@ -96,10 +102,7 @@ export default async function ChallengesPage() {
         <div className="section-row">
           <div>
             <h2>Play smarter</h2>
-            <p>
-              Challenges reward active trading: sell items, list stock, keep shelves active, and
-              build profit without overspending.
-            </p>
+            <p>{playSmarterText}</p>
           </div>
           <Link href="/dashboard" className="ghost-button">
             Back to dashboard

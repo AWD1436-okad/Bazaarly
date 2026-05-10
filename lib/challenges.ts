@@ -4,7 +4,12 @@ import { Prisma, ProductCategory } from "@prisma/client";
 
 import { getNetProfitSummary } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
-import { getPlayerModeConfig, normalizePlayerMode, type PlayerMode } from "@/lib/player-mode";
+import {
+  getPlayerModeConfig,
+  getPlayerModeProfitChallengeLabel,
+  normalizePlayerMode,
+  type PlayerMode,
+} from "@/lib/player-mode";
 import { prisma } from "@/lib/prisma";
 
 export const CHALLENGE_CYCLE_MS = 5 * 60 * 1000;
@@ -468,9 +473,12 @@ function getProgressLabel(challenge: ChallengeDefinition, progress: number, curr
   return `${Math.min(progress, challenge.target)} / ${challenge.target}`;
 }
 
-function getChallengeLabel(challenge: ChallengeDefinition, currencyCode: string) {
+function getChallengeLabel(challenge: ChallengeDefinition, currencyCode: string, playerMode: PlayerMode) {
   if (challenge.type === "EARN_PROFIT") {
-    return `Earn ${formatCurrency(challenge.target, currencyCode)} profit`;
+    return getPlayerModeProfitChallengeLabel(
+      playerMode,
+      formatCurrency(challenge.target, currencyCode),
+    );
   }
 
   if (challenge.type === "CART_VALUE") {
@@ -688,7 +696,7 @@ export async function getDashboardChallenges({
     const completed = progress >= challenge.target;
     return {
       ...challenge,
-      label: getChallengeLabel(challenge, currencyCode),
+      label: getChallengeLabel(challenge, currencyCode, playerMode),
       progress,
       progressLabel: getProgressLabel(challenge, progress, currencyCode),
       rewardLabel: formatCurrency(challenge.rewardCents, currencyCode),

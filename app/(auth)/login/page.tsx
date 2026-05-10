@@ -52,12 +52,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <span>Buy stock</span>
               <span>List products</span>
               <span>Make sales</span>
-              <span>Manage profit</span>
+              <span>Track money</span>
               <span>Complete challenges</span>
             </div>
             <p>
-              Every choice matters: overspend and profit drops, price too high and shoppers slow down,
-              keep stock moving and your shop grows.
+              Spend carefully, price fairly, keep stock moving, and grow your shop.
             </p>
           </div>
 

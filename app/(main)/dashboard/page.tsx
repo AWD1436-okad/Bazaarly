@@ -78,6 +78,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
   const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
+  const moneyLabels = playerModeConfig.moneyLabels;
 
   if (!user.shop) {
     redirect("/onboarding/shop");
@@ -482,19 +483,25 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
       <section className="metrics-grid">
         <article className="metric-card">
-          <span className="metric-card__eyebrow">Balance</span>
+          <span className="metric-card__eyebrow">{moneyLabels.balance}</span>
           <strong>{formatCurrency(user.balance, currencyCode)}</strong>
-          <span className="metric-card__helper">Money you can spend.</span>
+          {moneyLabels.balanceHelper ? (
+            <span className="metric-card__helper">{moneyLabels.balanceHelper}</span>
+          ) : null}
         </article>
         <article className="metric-card">
-          <span className="metric-card__eyebrow">Today Profit</span>
+          <span className="metric-card__eyebrow">{moneyLabels.todayNet}</span>
           <strong>{formatCurrency(todayProfit, currencyCode)}</strong>
-          <span className="metric-card__helper">Today&apos;s sales minus today&apos;s business costs.</span>
+          {moneyLabels.todayNetHelper ? (
+            <span className="metric-card__helper">{moneyLabels.todayNetHelper}</span>
+          ) : null}
         </article>
         <article className="metric-card">
-          <span className="metric-card__eyebrow">Total Profit</span>
+          <span className="metric-card__eyebrow">{moneyLabels.totalNet}</span>
           <strong>{formatCurrency(totalProfit, currencyCode)}</strong>
-          <span className="metric-card__helper">All sales minus all business costs.</span>
+          {moneyLabels.totalNetHelper ? (
+            <span className="metric-card__helper">{moneyLabels.totalNetHelper}</span>
+          ) : null}
         </article>
       </section>
 

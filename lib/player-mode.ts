@@ -26,6 +26,14 @@ export type PlayerModeConfig = {
     cart: string;
     settings: string;
   };
+  moneyLabels: {
+    balance: string;
+    todayNet: string;
+    totalNet: string;
+    balanceHelper: string;
+    todayNetHelper: string;
+    totalNetHelper: string;
+  };
 };
 
 export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
@@ -53,6 +61,14 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       cart: "Cart",
       settings: "More",
     },
+    moneyLabels: {
+      balance: "Money you can spend",
+      todayNet: "Money earned today",
+      totalNet: "Money earned since you started",
+      balanceHelper: "",
+      todayNetHelper: "After costs.",
+      totalNetHelper: "Since you started playing.",
+    },
   },
   JUNIOR: {
     value: "JUNIOR",
@@ -77,6 +93,14 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       orders: "Sales",
       cart: "Cart",
       settings: "More",
+    },
+    moneyLabels: {
+      balance: "Money you can spend",
+      todayNet: "Today's profit",
+      totalNet: "Total profit",
+      balanceHelper: "Money ready to use.",
+      todayNetHelper: "Sales money minus costs.",
+      totalNetHelper: "All sales money minus costs.",
     },
   },
   TEEN: {
@@ -103,6 +127,14 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       cart: "Cart",
       settings: "More",
     },
+    moneyLabels: {
+      balance: "Balance",
+      todayNet: "Today Profit",
+      totalNet: "Total Profit",
+      balanceHelper: "Money you can spend.",
+      todayNetHelper: "Sales minus stock and business costs.",
+      totalNetHelper: "All sales minus stock and business costs.",
+    },
   },
 };
 
@@ -114,4 +146,18 @@ export function normalizePlayerMode(value: unknown): PlayerMode {
 
 export function getPlayerModeConfig(value: unknown) {
   return PLAYER_MODE_CONFIGS[normalizePlayerMode(value)];
+}
+
+export function getPlayerModeProfitChallengeLabel(value: unknown, amountLabel: string) {
+  const playerMode = normalizePlayerMode(value);
+
+  if (playerMode === "LITTLE") {
+    return `Earn ${amountLabel}`;
+  }
+
+  if (playerMode === "JUNIOR") {
+    return `Make ${amountLabel} profit after costs`;
+  }
+
+  return `Earn ${amountLabel} net profit`;
 }

@@ -75,6 +75,9 @@ export async function getNetProfitSummary({ userId, startAt, endAt }: ProfitSumm
   const salesIncomeCents = salesIncome._sum.totalPrice ?? 0;
   const businessExpenseCents = businessExpenses._sum.amount ?? 0;
 
+  // Profit Planet uses a ledger-style game score:
+  // sales money received - stock/restock/subscription/feature costs.
+  // Stock costs are counted when the player spends money, not later at sale time.
   return {
     salesIncomeCents,
     businessExpenseCents,
