@@ -1,12 +1,13 @@
 import { LiveUpdatesWatcher } from "@/components/live-updates-watcher";
 import { Navigation } from "@/components/navigation";
 import { AutoRestockApprovalGate } from "@/components/auto-restock-approval-gate";
+import { PlayerModeRequired } from "@/components/player-mode-required";
 import { SecuritySetupLock } from "@/components/security-setup-lock";
 import { normalizeAppearancePreset } from "@/lib/appearance";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
-import { getPlayerModeConfig } from "@/lib/player-mode";
+import { getPlayerModeConfig, PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 
 export const runtime = "nodejs";
@@ -33,6 +34,16 @@ export default async function MainLayout({ children }: MainLayoutProps) {
     getActiveCurrencyCode(user.id),
   ]);
   const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
+  const playerModeConfirmed = Boolean((user as { playerModeConfirmed?: boolean | null }).playerModeConfirmed);
+
+  if (!playerModeConfirmed) {
+    return (
+      <PlayerModeRequired
+        currentPlayerMode={playerModeConfig.value}
+        playerModeOptions={PLAYER_MODE_OPTIONS}
+      />
+    );
+  }
 
   return (
     <main

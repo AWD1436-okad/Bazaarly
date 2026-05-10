@@ -129,10 +129,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                         type="radio"
                         name="playerMode"
                         value={mode.value}
-                        defaultChecked={mode.value === "TEEN"}
+                        defaultChecked={mode.value === "YOUNG"}
                       />
                       <span className="player-mode-option__icon" aria-hidden="true">
-                        {mode.value === "LITTLE" ? "1" : mode.value === "JUNIOR" ? "2" : "3"}
+                        {mode.value === "LITTLE"
+                          ? "1"
+                          : mode.value === "JUNIOR"
+                            ? "2"
+                            : mode.value === "YOUNG"
+                              ? "3"
+                              : "4"}
                       </span>
                       <span>
                         <strong>{mode.label}</strong>

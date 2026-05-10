@@ -1,4 +1,4 @@
-export const PLAYER_MODE_VALUES = ["LITTLE", "JUNIOR", "TEEN"] as const;
+export const PLAYER_MODE_VALUES = ["LITTLE", "JUNIOR", "YOUNG", "ADVANCED"] as const;
 
 export type PlayerMode = (typeof PLAYER_MODE_VALUES)[number];
 
@@ -14,6 +14,7 @@ export type PlayerModeConfig = {
   challengeLead: string;
   bodyClass: string;
   showAdvancedControls: boolean;
+  showDetailedHelpers: boolean;
   useBigButtons: boolean;
   useShortText: boolean;
   enableDragHints: boolean;
@@ -42,13 +43,14 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
     label: "Little Players",
     shortLabel: "Little",
     ageLabel: "Ages 3-5",
-    signupDescription: "Big buttons, pictures, and easy steps.",
-    settingsDescription: "Big icons, very short words, and guided actions.",
+    signupDescription: "Big buttons, pictures, and super easy steps.",
+    settingsDescription: "A fun tap-and-play shop game with big buttons and tiny text.",
     dashboardTitle: "Your game home",
-    dashboardLead: "Tap a big card to buy, sell, check your shop, or try a challenge.",
-    challengeLead: "Small picture-friendly tasks with simple progress.",
+    dashboardLead: "Buy things. Sell things. Grow your shop.",
+    challengeLead: "Tiny tasks with big progress.",
     bodyClass: "player-mode-little",
     showAdvancedControls: false,
+    showDetailedHelpers: false,
     useBigButtons: true,
     useShortText: true,
     enableDragHints: false,
@@ -76,12 +78,13 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
     shortLabel: "Junior",
     ageLabel: "Ages 6-8",
     signupDescription: "Simple reading, clear buttons, and fun tasks.",
-    settingsDescription: "Clear instructions, friendly cards, and easier shop words.",
+    settingsDescription: "Simple words, clear buttons, and easy shop tasks.",
     dashboardTitle: "Your shop home",
     dashboardLead: "Buy stock, sell items, complete tasks, and keep your shop moving.",
     challengeLead: "Clear business tasks with simple words and steady progress.",
     bodyClass: "player-mode-junior",
     showAdvancedControls: false,
+    showDetailedHelpers: false,
     useBigButtons: true,
     useShortText: true,
     enableDragHints: false,
@@ -103,18 +106,53 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       totalNetHelper: "All sales money minus costs.",
     },
   },
-  TEEN: {
-    value: "TEEN",
-    label: "Teen Players",
-    shortLabel: "Teen",
-    ageLabel: "Ages 9-15",
-    signupDescription: "Full shop game with harder challenges.",
-    settingsDescription: "Full shop controls, pricing tools, restocking, and harder challenges.",
+  YOUNG: {
+    value: "YOUNG",
+    label: "Young Players",
+    shortLabel: "Young",
+    ageLabel: "Ages 9-13",
+    signupDescription: "A clear shop game with easier tips and simpler controls.",
+    settingsDescription: "A clear shop game with easier tips and simpler controls.",
+    dashboardTitle: "Shop home base",
+    dashboardLead: "Buy stock, sell items, track profit after costs, and grow your shop.",
+    challengeLead: "Shop challenges with clear goals and helpful progress.",
+    bodyClass: "player-mode-young",
+    showAdvancedControls: true,
+    showDetailedHelpers: false,
+    useBigButtons: false,
+    useShortText: true,
+    enableDragHints: false,
+    navLabels: {
+      dashboard: "Home",
+      marketplace: "Market",
+      supplier: "Buy Stock",
+      challenges: "Challenges",
+      orders: "Orders",
+      cart: "Cart",
+      settings: "More",
+    },
+    moneyLabels: {
+      balance: "Money you can spend",
+      todayNet: "Today profit",
+      totalNet: "Total profit",
+      balanceHelper: "Ready to use.",
+      todayNetHelper: "Sales minus stock costs.",
+      totalNetHelper: "All sales minus stock costs.",
+    },
+  },
+  ADVANCED: {
+    value: "ADVANCED",
+    label: "Advanced Players",
+    shortLabel: "Advanced",
+    ageLabel: "Ages 14+",
+    signupDescription: "Full shop game with more details and harder choices.",
+    settingsDescription: "Full shop game with more details and harder choices.",
     dashboardTitle: "Business home base",
     dashboardLead: "Track profit, restock smarter, manage listings, and grow your shop.",
     challengeLead: "Full business challenges that scale with shop size.",
-    bodyClass: "player-mode-teen",
+    bodyClass: "player-mode-advanced",
     showAdvancedControls: true,
+    showDetailedHelpers: true,
     useBigButtons: false,
     useShortText: false,
     enableDragHints: false,
@@ -141,7 +179,8 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
 export const PLAYER_MODE_OPTIONS = PLAYER_MODE_VALUES.map((value) => PLAYER_MODE_CONFIGS[value]);
 
 export function normalizePlayerMode(value: unknown): PlayerMode {
-  return PLAYER_MODE_VALUES.includes(value as PlayerMode) ? (value as PlayerMode) : "TEEN";
+  if (value === "TEEN") return "ADVANCED";
+  return PLAYER_MODE_VALUES.includes(value as PlayerMode) ? (value as PlayerMode) : "ADVANCED";
 }
 
 export function getPlayerModeConfig(value: unknown) {
@@ -157,6 +196,10 @@ export function getPlayerModeProfitChallengeLabel(value: unknown, amountLabel: s
 
   if (playerMode === "JUNIOR") {
     return `Make ${amountLabel} profit after costs`;
+  }
+
+  if (playerMode === "YOUNG") {
+    return `Make ${amountLabel} profit after stock costs`;
   }
 
   return `Earn ${amountLabel} net profit`;

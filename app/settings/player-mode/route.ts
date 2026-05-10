@@ -14,7 +14,8 @@ export async function POST(request: Request) {
 
   await prisma.$executeRaw`
     UPDATE "User"
-    SET "playerMode" = ${playerMode}::"PlayerMode"
+    SET "playerMode" = ${playerMode}::"PlayerMode",
+        "playerModeConfirmed" = true
     WHERE "id" = ${user.id}
   `;
 

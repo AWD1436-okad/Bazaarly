@@ -17,6 +17,7 @@ import {
   getProductCategoryLabel,
 } from "@/lib/catalog";
 import { formatPriceWithUnit } from "@/lib/money";
+import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount } from "@/lib/stock";
@@ -148,6 +149,7 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
 export default async function SupplierPage({ searchParams }: SupplierPageProps) {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
+  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
   const params = (await searchParams) ?? {};
   const selectedCategory = parseCategoryFilter(params.category);
   const selectedCategoryDisplayLabel = selectedCategory
@@ -261,7 +263,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     : supplierProducts;
 
   return (
-    <div className="page-grid">
+    <div className={`page-grid ${playerModeConfig.bodyClass}`}>
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       {purchaseSuccess ? (
         <StatusBanner
@@ -284,16 +286,18 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       ) : null}
 
       <div className="catalog-layout">
-        <aside className="category-sidebar">
-          <div className="stack-sm">
-            <span className="tag">Stock categories</span>
-            <CategoryFilterList
-              categories={CATEGORY_OPTIONS}
-              selectedCategory={selectedCategory?.value ?? null}
-              buildHref={(category) => buildSupplierHref(category)}
-            />
-          </div>
-        </aside>
+        {playerModeConfig.value === "LITTLE" ? null : (
+          <aside className="category-sidebar">
+            <div className="stack-sm">
+              <span className="tag">{playerModeConfig.value === "JUNIOR" ? "Groups" : "Stock categories"}</span>
+              <CategoryFilterList
+                categories={CATEGORY_OPTIONS}
+                selectedCategory={selectedCategory?.value ?? null}
+                buildHref={(category) => buildSupplierHref(category)}
+              />
+            </div>
+          </aside>
+        )}
 
         <div className="stack">
           {!selectedCategory ? (
@@ -320,15 +324,21 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
 
           <section className="page-header">
             <div>
-              <h2>{selectedCategoryDisplayLabel ?? "All stock to buy"}</h2>
+              <h2>
+                {playerModeConfig.value === "LITTLE"
+                  ? "Buy Things"
+                  : selectedCategoryDisplayLabel ?? "All stock to buy"}
+              </h2>
               <p>
-                {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} to buy
-                {selectedCategoryDisplayLabel ? ` in ${selectedCategoryDisplayLabel}` : ""}.
-                {searchQuery ? ` Search: "${searchQuery}".` : ""}
+                {playerModeConfig.value === "LITTLE"
+                  ? "Tap Add to cart when you find something you like."
+                  : `${filteredProducts.length} item${filteredProducts.length === 1 ? "" : "s"} to buy${
+                      selectedCategoryDisplayLabel ? ` in ${selectedCategoryDisplayLabel}` : ""
+                    }.${searchQuery ? ` Search: "${searchQuery}".` : ""}`}
               </p>
               <CurrencyDisplayNote currencyCode={currencyCode} />
             </div>
-            {selectedCategory ? (
+            {selectedCategory && playerModeConfig.showAdvancedControls ? (
               <SupplierCategoryBulkAdd categoryValue={selectedCategory.value} />
             ) : null}
           </section>

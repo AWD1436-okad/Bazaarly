@@ -26,7 +26,7 @@ export function Navigation({
   currentSearch,
   currentSort,
   currencyCode = "AUD",
-  playerMode = "TEEN",
+  playerMode = "ADVANCED",
 }: NavigationProps) {
   const pathname = usePathname();
   const showSearch = pathname === "/marketplace" || pathname?.startsWith("/shop/");

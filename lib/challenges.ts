@@ -65,7 +65,7 @@ const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
   Hard: 15_000,
 };
 
-const TEEN_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+const ADVANCED_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   Easy: [
     {
       key: "sell-5-items",
@@ -262,6 +262,26 @@ const JUNIOR_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[
   ],
 };
 
+const YOUNG_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+  Easy: [
+    { key: "young-sell-8-items", type: "SELL_ITEMS", label: "Sell 8 items", difficulty: "Easy", target: 8, rewardCents: REWARD_CENTS.Easy },
+    { key: "young-buy-250-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy stock target", difficulty: "Easy", target: 25_000, rewardCents: REWARD_CENTS.Easy },
+    { key: "young-keep-8-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 8 items for sale", difficulty: "Easy", target: 8, rewardCents: REWARD_CENTS.Easy },
+    { key: "young-list-6-products", type: "LIST_PRODUCTS", label: "Put 6 items in your shop", difficulty: "Easy", target: 6, rewardCents: REWARD_CENTS.Easy },
+  ],
+  Medium: [
+    { key: "young-sell-16-items", type: "SELL_ITEMS", label: "Sell 16 items", difficulty: "Medium", target: 16, rewardCents: REWARD_CENTS.Medium },
+    { key: "young-earn-400-profit", type: "EARN_PROFIT", label: "Profit after costs target", difficulty: "Medium", target: 40_000, rewardCents: REWARD_CENTS.Medium },
+    { key: "young-restock-6-items", type: "RESTOCK_SOLD_OUT", label: "Buy more stock for 6 sold-out items", difficulty: "Medium", target: 6, rewardCents: REWARD_CENTS.Medium },
+    { key: "young-sell-4-categories", type: "SELL_CATEGORIES", label: "Sell from 4 groups", difficulty: "Medium", target: 4, rewardCents: REWARD_CENTS.Medium },
+  ],
+  Hard: [
+    { key: "young-sell-25-items", type: "SELL_ITEMS", label: "Sell 25 items", difficulty: "Hard", target: 25, rewardCents: REWARD_CENTS.Hard },
+    { key: "young-earn-900-profit", type: "EARN_PROFIT", label: "Profit after costs target", difficulty: "Hard", target: 90_000, rewardCents: REWARD_CENTS.Hard },
+    { key: "young-keep-18-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 18 items for sale", difficulty: "Hard", target: 18, rewardCents: REWARD_CENTS.Hard },
+  ],
+};
+
 const LITTLE_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   Easy: [
     { key: "little-sell-2-things", type: "SELL_ITEMS", label: "Sell 2 things", difficulty: "Easy", target: 2, rewardCents: REWARD_CENTS.Easy },
@@ -284,7 +304,8 @@ const LITTLE_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[
 function getChallengeLibrary(playerMode: PlayerMode) {
   if (playerMode === "LITTLE") return LITTLE_CHALLENGE_LIBRARY;
   if (playerMode === "JUNIOR") return JUNIOR_CHALLENGE_LIBRARY;
-  return TEEN_CHALLENGE_LIBRARY;
+  if (playerMode === "YOUNG") return YOUNG_CHALLENGE_LIBRARY;
+  return ADVANCED_CHALLENGE_LIBRARY;
 }
 
 const DIFFICULTY_ORDER: ChallengeDifficulty[] = ["Easy", "Easy", "Medium", "Medium", "Hard"];
@@ -340,7 +361,7 @@ function scaleChallengeForStage(
   }
 
   const scale = STAGE_SCALE[stage];
-  const modeScale = playerMode === "JUNIOR" ? 0.7 : 1;
+  const modeScale = playerMode === "JUNIOR" ? 0.7 : playerMode === "YOUNG" ? 0.85 : 1;
   const isMoneyTarget =
     challenge.type === "EARN_PROFIT" ||
     challenge.type === "BUY_SUPPLIER_STOCK" ||

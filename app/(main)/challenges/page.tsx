@@ -42,7 +42,9 @@ export default async function ChallengesPage() {
       ? "Buy things, sell things, and try small tasks."
       : playerModeConfig.value === "JUNIOR"
         ? "Buy stock, sell items, and keep your shop moving without spending too much."
-        : "Sell items, list stock, keep shelves active, and grow net profit after costs.";
+        : playerModeConfig.value === "YOUNG"
+          ? "Sell items, buy stock carefully, and grow profit after costs."
+          : "Sell items, list stock, keep shelves active, and grow net profit after costs.";
 
   return (
     <div className="page-grid challenges-page">

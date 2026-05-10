@@ -1141,6 +1141,11 @@ textarea {
   align-items: start;
 }
 
+.player-mode-little .catalog-layout,
+.player-mode-little .marketplace-filter-layout {
+  grid-template-columns: 1fr;
+}
+
 .category-sidebar {
   position: sticky;
   top: 6.5rem;
@@ -1916,8 +1921,12 @@ textarea {
 }
 
 .auth-card--single {
-  width: min(560px, 100%);
+  width: min(760px, 100%);
   grid-template-columns: 1fr;
+}
+
+.player-mode-required-page .player-mode-card {
+  min-height: 92px;
 }
 
 .reset-card {
@@ -2114,6 +2123,18 @@ textarea {
 
 .app-shell[data-player-mode="junior"] {
   --control-height: 50px;
+}
+
+.app-shell[data-player-mode="young"] {
+  --control-height: 48px;
+}
+
+.app-shell[data-player-mode="young"] .muted {
+  line-height: 1.45;
+}
+
+.app-shell[data-player-mode="advanced"] {
+  --control-height: 44px;
 }
 
 .security-result-panel {

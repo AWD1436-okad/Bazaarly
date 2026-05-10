@@ -100,7 +100,8 @@ enum BusinessLedgerEntryCategory {
 enum PlayerMode {
   LITTLE
   JUNIOR
-  TEEN
+  YOUNG
+  ADVANCED
 }
 
 model User {
@@ -121,7 +122,8 @@ model User {
   autoRestockLastRunAt   DateTime?
   currencyCode           String         @default("AUD")
   appearancePreset       String         @default("current-tradex")
-  playerMode             PlayerMode     @default(TEEN)
+  playerMode             PlayerMode?
+  playerModeConfirmed    Boolean        @default(false)
   balance                Int            @default(0)
   deletedAt              DateTime?
   createdAt              DateTime       @default(now())

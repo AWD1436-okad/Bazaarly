@@ -7,6 +7,7 @@ import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
 import { CATEGORY_OPTIONS, getCategoryFilterLabel, getDailyFeaturedProduct } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
+import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 
 type MarketplacePageProps = {
@@ -41,6 +42,7 @@ function buildMarketplaceHref(
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
+  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
   const params = (await searchParams) ?? {};
   const featuredProduct = getDailyFeaturedProduct();
   const selectedCategory =
@@ -72,6 +74,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     <div
       className={[
         "page-grid marketplace-page",
+        playerModeConfig.bodyClass,
         hasActiveMarketplaceSearch ? "marketplace-page--focused" : "",
       ]
         .filter(Boolean)
@@ -81,7 +84,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       {!hasActiveMarketplaceSearch ? (
         <section className="marketplace-showcase">
           <div className="marketplace-showcase__header">
-            <h1>Daily Featured Item</h1>
+            <h1>{playerModeConfig.value === "LITTLE" ? "Pick Something" : "Daily Featured Item"}</h1>
           </div>
 
           {marketplace.activeEvent ? (
@@ -98,20 +101,22 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
             displayUnitLabel={featuredProduct.unitLabel}
             currencyCode={currencyCode}
             href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
-            ctaLabel="See Offer"
+            ctaLabel={playerModeConfig.value === "LITTLE" ? "See" : "See Offer"}
           />
         </section>
       ) : null}
 
       <section className="card marketplace-filters-card">
         <div className="marketplace-filter-layout">
-          <aside className="category-sidebar">
-            <CategoryFilterList
-              categories={CATEGORY_OPTIONS}
-              selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
-              buildHref={(category) => buildMarketplaceHref(params, category)}
-            />
-          </aside>
+          {playerModeConfig.value === "LITTLE" ? null : (
+            <aside className="category-sidebar">
+              <CategoryFilterList
+                categories={CATEGORY_OPTIONS}
+                selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
+                buildHref={(category) => buildMarketplaceHref(params, category)}
+              />
+            </aside>
+          )}
 
           <form action="/marketplace" className="marketplace-filters">
             {selectedCategory !== "ALL" ? (
@@ -123,39 +128,45 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
                 <input
                   name="q"
                   type="search"
-                  placeholder="Search products or shops"
+                  placeholder={playerModeConfig.value === "LITTLE" ? "Find things" : "Search products or shops"}
                   defaultValue={typeof params.q === "string" ? params.q : ""}
                 />
               </label>
             ) : null}
-            <label>
-              Minimum rating
-              <select
-                name="minRating"
-                defaultValue={typeof params.minRating === "string" ? params.minRating : ""}
-              >
-                <option value="">Any</option>
-                <option value="3">3+</option>
-                <option value="4">4+</option>
-                <option value="4.5">4.5+</option>
-              </select>
-            </label>
-            <label>
-              Min price
-              <input name="minPrice" type="number" step="0.01" defaultValue={typeof params.minPrice === "string" ? params.minPrice : ""} />
-            </label>
-            <label>
-              Max price
-              <input name="maxPrice" type="number" step="0.01" defaultValue={typeof params.maxPrice === "string" ? params.maxPrice : ""} />
-            </label>
-            <label>
-              In stock only
-              <select name="stock" defaultValue={typeof params.stock === "string" ? params.stock : ""}>
-                <option value="">Any</option>
-                <option value="in">In stock</option>
-              </select>
-            </label>
-            <button type="submit">Apply filters</button>
+            {playerModeConfig.value === "LITTLE" || playerModeConfig.value === "JUNIOR" ? null : (
+              <>
+                <label>
+                  Minimum rating
+                  <select
+                    name="minRating"
+                    defaultValue={typeof params.minRating === "string" ? params.minRating : ""}
+                  >
+                    <option value="">Any</option>
+                    <option value="3">3+</option>
+                    <option value="4">4+</option>
+                    <option value="4.5">4.5+</option>
+                  </select>
+                </label>
+                <label>
+                  Min price
+                  <input name="minPrice" type="number" step="0.01" defaultValue={typeof params.minPrice === "string" ? params.minPrice : ""} />
+                </label>
+                <label>
+                  Max price
+                  <input name="maxPrice" type="number" step="0.01" defaultValue={typeof params.maxPrice === "string" ? params.maxPrice : ""} />
+                </label>
+              </>
+            )}
+            {playerModeConfig.value === "LITTLE" ? null : (
+              <label>
+                In stock only
+                <select name="stock" defaultValue={typeof params.stock === "string" ? params.stock : ""}>
+                  <option value="">Any</option>
+                  <option value="in">In stock</option>
+                </select>
+              </label>
+            )}
+            <button type="submit">{playerModeConfig.value === "LITTLE" ? "Find" : "Apply filters"}</button>
           </form>
         </div>
       </section>
@@ -163,7 +174,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       <section className="page-header marketplace-results-header">
         <h2>{selectedCategoryLabel}</h2>
         <p>
-          {marketplace.listings.length} matching listings
+          {marketplace.listings.length} {playerModeConfig.value === "LITTLE" ? "things" : "matching listings"}
           {hasQuery
             ? ` for "${queryText}"`
             : ""}
