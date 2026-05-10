@@ -8,6 +8,7 @@ import { ChallengeCountdown } from "@/components/challenge-countdown";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
+import { InstallAppCard } from "@/components/install-app-card";
 import { ProductVisual } from "@/components/product-visual";
 import { SoldOutListingActions } from "@/components/sold-out-listing-actions";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
@@ -17,6 +18,7 @@ import { requireUser } from "@/lib/auth";
 import { getNetProfitSummary } from "@/lib/business-ledger";
 import { getDashboardChallenges } from "@/lib/challenges";
 import { formatCurrency, formatCurrencyInputValue, formatPriceWithUnit } from "@/lib/money";
+import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { sanitizeStockCount, getLiveStockStatusMessage } from "@/lib/stock";
@@ -75,6 +77,7 @@ function buildDashboardHref(
 export default async function DashboardPage({ searchParams }: DashboardProps) {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
+  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
 
   if (!user.shop) {
     redirect("/onboarding/shop");
@@ -100,7 +103,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     freeInventoryRows,
     recentSales,
     lowStockListings,
-    unreadAlerts,
     bestSellerRows,
     inventoryPresence,
     todayProfitSummary,
@@ -227,20 +229,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           },
         },
         orderBy: { quantity: "asc" },
-        take: 5,
-      }),
-      prisma.notification.findMany({
-        where: {
-          userId: user.id,
-          read: false,
-          type: { in: ["LOW_STOCK", "SALE"] },
-        },
-        select: {
-          id: true,
-          type: true,
-          message: true,
-        },
-        orderBy: { createdAt: "desc" },
         take: 5,
       }),
       prisma.$queryRaw<BestSellerRow[]>(Prisma.sql`
@@ -397,6 +385,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     shopId: user.shop.id,
     currencyCode,
     activeListingCount,
+    playerMode: playerModeConfig.value,
   });
   const completedChallenges = challengeSet.challenges.filter((challenge) => challenge.completed).length;
   const previewChallenges = challengeSet.challenges.slice(0, 2);
@@ -410,19 +399,19 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   }
 
   return (
-    <div className="page-grid">
+    <div className={`page-grid ${playerModeConfig.bodyClass}`}>
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       {welcome ? (
         <StatusBanner
           tone="success"
-          title="Your shop is ready."
-          body="Step 1: Review your starter stock. Step 2: Create your first listing so shoppers can find you."
-          action={
-            <Link href="/dashboard/supplier" className="ghost-button">
-              Open Supplier
-            </Link>
-          }
-        />
+            title="Your shop is ready."
+            body="Step 1: Review your starter stock. Step 2: Create your first listing so shoppers can find you."
+            action={
+              <Link href="/dashboard/supplier" className="ghost-button">
+                Buy Stock
+              </Link>
+            }
+          />
       ) : null}
 
       {listingSuccess ? (
@@ -447,10 +436,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         <StatusBanner
           tone="warning"
           title="Your inventory is empty"
-          body="This shop needs stocked inventory before you can publish more listings."
+          body="Buy stock before you put items up for sale."
           action={
             <Link href="/dashboard/supplier" className="ghost-button">
-              Open Supplier
+              Buy Stock
             </Link>
           }
         />
@@ -468,10 +457,27 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
       <section className="page-header">
         <h1>{user.shop.name}</h1>
-        <p>
-          Manage inventory, publish listings, and monitor sales from the same seller dashboard.
-        </p>
+        <p>{playerModeConfig.dashboardLead}</p>
         <CurrencyDisplayNote currencyCode={currencyCode} />
+      </section>
+
+      <section className="card player-mode-home-card">
+        <div>
+          <span className="tag">Player mode: {playerModeConfig.label}</span>
+          <h2>{playerModeConfig.dashboardTitle}</h2>
+          <p>{playerModeConfig.settingsDescription}</p>
+        </div>
+        <div className="player-mode-quick-actions">
+          <Link href="/dashboard/supplier" className="ghost-button">
+            {playerModeConfig.value === "LITTLE" ? "Buy" : "Buy stock"}
+          </Link>
+          <Link href="/marketplace" className="ghost-button">
+            {playerModeConfig.value === "LITTLE" ? "Shop" : "Marketplace"}
+          </Link>
+          <Link href="/challenges" className="ghost-button">
+            {playerModeConfig.value === "LITTLE" ? "Tasks" : "Challenges"}
+          </Link>
+        </div>
       </section>
 
       <section className="metrics-grid">
@@ -492,6 +498,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         </article>
       </section>
 
+      <InstallAppCard compact />
+
       <section className="dashboard-grid">
         <div className="stack">
           <section className="card">
@@ -499,17 +507,19 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="card-header__copy">
                 <h2>Create or update a listing</h2>
                 <p>
-                  Pick an inventory item you own and publish it live. Profit Planet will move
-                  all free units for that product into your active listing automatically.
+                  Pick an item you own and put it up for sale. Profit Planet moves the stock
+                  you can sell into your shop listing.
                 </p>
               </div>
               <div className="card-toolbar">
                 <Link href="/dashboard/supplier" className="ghost-button">
-                  Open supplier
+                  Buy Stock
                 </Link>
-                <form action="/listings/list-all" method="post">
-                  <button type="submit">List all products</button>
-                </form>
+                {playerModeConfig.showAdvancedControls ? (
+                  <form action="/listings/list-all" method="post">
+                    <button type="submit">List all products</button>
+                  </form>
+                ) : null}
               </div>
             </div>
               {listingOptionRows.length > 0 ? (
@@ -524,7 +534,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="empty-state">
                 <p>You don&apos;t have any products ready to list.</p>
                 <Link href="/dashboard/supplier" className="ghost-button">
-                  Open supplier
+                  Buy Stock
                 </Link>
               </div>
             )}
@@ -533,14 +543,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           <section className="card">
             <div className="card-header">
               <div className="card-header__copy">
-                <h2>Inventory</h2>
-                <p>This section only shows stock that is not currently live in your shop.</p>
+                <h2>Items you own</h2>
+                <p>Stock shown here is ready to put up for sale.</p>
               </div>
             </div>
             <div className="table-list">
               {freeInventoryCount === 0 ? (
                 <div className="empty-state">
-                  All of your stock is currently moved into active listings.
+                  All your owned stock is already for sale.
                 </div>
               ) : (
                 visibleInventory.map((item) => (
@@ -555,7 +565,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       <div>
                         <strong>{item.productName}</strong>
                         <span className="muted">
-                          Available in inventory: {item.availableToList} - Market average:{" "}
+                          Stock ready to sell: {item.availableToList} - Usual price:{" "}
                           {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}
                         </span>
                       </div>
@@ -597,20 +607,24 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           <section className="card">
             <div className="card-header">
               <div className="card-header__copy">
-                <h2>Shop listings</h2>
-                <p>Manage live listings, clean out sold-out rows, and keep your shop tidy.</p>
+                <h2>Items for sale</h2>
+                <p>Keep your shop stocked, pause items, or clean up sold-out rows.</p>
               </div>
               <div className="card-toolbar">
-                <BulkListingVisibilityControls
-                  activeListingCount={activeListingCount}
-                  pausedListingCount={pausedListingCount}
-                />
-                <BulkSoldOutCleanup soldOutCount={soldOutListingCount} />
+                {playerModeConfig.showAdvancedControls ? (
+                  <>
+                    <BulkListingVisibilityControls
+                      activeListingCount={activeListingCount}
+                      pausedListingCount={pausedListingCount}
+                    />
+                    <BulkSoldOutCleanup soldOutCount={soldOutListingCount} />
+                  </>
+                ) : null}
               </div>
             </div>
             {visibleListings.length === 0 ? (
               <div className="empty-state">
-                You have not published any listings yet.
+                  You have not put any items up for sale yet.
               </div>
             ) : (
               <div className="table-list">
@@ -638,22 +652,19 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         ) : null}
                       </div>
                     </div>
-                    <div className="table-row__actions">
-                      {listing.quantity > 0 ? (
-                        <>
-                          <DashboardListingManageForm
-                            listingId={listing.id}
-                            productId={listing.productId}
-                            defaultPrice={formatCurrencyInputValue(listing.price, currencyCode)}
-                            isPaused={listing.isPaused}
-                          />
-                        </>
-                      ) : (
+                    <div className="table-row__actions table-row__actions--listing-manage">
+                      <DashboardListingManageForm
+                        listingId={listing.id}
+                        productId={listing.productId}
+                        defaultPrice={formatCurrencyInputValue(listing.price, currencyCode)}
+                        isPaused={listing.isPaused}
+                      />
+                      {listing.quantity <= 0 ? (
                         <SoldOutListingActions
                           listingId={listing.id}
                           productName={listing.product.name}
                         />
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -692,7 +703,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Challenges</h2>
-                <p>Short trading tasks refresh every five minutes.</p>
+                <p>
+                  Player mode: {challengeSet.playerModeLabel}. Stage: {challengeSet.stage}. Tasks refresh every five
+                  minutes.
+                </p>
               </div>
               <ChallengeCountdown cycleEndsAt={challengeSet.cycleEndsAt.toISOString()} />
             </div>
@@ -825,26 +839,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             )}
           </section>
 
-          <section className="card">
-            <div className="card-header">
-              <div className="card-header__copy">
-                <h2>Alerts</h2>
-                <p>Your latest unread sale and stock updates in one place.</p>
-              </div>
-            </div>
-            <div className="table-list">
-              {unreadAlerts.length === 0 ? (
-                <div className="empty-state">No unread alerts right now.</div>
-              ) : (
-                unreadAlerts.map((notification) => (
-                  <div key={notification.id} className="notification-row unread">
-                    <strong>{notification.type.replace("_", " ")}</strong>
-                    <p className="muted">{notification.message}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
         </div>
       </section>
     </div>

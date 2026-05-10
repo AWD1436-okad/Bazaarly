@@ -6,6 +6,7 @@ import { normalizeAppearancePreset } from "@/lib/appearance";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
+import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 
 export const runtime = "nodejs";
@@ -31,9 +32,14 @@ export default async function MainLayout({ children }: MainLayoutProps) {
     getLiveStateVersion(user.id),
     getActiveCurrencyCode(user.id),
   ]);
+  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
 
   return (
-    <main className="app-shell" data-theme={normalizeAppearancePreset(user.appearancePreset)}>
+    <main
+      className="app-shell"
+      data-theme={normalizeAppearancePreset(user.appearancePreset)}
+      data-player-mode={playerModeConfig.value.toLowerCase()}
+    >
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
       <AutoRestockApprovalGate />
       <Navigation
@@ -41,6 +47,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
         currencyCode={currencyCode}
         unreadNotifications={unreadNotifications.unreadCount}
         unreadNotificationLabel={unreadNotifications.label}
+        playerMode={playerModeConfig.value}
       />
       {children}
     </main>

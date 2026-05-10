@@ -35,6 +35,7 @@ export function DashboardListingManageForm({
 
     try {
       const formData = new FormData();
+      formData.set("listingId", listingId);
       formData.set("productId", productId);
       formData.set("price", price);
 
@@ -90,7 +91,11 @@ export function DashboardListingManageForm({
   }
 
   return (
-    <div className="dashboard-listing-manage-form">
+    <div
+      className="dashboard-listing-manage-form"
+      data-listing-id={listingId}
+      data-product-id={productId}
+    >
       <div className="inline-form">
         <input
           value={price}

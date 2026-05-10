@@ -97,6 +97,12 @@ enum BusinessLedgerEntryCategory {
   OTHER_EXPENSE
 }
 
+enum PlayerMode {
+  LITTLE
+  JUNIOR
+  TEEN
+}
+
 model User {
   id                     String         @id @default(cuid())
   email                  String         @unique
@@ -115,6 +121,7 @@ model User {
   autoRestockLastRunAt   DateTime?
   currencyCode           String         @default("AUD")
   appearancePreset       String         @default("current-tradex")
+  playerMode             PlayerMode     @default(TEEN)
   balance                Int            @default(0)
   deletedAt              DateTime?
   createdAt              DateTime       @default(now())

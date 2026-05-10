@@ -270,7 +270,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
           body={
             restockedListing
               ? "Your sold-out listing was restocked immediately and is live again."
-              : "Your stock was added to inventory and is ready to list in your shop."
+              : "Your stock was added to items you own and is ready to sell."
           }
         />
       ) : null}
@@ -278,7 +278,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       {error ? (
         <StatusBanner
           tone="error"
-          title="Supplier order needs attention"
+          title="Stock order needs attention"
           body={error}
         />
       ) : null}
@@ -286,7 +286,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
       <div className="catalog-layout">
         <aside className="category-sidebar">
           <div className="stack-sm">
-            <span className="tag">Categories</span>
+            <span className="tag">Stock categories</span>
             <CategoryFilterList
               categories={CATEGORY_OPTIONS}
               selectedCategory={selectedCategory?.value ?? null}
@@ -305,7 +305,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                     type="search"
                     name="q"
                     defaultValue={searchQuery}
-                    placeholder="Search supplier products"
+                    placeholder="Search stock to buy"
                   />
                 </label>
                 <button type="submit">Search</button>
@@ -320,9 +320,9 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
 
           <section className="page-header">
             <div>
-              <h2>{selectedCategoryDisplayLabel ?? "All supplier items"}</h2>
+              <h2>{selectedCategoryDisplayLabel ?? "All stock to buy"}</h2>
               <p>
-                {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} shown
+                {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} to buy
                 {selectedCategoryDisplayLabel ? ` in ${selectedCategoryDisplayLabel}` : ""}.
                 {searchQuery ? ` Search: "${searchQuery}".` : ""}
               </p>
@@ -352,7 +352,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
 
           {filteredProducts.length === 0 ? (
             <div className="empty-state">
-              No supplier items match that search inside the current category.
+              No stock items match that search inside the current category.
             </div>
           ) : (
             <section className="supplier-grid">
@@ -384,7 +384,7 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                   <div className="supplier-card__meta">
                     <span className="muted">Unit basis</span>
                     <strong>{item.unitLabel}</strong>
-                    <span className="muted">Supplier stock</span>
+                    <span className="muted">Stock available</span>
                     <strong>{sanitizeStockCount(item.supplierStock)}</strong>
                   </div>
 

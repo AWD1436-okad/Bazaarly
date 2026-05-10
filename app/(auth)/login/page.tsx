@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
+import { PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -120,6 +121,28 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   autoComplete="new-password"
                 />
               </label>
+              <fieldset className="player-mode-picker">
+                <legend>Choose your player mode</legend>
+                <div className="player-mode-picker__grid">
+                  {PLAYER_MODE_OPTIONS.map((mode) => (
+                    <label key={mode.value} className="player-mode-option">
+                      <input
+                        type="radio"
+                        name="playerMode"
+                        value={mode.value}
+                        defaultChecked={mode.value === "TEEN"}
+                      />
+                      <span className="player-mode-option__icon" aria-hidden="true">
+                        {mode.value === "LITTLE" ? "1" : mode.value === "JUNIOR" ? "2" : "3"}
+                      </span>
+                      <span>
+                        <strong>{mode.label}</strong>
+                        <small>{mode.signupDescription}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <button type="submit">Create account</button>
             </form>
           </div>

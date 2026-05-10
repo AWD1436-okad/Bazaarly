@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { HoldToShowInput } from "@/components/hold-to-show-input";
+import type { PlayerMode, PlayerModeConfig } from "@/lib/player-mode";
 
 type SettingsActionsProps = {
   email: string | null;
@@ -13,6 +14,7 @@ type SettingsActionsProps = {
   canRenameStore: boolean;
   currentCurrencyCode: string;
   currentAppearancePreset: string;
+  currentPlayerMode: PlayerMode;
   maskedBankNumber: string;
   renameStoreCostLabel: string;
   autoRestockSubscription: {
@@ -36,6 +38,7 @@ type SettingsActionsProps = {
     max: string;
   };
   fullAccessCostLabel: string;
+  playerModeOptions: ReadonlyArray<PlayerModeConfig>;
   appearancePresets: ReadonlyArray<{
     value: string;
     label: string;
@@ -103,11 +106,13 @@ export function SettingsActions({
   canRenameStore,
   currentCurrencyCode,
   currentAppearancePreset,
+  currentPlayerMode,
   maskedBankNumber,
   renameStoreCostLabel,
   autoRestockSubscription,
   autoRestockPlanLabels,
   fullAccessCostLabel,
+  playerModeOptions,
   appearancePresets,
   priceProfiles,
 }: SettingsActionsProps) {
@@ -148,6 +153,7 @@ export function SettingsActions({
   const [fullAccessPin, setFullAccessPin] = useState("");
   const [currencyCode, setCurrencyCode] = useState(currentCurrencyCode);
   const [appearancePreset, setAppearancePreset] = useState(currentAppearancePreset);
+  const [playerMode, setPlayerMode] = useState<PlayerMode>(currentPlayerMode);
   const [clockNow, setClockNow] = useState(() => Date.now());
   const [restockStatusMessage, setRestockStatusMessage] = useState<string | null>(null);
   const lastRestockProbeAt = useRef(0);
@@ -167,6 +173,7 @@ export function SettingsActions({
     | "delete"
     | "currency"
     | "appearance"
+    | "playerMode"
     | "autoRestock"
     | "restockInterval"
     | "fullAccess"
@@ -216,9 +223,9 @@ export function SettingsActions({
     : null;
   const restockCountdownLabel = nextRestockTime
     ? nextRestockTime <= clockNow
-      ? restockStatusMessage ?? "Checking sold-out items..."
-      : `Next restock in ${formatCountdown(nextRestockTime - clockNow)}`
-    : "Waiting for the next restock window";
+      ? restockStatusMessage ?? "Checking sold-out items now"
+      : `Next check in ${formatCountdown(nextRestockTime - clockNow)}`
+    : "Waiting for the next check";
   const renewalCountdownLabel = nextChargeTime
     ? nextChargeTime <= clockNow
       ? "Renewal will be checked shortly"
@@ -246,11 +253,15 @@ export function SettingsActions({
     }
 
     lastRestockProbeAt.current = clockNow;
-    void fetch("/api/auto-restock/pending", { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ pending?: unknown }>)
+    void fetch("/api/auto-restock/pending", { cache: "no-store", credentials: "same-origin" })
+      .then((response) => response.json() as Promise<{ pending?: unknown; cycleResult?: { message?: string } }>)
       .then((payload) => {
         setRestockStatusMessage(
-          payload.pending ? "Restock proposal ready" : "No sold-out items found. Next check is resetting...",
+          payload.pending
+            ? "Restock proposal ready"
+            : payload.cycleResult?.message
+              ? `${payload.cycleResult.message} Next check is resetting.`
+              : "No sold-out items found. Next check is resetting.",
         );
         router.refresh();
       })
@@ -598,6 +609,42 @@ export function SettingsActions({
     }
   }
 
+  async function handlePlayerModeChange() {
+    setSubmitting("playerMode");
+    resetMessages();
+
+    try {
+      const formData = new FormData();
+      formData.set("playerMode", playerMode);
+
+      const response = await fetch("/settings/player-mode", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        playerMode?: PlayerMode;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Player mode update failed");
+      }
+
+      setPlayerMode(payload.playerMode ?? playerMode);
+      setState({ message: payload.message ?? "Player mode updated", error: null });
+      router.refresh();
+    } catch (error) {
+      setState({
+        message: null,
+        error: error instanceof Error ? error.message : "Player mode update failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   async function handleAutoRestockSubscription(action: "activate" | "cancel") {
     setSubmitting("autoRestock");
     resetMessages();
@@ -899,7 +946,7 @@ export function SettingsActions({
             <div className="settings-row">
               <div>
                 <strong>Bank PIN</strong>
-                <p className="muted">Protected. For security, we can’t show your old PIN.</p>
+                <p className="muted">Protected. For security, we canâ€™t show your old PIN.</p>
               </div>
               <button
                 type="button"
@@ -999,6 +1046,45 @@ export function SettingsActions({
             >
               {submitting === "currency" ? "Updating..." : "Update Currency"}
             </button>
+          </div>
+        </section>
+
+        <section className="card settings-card settings-section settings-section--wide">
+          <div className="settings-section__header settings-section__header--inline">
+            <div>
+              <span className="settings-section__eyebrow">Player Mode</span>
+              <h2>Choose your game style</h2>
+              <p>Everyone plays in the same Profit Planet world. This only changes how much help and detail you see.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handlePlayerModeChange()}
+              disabled={submitting !== null || playerMode === currentPlayerMode}
+            >
+              {submitting === "playerMode" ? "Saving..." : "Save mode"}
+            </button>
+          </div>
+          <div className="player-mode-grid" role="radiogroup" aria-label="Player mode">
+            {playerModeOptions.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                className={mode.value === playerMode ? "player-mode-card player-mode-card--selected" : "player-mode-card"}
+                onClick={() => {
+                  setPlayerMode(mode.value);
+                  resetMessages();
+                }}
+                disabled={submitting !== null}
+                role="radio"
+                aria-checked={mode.value === playerMode}
+              >
+                <span className="player-mode-card__topline">
+                  <strong>{mode.label}</strong>
+                  <small>{mode.ageLabel}</small>
+                </span>
+                <span>{mode.settingsDescription}</span>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -1510,7 +1596,7 @@ export function SettingsActions({
           >
             <div className="modal-card__copy">
               <h3 id="pin-reset-title">Reset Bank PIN</h3>
-              <p>For security, we can’t show your old PIN. Confirm your password and create a new one.</p>
+              <p>For security, we canâ€™t show your old PIN. Confirm your password and create a new one.</p>
             </div>
             <label className="modal-card__field">
               Password

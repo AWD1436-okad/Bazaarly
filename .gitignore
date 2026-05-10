@@ -1,10 +1,16 @@
 .next
 node_modules
 .env
+.env.*
 .env.local
+.next-*
 coverage
 dist
 *.log
+*.tmp
+*.tmp.png
+public/icons/profit-planet-*.png
+codex_chatgpt_universal_sop_v2_8.docx
 prisma/dev.db
 prisma/prisma/dev.db
 tsconfig.tsbuildinfo

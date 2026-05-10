@@ -1,0 +1,4 @@
+CREATE TYPE "PlayerMode" AS ENUM ('LITTLE', 'JUNIOR', 'TEEN');
+
+ALTER TABLE "User"
+ADD COLUMN "playerMode" "PlayerMode" NOT NULL DEFAULT 'TEEN';

@@ -41,9 +41,10 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const productIdResult = parseRouteId(formData, "productId");
+  const listingIdResult = parseRouteId(formData, "listingId");
   const priceInput = String(formData.get("price") ?? "").trim();
 
-  if (!productIdResult.success || !/^\d+(\.\d{1,2})?$/.test(priceInput)) {
+  if ((!productIdResult.success && !listingIdResult.success) || !/^\d+(\.\d{1,2})?$/.test(priceInput)) {
     if (asyncRequest) {
       return NextResponse.json(
         { ok: false, error: "Enter a valid product and price" },
@@ -56,7 +57,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const productId = productIdResult.data;
+  const productId = productIdResult.success ? productIdResult.data : null;
+  const listingId = listingIdResult.success ? listingIdResult.data : null;
   const currencyCode = await getActiveCurrencyCode(user.id);
   const priceCents = convertCurrencyInputToAudCents(priceInput, currencyCode);
 
@@ -73,8 +75,50 @@ export async function POST(request: Request) {
     );
   }
 
+  let successMessage = "Listing published successfully";
+
   try {
     await prisma.$transaction(async (tx) => {
+      if (listingId) {
+        const listing = await tx.listing.findFirst({
+          where: {
+            id: listingId,
+            shop: {
+              ownerId: user.id,
+            },
+          },
+          include: {
+            product: true,
+          },
+        });
+
+        if (!listing) {
+          throw new Error("Listing not found");
+        }
+
+        await tx.listing.update({
+          where: { id: listing.id },
+          data: {
+            price: priceCents,
+            currencyCode: "AUD",
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: user.id,
+            type: NotificationType.SYSTEM,
+            message: `${listing.product.name} price updated.`,
+          },
+        });
+        successMessage = "Price saved successfully";
+        return;
+      }
+
+      if (!productId) {
+        throw new Error("Enter a valid product and price");
+      }
+
       const inventory = await tx.inventory.findUnique({
         where: {
           userId_productId: {
@@ -105,6 +149,26 @@ export async function POST(request: Request) {
       const quantityToList = sanitizeStockCount(inventoryQuantity - allocatedQuantity);
 
       if (quantityToList <= 0) {
+        if (listing) {
+          await tx.listing.update({
+            where: { id: listing.id },
+            data: {
+              price: priceCents,
+              currencyCode: "AUD",
+            },
+          });
+
+          await tx.notification.create({
+            data: {
+              userId: user.id,
+              type: NotificationType.SYSTEM,
+              message: `${inventory.product.name} price updated.`,
+            },
+          });
+          successMessage = "Price saved successfully";
+          return;
+        }
+
         throw new Error(
           inventoryQuantity <= 0
             ? "Buy this item from the supplier before listing it."
@@ -170,8 +234,9 @@ export async function POST(request: Request) {
 
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
+  revalidatePath(`/shop/${shop.id}`);
   if (asyncRequest) {
-    return NextResponse.json({ ok: true, message: "Listing published successfully" });
+    return NextResponse.json({ ok: true, message: successMessage });
   }
   return NextResponse.redirect(new URL("/dashboard?listingSuccess=1", request.url), 303);
 }

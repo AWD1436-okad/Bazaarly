@@ -11,6 +11,7 @@ import {
   getSessionCookieOptions,
 } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
+import { normalizePlayerMode } from "@/lib/player-mode";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const playerMode = normalizePlayerMode(formData.get("playerMode"));
   const throttleKey = createRegisterThrottleKey(request);
 
   if (!displayName || !username || !email || password.length < 8) {
@@ -64,6 +66,12 @@ export async function POST(request: Request) {
       balance: 0,
     },
   });
+
+  await prisma.$executeRaw`
+    UPDATE "User"
+    SET "playerMode" = ${playerMode}::"PlayerMode"
+    WHERE "id" = ${user.id}
+  `;
 
   const response = NextResponse.redirect(new URL("/security-setup", request.url), 303);
   const sessionToken = await createSessionToken(user.id);

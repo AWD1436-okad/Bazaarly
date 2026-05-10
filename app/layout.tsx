@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+
+import { PwaRegister } from "@/components/pwa-register";
 
 import "./globals.css";
 
@@ -9,6 +11,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://profitplanet.win"),
   title: "Profit Planet",
   description: "A business trading game where you buy, sell, restock, and grow your profit planet.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Profit Planet",
+    statusBarStyle: "black-translucent",
+  },
+  applicationName: "Profit Planet",
   openGraph: {
     title: "Profit Planet",
     description: "A business trading game where you buy, sell, restock, and grow your profit planet.",
@@ -24,12 +33,15 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/profit-planet-icon.png", sizes: "192x192", type: "image/png" },
-      { url: "/profit-planet-logo.png", sizes: "1024x1024", type: "image/png" },
+      { url: "/profit-planet-icon.png", sizes: "512x512", type: "image/png" },
     ],
     shortcut: "/profit-planet-icon.png",
     apple: "/profit-planet-icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0d2f23",
 };
 
 export default function RootLayout({
@@ -39,7 +51,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }

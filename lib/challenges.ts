@@ -4,6 +4,7 @@ import { Prisma, ProductCategory } from "@prisma/client";
 
 import { getNetProfitSummary } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
+import { getPlayerModeConfig, normalizePlayerMode, type PlayerMode } from "@/lib/player-mode";
 import { prisma } from "@/lib/prisma";
 
 export const CHALLENGE_CYCLE_MS = 5 * 60 * 1000;
@@ -38,6 +39,8 @@ export type ChallengeView = ChallengeDefinition & {
   ratio: number;
 };
 
+export type ChallengeStage = "Beginner" | "Growing" | "Established" | "Big Shop" | "Tycoon";
+
 type ChallengeStats = {
   soldItems: number;
   cartItemsAdded: number;
@@ -57,7 +60,7 @@ const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
   Hard: 15_000,
 };
 
-const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+const TEEN_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   Easy: [
     {
       key: "sell-5-items",
@@ -234,7 +237,120 @@ const CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   ],
 };
 
+const JUNIOR_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+  Easy: [
+    { key: "junior-sell-5-items", type: "SELL_ITEMS", label: "Sell 5 items", difficulty: "Easy", target: 5, rewardCents: REWARD_CENTS.Easy },
+    { key: "junior-buy-150-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy stock target", difficulty: "Easy", target: 15_000, rewardCents: REWARD_CENTS.Easy },
+    { key: "junior-keep-5-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 5 items for sale", difficulty: "Easy", target: 5, rewardCents: REWARD_CENTS.Easy },
+    { key: "junior-list-4-products", type: "LIST_PRODUCTS", label: "Put 4 items in your shop", difficulty: "Easy", target: 4, rewardCents: REWARD_CENTS.Easy },
+  ],
+  Medium: [
+    { key: "junior-sell-10-items", type: "SELL_ITEMS", label: "Sell 10 items", difficulty: "Medium", target: 10, rewardCents: REWARD_CENTS.Medium },
+    { key: "junior-earn-250-profit", type: "EARN_PROFIT", label: "Earn profit target", difficulty: "Medium", target: 25_000, rewardCents: REWARD_CENTS.Medium },
+    { key: "junior-restock-4-items", type: "RESTOCK_SOLD_OUT", label: "Buy more stock for 4 sold-out items", difficulty: "Medium", target: 4, rewardCents: REWARD_CENTS.Medium },
+    { key: "junior-sell-3-categories", type: "SELL_CATEGORIES", label: "Sell from 3 groups", difficulty: "Medium", target: 3, rewardCents: REWARD_CENTS.Medium },
+  ],
+  Hard: [
+    { key: "junior-sell-18-items", type: "SELL_ITEMS", label: "Sell 18 items", difficulty: "Hard", target: 18, rewardCents: REWARD_CENTS.Hard },
+    { key: "junior-complete-7-orders", type: "RECEIVE_ORDER", label: "Complete 7 sales", difficulty: "Hard", target: 7, rewardCents: REWARD_CENTS.Hard },
+    { key: "junior-keep-12-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 12 items for sale", difficulty: "Hard", target: 12, rewardCents: REWARD_CENTS.Hard },
+  ],
+};
+
+const LITTLE_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+  Easy: [
+    { key: "little-sell-2-things", type: "SELL_ITEMS", label: "Sell 2 things", difficulty: "Easy", target: 2, rewardCents: REWARD_CENTS.Easy },
+    { key: "little-buy-1-item", type: "ADD_CART_ITEMS", label: "Pick 1 thing to buy", difficulty: "Easy", target: 1, rewardCents: REWARD_CENTS.Easy },
+    { key: "little-put-1-in-shop", type: "LIST_PRODUCTS", label: "Put 1 thing in your shop", difficulty: "Easy", target: 1, rewardCents: REWARD_CENTS.Easy },
+    { key: "little-keep-1-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 1 thing for sale", difficulty: "Easy", target: 1, rewardCents: REWARD_CENTS.Easy },
+  ],
+  Medium: [
+    { key: "little-sell-3-things", type: "SELL_ITEMS", label: "Sell 3 things", difficulty: "Medium", target: 3, rewardCents: REWARD_CENTS.Medium },
+    { key: "little-buy-more-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy more stock", difficulty: "Medium", target: 5_000, rewardCents: REWARD_CENTS.Medium },
+    { key: "little-fix-1-sold-out", type: "RESTOCK_SOLD_OUT", label: "Buy more for 1 sold-out thing", difficulty: "Medium", target: 1, rewardCents: REWARD_CENTS.Medium },
+  ],
+  Hard: [
+    { key: "little-sell-5-things", type: "SELL_ITEMS", label: "Sell 5 things", difficulty: "Hard", target: 5, rewardCents: REWARD_CENTS.Hard },
+    { key: "little-finish-2-sales", type: "RECEIVE_ORDER", label: "Finish 2 sales", difficulty: "Hard", target: 2, rewardCents: REWARD_CENTS.Hard },
+    { key: "little-keep-3-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 3 things in your shop", difficulty: "Hard", target: 3, rewardCents: REWARD_CENTS.Hard },
+  ],
+};
+
+function getChallengeLibrary(playerMode: PlayerMode) {
+  if (playerMode === "LITTLE") return LITTLE_CHALLENGE_LIBRARY;
+  if (playerMode === "JUNIOR") return JUNIOR_CHALLENGE_LIBRARY;
+  return TEEN_CHALLENGE_LIBRARY;
+}
+
 const DIFFICULTY_ORDER: ChallengeDifficulty[] = ["Easy", "Easy", "Medium", "Medium", "Hard"];
+
+const STAGE_SCALE: Record<ChallengeStage, { count: number; money: number }> = {
+  Beginner: { count: 1, money: 1 },
+  Growing: { count: 1.6, money: 1.8 },
+  Established: { count: 2.4, money: 3 },
+  "Big Shop": { count: 3.6, money: 5 },
+  Tycoon: { count: 5, money: 8 },
+};
+
+function getChallengeStage({
+  balance,
+  totalOrders,
+  activeListingCount,
+  inventoryCount,
+  categoriesStocked,
+  totalNetProfit,
+}: {
+  balance: number;
+  totalOrders: number;
+  activeListingCount: number;
+  inventoryCount: number;
+  categoriesStocked: number;
+  totalNetProfit: number;
+}): ChallengeStage {
+  const score =
+    (balance >= 500_000 ? 2 : balance >= 150_000 ? 1 : 0) +
+    (totalOrders >= 40 ? 3 : totalOrders >= 15 ? 2 : totalOrders >= 5 ? 1 : 0) +
+    (activeListingCount >= 25 ? 3 : activeListingCount >= 12 ? 2 : activeListingCount >= 5 ? 1 : 0) +
+    (inventoryCount >= 35 ? 2 : inventoryCount >= 15 ? 1 : 0) +
+    (categoriesStocked >= 8 ? 2 : categoriesStocked >= 4 ? 1 : 0) +
+    (totalNetProfit >= 300_000 ? 3 : totalNetProfit >= 100_000 ? 2 : totalNetProfit >= 25_000 ? 1 : 0);
+
+  if (score >= 12) return "Tycoon";
+  if (score >= 9) return "Big Shop";
+  if (score >= 6) return "Established";
+  if (score >= 3) return "Growing";
+  return "Beginner";
+}
+
+function scaleChallengeForStage(
+  challenge: ChallengeDefinition,
+  stage: ChallengeStage,
+  playerMode: PlayerMode,
+): ChallengeDefinition {
+  if (playerMode === "LITTLE") {
+    return {
+      ...challenge,
+      key: `${challenge.key}:mode-little`,
+    };
+  }
+
+  const scale = STAGE_SCALE[stage];
+  const modeScale = playerMode === "JUNIOR" ? 0.7 : 1;
+  const isMoneyTarget =
+    challenge.type === "EARN_PROFIT" ||
+    challenge.type === "BUY_SUPPLIER_STOCK" ||
+    challenge.type === "CART_VALUE";
+  const targetScale = isMoneyTarget ? scale.money : scale.count;
+  const scaledTarget = challenge.target * targetScale * modeScale;
+  const rounding = isMoneyTarget ? 5_000 : 5;
+  const target = Math.max(challenge.target, Math.ceil(scaledTarget / rounding) * rounding);
+
+  return {
+    ...challenge,
+    key: `${challenge.key}:mode-${playerMode.toLowerCase()}:stage-${stage.toLowerCase().replace(/\s+/g, "-")}`,
+    target,
+  };
+}
 
 function getCycleStart(now: Date) {
   return new Date(Math.floor(now.getTime() / CHALLENGE_CYCLE_MS) * CHALLENGE_CYCLE_MS);
@@ -249,22 +365,28 @@ function getSeedIndex(seed: string, modulo: number) {
   return Number.parseInt(digest.slice(0, 8), 16) % modulo;
 }
 
-function generateChallenges(userId: string, cycleStartAt: Date) {
+function generateChallenges(userId: string, cycleStartAt: Date, stage: ChallengeStage, playerMode: PlayerMode) {
   const cycleKey = cycleStartAt.toISOString();
   const usedBaseKeys = new Set<string>();
+  const challengeLibrary = getChallengeLibrary(playerMode);
   return DIFFICULTY_ORDER.map((difficulty, slot) => {
-    const options = CHALLENGE_LIBRARY[difficulty];
-    const startIndex = getSeedIndex(`${userId}:${cycleKey}:${difficulty}:${slot}`, options.length);
-    const selected =
-      options.find((_, offset) => {
-        const option = options[(startIndex + offset) % options.length];
-        return !usedBaseKeys.has(option.key);
-      }) ?? options[startIndex];
+    const options = challengeLibrary[difficulty];
+    const startIndex = getSeedIndex(`${userId}:${cycleKey}:${playerMode}:${difficulty}:${slot}`, options.length);
+    let selected = options[startIndex];
+
+    for (let offset = 0; offset < options.length; offset += 1) {
+      const option = options[(startIndex + offset) % options.length];
+      if (!usedBaseKeys.has(option.key)) {
+        selected = option;
+        break;
+      }
+    }
+
     usedBaseKeys.add(selected.key);
-    return {
+    return scaleChallengeForStage({
       ...selected,
       key: `${selected.key}:${cycleKey}`,
-    };
+    }, stage, playerMode);
   });
 }
 
@@ -368,16 +490,46 @@ export async function getDashboardChallenges({
   currencyCode,
   activeListingCount,
   now = new Date(),
+  playerMode: requestedPlayerMode,
 }: {
   userId: string;
   shopId: string;
   currencyCode: string;
   activeListingCount: number;
   now?: Date;
+  playerMode?: PlayerMode;
 }) {
   const cycleStartAt = getCycleStart(now);
   const cycleEndsAt = getCycleEnd(cycleStartAt);
-  const generatedChallenges = generateChallenges(userId, cycleStartAt);
+  const [totalProfitSummary, totalOrderCount, inventoryStageRows, stageUser] = await Promise.all([
+    getNetProfitSummary({ userId }),
+    prisma.order.count({ where: { sellerId: userId } }),
+    prisma.inventory.findMany({
+      where: { userId, quantity: { gt: 0 } },
+      select: {
+        product: {
+          select: {
+            category: true,
+          },
+        },
+      },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { balance: true },
+    }),
+  ]);
+  const playerMode = normalizePlayerMode(requestedPlayerMode);
+  const playerModeConfig = getPlayerModeConfig(playerMode);
+  const stage = getChallengeStage({
+    balance: stageUser?.balance ?? 0,
+    totalOrders: totalOrderCount,
+    activeListingCount,
+    inventoryCount: inventoryStageRows.length,
+    categoriesStocked: new Set<ProductCategory>(inventoryStageRows.map((row) => row.product.category)).size,
+    totalNetProfit: totalProfitSummary.netProfitCents,
+  });
+  const generatedChallenges = generateChallenges(userId, cycleStartAt, stage, playerMode);
   let challengeSet = await prisma.challengeSet.upsert({
     where: {
       userId_cycleStartAt: {
@@ -594,6 +746,9 @@ export async function getDashboardChallenges({
   return {
     cycleStartAt,
     cycleEndsAt,
+    stage,
+    playerMode,
+    playerModeLabel: playerModeConfig.shortLabel,
     secondsRemaining: Math.max(0, Math.ceil((cycleEndsAt.getTime() - now.getTime()) / 1000)),
     challenges: challengeViews,
   };

@@ -1,4 +1,5 @@
 import { SettingsActions } from "@/components/settings-actions";
+import { InstallAppCard } from "@/components/install-app-card";
 import {
   MAX_DAILY_COST_CENTS,
   PRO_DAILY_COST_CENTS,
@@ -14,6 +15,7 @@ import {
 import { APPEARANCE_PRESETS, normalizeAppearancePreset } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
+import { getPlayerModeConfig, PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
@@ -24,6 +26,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
   const profile = getPriceProfileMetadata(currencyCode);
+  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
   const subscription = await prisma.autoRestockSubscription.findUnique({
     where: { userId: user.id },
   });
@@ -61,7 +64,14 @@ export default async function SettingsPage() {
           <strong>{user.shop?.name ?? "No shop yet"}</strong>
           <p className="muted">{user.shop ? "Active seller profile" : "Create a shop first"}</p>
         </article>
+        <article className="metric-card">
+          <span className="metric-card__eyebrow">Player mode</span>
+          <strong>{playerModeConfig.shortLabel}</strong>
+          <p className="muted">{playerModeConfig.settingsDescription}</p>
+        </article>
       </section>
+
+      <InstallAppCard />
 
       <SettingsActions
         email={user.email ?? null}
@@ -71,6 +81,8 @@ export default async function SettingsPage() {
         canRenameStore={Boolean(user.shop)}
         currentCurrencyCode={currencyCode}
         currentAppearancePreset={normalizeAppearancePreset(user.appearancePreset)}
+        currentPlayerMode={playerModeConfig.value}
+        playerModeOptions={PLAYER_MODE_OPTIONS}
         appearancePresets={APPEARANCE_PRESETS}
         priceProfiles={getSupportedPriceProfiles()}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
