@@ -67,7 +67,11 @@ export default async function ChallengesPage() {
               Rewards are paid once per completed challenge and cannot be farmed by refreshing.
             </p>
           </div>
-          <ChallengeCountdown cycleEndsAt={challengeSet.cycleEndsAt.toISOString()} />
+          <ChallengeCountdown
+            key={challengeSet.cycleEndsAt.toISOString()}
+            cycleEndsAt={challengeSet.cycleEndsAt.toISOString()}
+            initialSeconds={challengeSet.secondsRemaining}
+          />
         </div>
       </section>
 

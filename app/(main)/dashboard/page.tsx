@@ -475,7 +475,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           <Link href="/marketplace" className="ghost-button">
             {playerModeConfig.value === "LITTLE" ? "Shop" : "Marketplace"}
           </Link>
-          <Link href="/challenges" className="ghost-button">
+          <Link href={"/challenges" as Route} className="ghost-button">
             {playerModeConfig.value === "LITTLE" ? "Tasks" : "Challenges"}
           </Link>
         </div>
@@ -715,7 +715,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                   minutes.
                 </p>
               </div>
-              <ChallengeCountdown cycleEndsAt={challengeSet.cycleEndsAt.toISOString()} />
+              <ChallengeCountdown
+                key={challengeSet.cycleEndsAt.toISOString()}
+                cycleEndsAt={challengeSet.cycleEndsAt.toISOString()}
+                initialSeconds={challengeSet.secondsRemaining}
+              />
             </div>
             <div className="challenge-preview-summary">
               <strong>

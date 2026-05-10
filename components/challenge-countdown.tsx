@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type ChallengeCountdownProps = {
   cycleEndsAt: string;
+  initialSeconds: number;
 };
 
 function formatRemaining(seconds: number) {
@@ -13,13 +14,9 @@ function formatRemaining(seconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-export function ChallengeCountdown({ cycleEndsAt }: ChallengeCountdownProps) {
+export function ChallengeCountdown({ cycleEndsAt, initialSeconds }: ChallengeCountdownProps) {
   const router = useRouter();
-  const [now, setNow] = useState(() => Date.now());
-  const seconds = useMemo(() => {
-    const endsAt = new Date(cycleEndsAt).getTime();
-    return Math.max(0, Math.ceil((endsAt - now) / 1000));
-  }, [cycleEndsAt, now]);
+  const [seconds, setSeconds] = useState(() => Math.max(0, initialSeconds));
   const label = useMemo(() => formatRemaining(seconds), [seconds]);
 
   useEffect(() => {
@@ -29,7 +26,7 @@ export function ChallengeCountdown({ cycleEndsAt }: ChallengeCountdownProps) {
     }
 
     const timeout = window.setTimeout(() => {
-      setNow(Date.now());
+      setSeconds((current) => Math.max(0, current - 1));
     }, 1000);
 
     return () => window.clearTimeout(timeout);
