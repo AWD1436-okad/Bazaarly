@@ -43,14 +43,12 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
     <div className="page-grid">
       <section className="page-header">
         <h1>Notifications</h1>
-        <p>Sales, low-stock warnings, and important market updates all show up here.</p>
       </section>
 
       <section className="card">
         <div className="card-header">
           <div className="card-header__copy">
             <h2>Notification center</h2>
-            <p>Unread items stay highlighted until you mark them read.</p>
           </div>
           <form action="/notifications/read-all" method="post" className="card-toolbar">
             <button type="submit">Mark all as read</button>
@@ -61,7 +59,6 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
           {visibleNotifications.length === 0 ? (
             <article className="notification-row">
               <strong>No notifications yet</strong>
-              <p className="muted">New sales, low-stock warnings, and market updates will show up here.</p>
             </article>
           ) : (
             visibleNotifications.map((notification) => (
@@ -109,12 +106,6 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
             </div>
           </div>
         )}
-        {!hasNextPage && page === 1 && visibleNotifications.length > 0 ? (
-          <p className="muted">Only the most recent notification history is loaded here because your current inbox fits on one page.</p>
-        ) : null}
-        {hasNextPage ? (
-          <p className="muted">Older notifications load page by page so the inbox stays fast as your history grows.</p>
-        ) : null}
       </section>
     </div>
   );

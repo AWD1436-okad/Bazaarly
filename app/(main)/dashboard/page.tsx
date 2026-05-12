@@ -458,7 +458,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
       <section className="page-header">
         <h1>{user.shop.name}</h1>
-        <p>{playerModeConfig.dashboardLead}</p>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -466,7 +465,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         <div>
           <span className="tag">Player mode: {playerModeConfig.label}</span>
           <h2>{playerModeConfig.dashboardTitle}</h2>
-          <p>{playerModeConfig.settingsDescription}</p>
+          {playerModeConfig.showDetailedHelpers ? <p>{playerModeConfig.dashboardLead}</p> : null}
         </div>
         <div className="player-mode-quick-actions">
           <Link href="/dashboard/supplier" className="ghost-button">
@@ -513,10 +512,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Create or update a listing</h2>
-                <p>
-                  Pick an item you own and put it up for sale. Profit Planet moves the stock
-                  you can sell into your shop listing.
-                </p>
+                {playerModeConfig.showDetailedHelpers ? (
+                  <p>Pick owned stock and put it up for sale.</p>
+                ) : null}
               </div>
               <div className="card-toolbar">
                 <Link href="/dashboard/supplier" className="ghost-button">
@@ -551,7 +549,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Items you own</h2>
-                <p>Stock shown here is ready to put up for sale.</p>
+                {playerModeConfig.value === "ADVANCED" ? <p>Stock ready to sell.</p> : null}
               </div>
             </div>
             <div className="table-list">
@@ -615,7 +613,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Items for sale</h2>
-                <p>Keep your shop stocked, pause items, or clean up sold-out rows.</p>
+                {playerModeConfig.showDetailedHelpers ? (
+                  <p>Manage prices, pauses, and sold-out items.</p>
+                ) : null}
               </div>
               <div className="card-toolbar">
                 {playerModeConfig.showAdvancedControls ? (
@@ -710,10 +710,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Challenges</h2>
-                <p>
-                  Player mode: {challengeSet.playerModeLabel}. Stage: {challengeSet.stage}. Tasks refresh every five
-                  minutes.
-                </p>
+                {playerModeConfig.value === "LITTLE" ? null : (
+                  <p>
+                    {challengeSet.playerModeLabel}. Stage: {challengeSet.stage}.
+                  </p>
+                )}
               </div>
               <ChallengeCountdown
                 key={challengeSet.cycleEndsAt.toISOString()}
@@ -758,7 +759,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Recent sales</h2>
-                <p>The latest orders update here automatically as your shop sells.</p>
               </div>
             </div>
             {recentSales.length === 0 ? (
@@ -794,7 +794,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Best-selling items</h2>
-                <p>Your strongest sellers, ranked by completed units and sales income.</p>
               </div>
             </div>
             {bestSellers.length === 0 ? (
@@ -821,7 +820,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <div className="card-header">
               <div className="card-header__copy">
                 <h2>Low-stock alerts</h2>
-                <p>Catch items that are nearly gone before they disappear from your shop.</p>
               </div>
             </div>
             {lowStockListings.length === 0 ? (

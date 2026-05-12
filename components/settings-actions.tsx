@@ -786,7 +786,6 @@ export function SettingsActions({
         <div className="status-banner status-banner--success">
           <div>
             <h3>{state.message}</h3>
-            <p>Your account settings have been updated.</p>
           </div>
         </div>
       ) : null}
@@ -805,7 +804,6 @@ export function SettingsActions({
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Account</span>
             <h2>Player identity</h2>
-            <p>Manage your name, handle, and signed-in session from one place.</p>
           </div>
           <div className="settings-list">
             <div className="settings-row">
@@ -855,7 +853,6 @@ export function SettingsActions({
             <div className="settings-row">
               <div>
                 <strong>Logout</strong>
-                <p className="muted">Requires your password before signing out.</p>
               </div>
               <button
                 type="button"
@@ -873,7 +870,7 @@ export function SettingsActions({
             <div className="settings-row">
               <div>
                 <strong>Password</strong>
-                <p className="muted">Protected. Passwords are hashed and cannot be revealed.</p>
+                <p className="muted">Protected</p>
               </div>
               <a href="/forgot-password" className="ghost-button">
                 Reset Password
@@ -886,7 +883,7 @@ export function SettingsActions({
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Shop</span>
             <h2>Store profile</h2>
-            <p>Keep your public seller name tidy. Rename cost: {renameStoreCostLabel}.</p>
+            <p>Rename cost: {renameStoreCostLabel}.</p>
           </div>
           <div className="settings-list">
             <div className="settings-row">
@@ -910,9 +907,6 @@ export function SettingsActions({
                 Rename store
               </button>
             </div>
-            <div className="settings-note">
-              Store renames require password confirmation and charge your in-game balance.
-            </div>
           </div>
         </section>
 
@@ -920,7 +914,6 @@ export function SettingsActions({
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Security</span>
             <h2>Bank and verification</h2>
-            <p>Your bank number stays hidden unless password and PIN checks pass.</p>
           </div>
           <div className="settings-list">
             <div className="settings-row">
@@ -946,7 +939,7 @@ export function SettingsActions({
             <div className="settings-row">
               <div>
                 <strong>Bank PIN</strong>
-                <p className="muted">Protected. For security, we canâ€™t show your old PIN.</p>
+                <p className="muted">Protected</p>
               </div>
               <button
                 type="button"
@@ -963,9 +956,6 @@ export function SettingsActions({
                 Forgot PIN?
               </button>
             </div>
-            <div className="settings-note">
-              Stored secrets stay protected. Hold-to-show only appears while typing new secure details.
-            </div>
           </div>
         </section>
 
@@ -973,7 +963,7 @@ export function SettingsActions({
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Currency</span>
             <h2>Display currency</h2>
-            <p>Prices stay stored safely in base values. This only changes your display currency.</p>
+            <p>Changes display only. Base values stay in AUD.</p>
           </div>
           <label className="modal-card__field">
             <span>Search currency by code, name, or country</span>
@@ -1035,9 +1025,7 @@ export function SettingsActions({
               {selectedCurrencyProfile.currencyName} - {selectedCurrencyProfile.symbol}.
             </p>
           ) : null}
-          <p className="muted">
-            Current currency: {currentCurrencyCode}. Exchange rates are static reference values in this build.
-          </p>
+          <p className="muted">Static exchange rates are used for display.</p>
           <div className="settings-section__actions">
             <button
               type="button"
@@ -1054,7 +1042,7 @@ export function SettingsActions({
             <div>
               <span className="settings-section__eyebrow">Player Mode</span>
               <h2>Choose your game style</h2>
-              <p>Everyone plays in the same Profit Planet world. This only changes how much help and detail you see.</p>
+              <p>Same world. Different help level.</p>
             </div>
             <button
               type="button"
@@ -1093,7 +1081,6 @@ export function SettingsActions({
             <div>
               <span className="settings-section__eyebrow">Appearance</span>
               <h2>Theme presets</h2>
-              <p>Choose a Profit Planet look. Each preview shows cards, badges, and controls.</p>
             </div>
             <button
               type="button"
@@ -1146,7 +1133,7 @@ export function SettingsActions({
             <div>
               <span className="settings-section__eyebrow">Auto Restocker</span>
               <h2>Subscription and access</h2>
-              <p>Choose one paid plan. Full Access adds {fullAccessCostLabel} and still charges item costs.</p>
+              <p>Full Access adds {fullAccessCostLabel}. Items still cost money.</p>
             </div>
             <div className="inline-actions">
               {autoRestockSubscription?.status === "ACTIVE" ? (
@@ -1300,9 +1287,7 @@ export function SettingsActions({
               Confirmed replacement is enabled. Activating now will replace your current active plan.
             </p>
           ) : null}
-          <p className="muted">
-            Plan fees cover 48 hours and renew automatically. If balance is too low at renewal, subscription auto-cancels.
-          </p>
+          <p className="muted">Renews every 48 hours. Low balance cancels it.</p>
         </section>
 
         <section className="card settings-card settings-section settings-section--danger settings-section--wide">

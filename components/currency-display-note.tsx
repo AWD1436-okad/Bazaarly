@@ -1,11 +1,18 @@
-import { getCurrencyDisplayNotice } from "@/lib/money";
-
 type CurrencyDisplayNoteProps = {
   currencyCode: string;
   className?: string;
+  full?: boolean;
 };
 
-export function CurrencyDisplayNote({ currencyCode, className }: CurrencyDisplayNoteProps) {
-  return <p className={className ?? "muted"}>{getCurrencyDisplayNotice(currencyCode)}</p>;
+export function CurrencyDisplayNote({ currencyCode, className, full = false }: CurrencyDisplayNoteProps) {
+  if (full) {
+    return (
+      <p className={className ?? "muted"}>
+        Prices are shown in {currencyCode}. Base values stay in AUD.
+      </p>
+    );
+  }
+
+  return <span className={className ?? "currency-chip"}>Prices shown in {currencyCode}</span>;
 }
 

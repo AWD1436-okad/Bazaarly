@@ -173,12 +173,12 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
       <section className="page-header marketplace-results-header">
         <h2>{selectedCategoryLabel}</h2>
-        <p>
+        <span className="tag">
           {marketplace.listings.length} {playerModeConfig.value === "LITTLE" ? "things" : "matching listings"}
           {hasQuery
             ? ` for "${queryText}"`
             : ""}
-        </p>
+        </span>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -193,7 +193,9 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       {marketplace.listings.length === 0 ? (
         <div className="empty-state">
           <p>No exact match found.</p>
-          <p className="muted">Try clearing filters, switching to All Categories, or searching with fewer words.</p>
+          {playerModeConfig.value === "LITTLE" ? null : (
+            <p className="muted">Try fewer words or clear filters.</p>
+          )}
         </div>
       ) : (
         <>

@@ -40,7 +40,6 @@ export default async function SettingsPage() {
     <div className="page-grid">
       <section className="page-header">
         <h1>Settings</h1>
-        <p>Manage your account and seller identity from one place.</p>
       </section>
 
       <section className="metrics-grid">
@@ -62,12 +61,11 @@ export default async function SettingsPage() {
         <article className="metric-card">
           <span className="metric-card__eyebrow">Store</span>
           <strong>{user.shop?.name ?? "No shop yet"}</strong>
-          <p className="muted">{user.shop ? "Active seller profile" : "Create a shop first"}</p>
+          {!user.shop ? <p className="muted">Create a shop first</p> : null}
         </article>
         <article className="metric-card">
           <span className="metric-card__eyebrow">Player mode</span>
           <strong>{playerModeConfig.shortLabel}</strong>
-          <p className="muted">{playerModeConfig.settingsDescription}</p>
         </article>
       </section>
 

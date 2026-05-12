@@ -50,10 +50,7 @@ export default async function ChallengesPage() {
     <div className="page-grid challenges-page">
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       <section className="page-header">
-        <h1>Challenges</h1>
-        <p>
-          {playerModeConfig.challengeLead} Five challenges refresh every five minutes.
-        </p>
+        <h1>{playerModeConfig.value === "LITTLE" ? "Tasks" : "Challenges"}</h1>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -62,9 +59,8 @@ export default async function ChallengesPage() {
           <div>
             <h2>Current set</h2>
             <p>
-              Player mode: <strong>{challengeSet.playerModeLabel}</strong>. Challenge stage:{" "}
-              <strong>{challengeSet.stage}</strong>. {completedCount} of {challengeSet.challenges.length} completed.
-              Rewards are paid once per completed challenge and cannot be farmed by refreshing.
+              <strong>{completedCount} of {challengeSet.challenges.length}</strong> done
+              {playerModeConfig.value === "LITTLE" ? "." : ` - ${challengeSet.playerModeLabel}, ${challengeSet.stage}.`}
             </p>
           </div>
           <ChallengeCountdown
@@ -108,7 +104,7 @@ export default async function ChallengesPage() {
         <div className="section-row">
           <div>
             <h2>Play smarter</h2>
-            <p>{playSmarterText}</p>
+            {playerModeConfig.value === "LITTLE" ? null : <p>{playSmarterText}</p>}
           </div>
           <Link href="/dashboard" className="ghost-button">
             Back to dashboard

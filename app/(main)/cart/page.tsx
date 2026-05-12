@@ -61,7 +61,6 @@ export default async function CartPage({ searchParams }: CartProps) {
     <div className="page-grid cart-page">
       <section className="page-header">
         <h1>Your cart</h1>
-        <p>Review marketplace and supplier items before moving to secure checkout.</p>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -69,7 +68,6 @@ export default async function CartPage({ searchParams }: CartProps) {
         <div className="status-banner status-banner--success">
           <div>
             <h3>Added to cart</h3>
-            <p>Your selected item is ready for checkout.</p>
           </div>
         </div>
       ) : null}
@@ -104,7 +102,6 @@ export default async function CartPage({ searchParams }: CartProps) {
             <div className="section-row">
               <div>
                 <h2>Checkout</h2>
-                <p>Continue to secure checkout with password, PIN, and bank number verification.</p>
               </div>
               <form action="/checkout" method="get">
                 <button type="submit" disabled={hasUnavailableItems || cart.items.length === 0}>

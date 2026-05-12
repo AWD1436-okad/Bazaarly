@@ -76,7 +76,6 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     <div className="page-grid checkout-page">
       <section className="page-header">
         <h1>Secure checkout</h1>
-        <p>Review everything, then confirm with your account password, checkout PIN, and bank number.</p>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -104,8 +103,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           <div>
             <h3>Price changed since added</h3>
             <p>
-              Your cart price is locked for: {priceChangedItems.map((item) => item.product.name).join(", ")}.
-              Locked checkout amounts are stored in AUD and converted for display in {currencyCode}.
+              Locked cart price kept for: {priceChangedItems.map((item) => item.product.name).join(", ")}.
             </p>
           </div>
         </div>
@@ -115,11 +113,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
         <div className="section-row">
           <div>
             <h2>Confirm purchase</h2>
-            <p>
-              {cart.items.length} item type{cart.items.length === 1 ? "" : "s"} in this checkout. Total{" "}
-              <strong>{formatCurrency(total, currencyCode)}</strong>.
-            </p>
-            <p>Wrong password, PIN, or bank number will leave your cart untouched.</p>
+            <p>Wrong details will leave your cart untouched.</p>
           </div>
           <Link className="ghost-button" href="/cart">
             Back to cart
@@ -151,7 +145,6 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
         <div className="section-row">
           <div>
             <h2>Order details</h2>
-            <p>Review each cart line before final confirmation.</p>
           </div>
           <strong>{formatCurrency(total, currencyCode)}</strong>
         </div>

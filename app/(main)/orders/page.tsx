@@ -137,7 +137,6 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
     <div className="page-grid">
       <section className="page-header">
         <h1>Order history</h1>
-        <p>Review both sides of your Profit Planet economy: what you bought and what you sold.</p>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -155,7 +154,6 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
           <div className="card-header">
             <div className="card-header__copy">
               <h2>Buyer history</h2>
-              <p>Everything you bought across the marketplace.</p>
             </div>
           </div>
           {visibleBuyerOrders.length === 0 ? (
@@ -236,7 +234,6 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
           <div className="card-header">
             <div className="card-header__copy">
               <h2>Seller history</h2>
-              <p>Your completed sales and the buyers behind them.</p>
             </div>
           </div>
           {visibleSellerOrders.length === 0 ? (

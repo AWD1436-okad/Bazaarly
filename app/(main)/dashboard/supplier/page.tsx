@@ -329,13 +329,12 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                   ? "Buy Things"
                   : selectedCategoryDisplayLabel ?? "All stock to buy"}
               </h2>
-              <p>
-                {playerModeConfig.value === "LITTLE"
-                  ? "Tap Add to cart when you find something you like."
-                  : `${filteredProducts.length} item${filteredProducts.length === 1 ? "" : "s"} to buy${
-                      selectedCategoryDisplayLabel ? ` in ${selectedCategoryDisplayLabel}` : ""
-                    }.${searchQuery ? ` Search: "${searchQuery}".` : ""}`}
-              </p>
+              {playerModeConfig.value === "LITTLE" ? null : (
+                <span className="tag">
+                  {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"}
+                  {searchQuery ? ` for "${searchQuery}"` : ""}
+                </span>
+              )}
               <CurrencyDisplayNote currencyCode={currencyCode} />
             </div>
             {selectedCategory && playerModeConfig.showAdvancedControls ? (
