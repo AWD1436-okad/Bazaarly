@@ -4,7 +4,6 @@ import {
   MAX_DAILY_COST_CENTS,
   PRO_DAILY_COST_CENTS,
   SIMPLE_DAILY_COST_CENTS,
-  FULL_ACCESS_48H_COST_CENTS,
   getAutoRestockRenewalCostCents,
   getRestockCoverageLabel,
   getRestockCycleLabel,
@@ -118,7 +117,7 @@ export default async function SettingsPage() {
           pro: `${formatCurrency(PRO_DAILY_COST_CENTS, currencyCode)}/48h`,
           max: `${formatCurrency(MAX_DAILY_COST_CENTS, currencyCode)}/48h`,
         }}
-        fullAccessCostLabel={`${formatCurrency(FULL_ACCESS_48H_COST_CENTS, currencyCode)}/48h`}
+        fullAccessCostLabel="Free"
       />
 
     </div>

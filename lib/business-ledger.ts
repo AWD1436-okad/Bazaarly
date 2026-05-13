@@ -41,6 +41,24 @@ export async function recordBusinessExpense(tx: LedgerClient, input: ExpenseInpu
   });
 }
 
+export async function recordBusinessRefund(tx: LedgerClient, input: ExpenseInput) {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    return null;
+  }
+
+  return tx.businessLedgerEntry.create({
+    data: {
+      userId: input.userId,
+      type: BusinessLedgerEntryType.REFUND,
+      category: input.category,
+      amount: Math.round(input.amount),
+      description: input.description,
+      data: input.data,
+      ...(input.createdAt ? { createdAt: input.createdAt } : {}),
+    },
+  });
+}
+
 export async function getNetProfitSummary({ userId, startAt, endAt }: ProfitSummaryInput) {
   const createdAt =
     startAt || endAt

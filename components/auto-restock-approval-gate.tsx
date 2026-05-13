@@ -38,7 +38,6 @@ export function AutoRestockApprovalGate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<"summary" | "secure">("summary");
-  const [password, setPassword] = useState("");
   const [checkoutPin, setCheckoutPin] = useState("");
   const [bankNumber, setBankNumber] = useState("");
   const [busyAction, setBusyAction] = useState<null | "skip" | "approve">(null);
@@ -71,7 +70,6 @@ export function AutoRestockApprovalGate() {
         setPending(nextPending);
         if (!nextPending) {
           setStage("summary");
-          setPassword("");
           setCheckoutPin("");
           setBankNumber("");
           setError(null);
@@ -121,7 +119,6 @@ export function AutoRestockApprovalGate() {
       formData.set("requestId", pending.id);
       formData.set("action", action);
       if (action === "approve") {
-        formData.set("password", password);
         formData.set("checkoutPin", checkoutPin);
         formData.set("bankNumber", bankNumber);
       }
@@ -140,7 +137,6 @@ export function AutoRestockApprovalGate() {
       );
       setPending(null);
       setStage("summary");
-      setPassword("");
       setCheckoutPin("");
       setBankNumber("");
       router.refresh();
@@ -250,7 +246,7 @@ export function AutoRestockApprovalGate() {
           <>
             <div className="modal-card__copy">
               <h3>Confirm Restock</h3>
-              <p>Enter your secure checkout details before Auto Restock can buy anything.</p>
+              <p>Enter your bank number and checkout PIN before Auto Restock can buy anything.</p>
             </div>
             <div className="card">
               <p className="muted">
@@ -283,15 +279,6 @@ export function AutoRestockApprovalGate() {
                 autoComplete="off"
               />
             </label>
-            <label className="modal-card__field">
-              Password
-              <HoldToShowInput
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={loading}
-                autoComplete="current-password"
-              />
-            </label>
             <div className="modal-card__actions">
               {!isMax ? (
                 <button
@@ -308,8 +295,7 @@ export function AutoRestockApprovalGate() {
                 disabled={
                   loading ||
                   bankNumber.trim().length === 0 ||
-                  checkoutPin.trim().length === 0 ||
-                  password.trim().length === 0
+                  checkoutPin.trim().length === 0
                 }
                 onClick={() => void submitDecision("approve")}
               >

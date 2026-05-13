@@ -722,9 +722,7 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
           userId: user.id,
           category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
           amount: renewalCostCents,
-          description: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour fee${
-            subscription.fullAccessEnabled ? " with Full Access" : ""
-          }`,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour fee`,
           data: {
             source: "auto_restock_48_hour_charge",
             subscriptionId: subscription.id,
@@ -748,7 +746,7 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
             message: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour renewal charged: ${formatCurrency(
               renewalCostCents,
               user.currencyCode,
-            )}${subscription.fullAccessEnabled ? " including Full Access." : "."}`,
+            )}. Full Access is free.`,
             createdAt: now,
           },
         });
@@ -1298,7 +1296,7 @@ export async function runMarketSimulation(force = false, debug = false) {
   await runAutoRestock(now);
 
   let botWallet = await prisma.user.findUnique({
-    where: { username: "bot_market" },
+    where: { email: "bot-market@profitplanet.local" },
     select: {
       id: true,
       balance: true,

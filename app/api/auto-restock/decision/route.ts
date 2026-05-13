@@ -10,7 +10,6 @@ import { revalidatePath } from "next/cache";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
-import { verifyPassword } from "@/lib/password";
 import { verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
@@ -172,14 +171,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid restock action" }, { status: 400 });
   }
 
-  const password = String(formData.get("password") ?? "");
   const checkoutPin = String(formData.get("checkoutPin") ?? "");
   const bankNumber = String(formData.get("bankNumber") ?? "");
 
   const authUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
-      passwordHash: true,
       checkoutPinHash: true,
       bankNumberHash: true,
     },
@@ -187,11 +184,10 @@ export async function POST(request: Request) {
 
   if (
     !authUser ||
-    !verifyPassword(password, authUser.passwordHash) ||
     !verifyCheckoutPin(checkoutPin, authUser.checkoutPinHash) ||
     !verifyBankNumber(bankNumber, authUser.bankNumberHash)
   ) {
-    return NextResponse.json({ ok: false, error: "Incorrect password, PIN, or bank number" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Check your bank number or PIN and try again" }, { status: 400 });
   }
 
   const txResult = await prisma.$transaction(async (tx) => {

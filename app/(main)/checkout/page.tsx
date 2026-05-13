@@ -122,13 +122,12 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
 
         <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
           <label>
-            Account password
-            <HoldToShowInput name="password" required autoComplete="current-password" />
-          </label>
-          <label>
             Checkout PIN
             <HoldToShowInput name="checkoutPin" inputMode="numeric" required autoComplete="off" />
           </label>
+          <Link href={"/forgot-pin" as never} className="ghost-link">
+            Forgot PIN?
+          </Link>
           <label>
             Bank number
             <HoldToShowInput name="bankNumber" inputMode="numeric" required autoComplete="off" />

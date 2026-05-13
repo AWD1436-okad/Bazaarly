@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
-import { verifyPassword } from "@/lib/password";
 import { encryptBankNumber, verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
@@ -34,14 +33,12 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const currencyCode = await getActiveCurrencyCode(user.id);
-  const password = String(formData.get("password") ?? "");
   const checkoutPin = String(formData.get("checkoutPin") ?? "").trim();
   const bankNumber = String(formData.get("bankNumber") ?? "").trim();
 
   const authUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
-      passwordHash: true,
       checkoutPinHash: true,
       bankNumberHash: true,
       bankNumberEncrypted: true,
@@ -50,11 +47,10 @@ export async function POST(request: Request) {
 
   if (
     !authUser ||
-    !verifyPassword(password, authUser.passwordHash) ||
     !verifyCheckoutPin(checkoutPin, authUser.checkoutPinHash) ||
     !verifyBankNumber(bankNumber, authUser.bankNumberHash)
   ) {
-    return redirectWithError(request, "Incorrect password, PIN, or bank number");
+    return redirectWithError(request, "Check your bank number or PIN and try again");
   }
 
   if (!authUser.bankNumberEncrypted) {

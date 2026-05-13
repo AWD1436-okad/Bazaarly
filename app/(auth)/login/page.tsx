@@ -76,8 +76,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
             <form action="/auth/login" method="post" className="stack-sm">
               <label>
-                Username or email
-                <input name="username" placeholder="your username or email" required />
+                Email
+                <input name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
               </label>
               <label>
                 Password
@@ -95,7 +95,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="card">
             <h2>Create a new player</h2>
             <p className="muted">
-              Start with secure PIN setup, then create your shop and begin trading.
+              Pick your mode, set up your safe PIN, then open your shop.
             </p>
             <form action="/auth/register" method="post" className="stack-sm">
               <label>

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         userId: user.id,
         type: NotificationType.SYSTEM,
         message: enabled
-          ? "Auto Restock Full Access enabled. Eligible restocks can be bought automatically, but item costs still come from your balance."
+          ? "Auto Restock Full Access enabled for free. Eligible restocks can be bought automatically, but item costs still come from your balance."
           : "Auto Restock Full Access turned off. Future eligible restocks will ask first.",
       },
     });

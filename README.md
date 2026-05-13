@@ -15,6 +15,7 @@ Profit Planet is a full-stack business trading game built with Next.js and Prism
 ## Current Scope
 
 - Account registration and password login
+- Email-only login with email-code password/PIN recovery
 - Shop onboarding and seller-first guidance
 - Supplier purchasing
 - Inventory and listing management
@@ -44,9 +45,19 @@ Profit Planet is a full-stack business trading game built with Next.js and Prism
 ## Deploy
 
 1. Set `DATABASE_URL` and `DATABASE_URL_UNPOOLED`
-2. Run `npm run db:deploy`
-3. Run `npm run db:seed` if the target database is new
-4. Build with `npm run vercel-build`
+2. Set `MAINTENANCE_SECRET` and `CRON_SECRET` for protected maintenance routes
+3. Configure email delivery before production recovery emails:
+   - `EMAIL_FROM="Profit Planet <no-reply@profitplanet.win>"`
+   - `RESEND_API_KEY` if using Resend
+   - verify SPF, DKIM, and DMARC for `profitplanet.win` with the email provider
+4. Run `npm run db:deploy`
+5. Run `npm run db:seed` if the target database is new
+6. Build with `npm run vercel-build`
+
+## Maintenance
+
+- Inactive accounts are soft-disabled after 30 days of inactivity by `/api/maintenance/inactive-accounts`.
+- Full Access is free. To refund identifiable historical Full Access surcharges, run `npm run maintenance:refund-full-access` once with production database env vars, or call the protected `/api/maintenance/full-access-refunds` route.
 
 ## Hosted Environment
 

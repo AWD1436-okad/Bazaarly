@@ -4,7 +4,8 @@ export const SIMPLE_DAILY_COST_CENTS = 50_000;
 export const SIMPLE_SETUP_FEE_CENTS = 0;
 export const PRO_DAILY_COST_CENTS = 75_000;
 export const MAX_DAILY_COST_CENTS = 150_000;
-export const FULL_ACCESS_48H_COST_CENTS = 25_000;
+export const FORMER_FULL_ACCESS_48H_COST_CENTS = 25_000;
+export const FULL_ACCESS_48H_COST_CENTS = 0;
 
 export const SIMPLE_RESTOCK_INTERVAL_MINUTES = 5;
 export const PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES = 5;
@@ -81,7 +82,8 @@ export function getPlanMeta(plan: AutoRestockPlan) {
 }
 
 export function getAutoRestockRenewalCostCents(plan: AutoRestockPlan, fullAccessEnabled: boolean) {
-  return getPlanMeta(plan).dailyCostCents + (fullAccessEnabled ? FULL_ACCESS_48H_COST_CENTS : 0);
+  void fullAccessEnabled;
+  return getPlanMeta(plan).dailyCostCents;
 }
 
 export function normalizeRestockIntervalMinutes(

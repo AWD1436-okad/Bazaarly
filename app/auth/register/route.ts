@@ -46,13 +46,13 @@ export async function POST(request: Request) {
 
   const existing = await prisma.user.findFirst({
     where: {
-      OR: [{ username }, { email }],
+      email,
     },
   });
 
   if (existing) {
     return NextResponse.redirect(
-      new URL("/login?error=That%20username%20or%20email%20is%20already%20in%20use", request.url),
+      new URL("/login?error=That%20email%20is%20already%20used", request.url),
       303,
     );
   }

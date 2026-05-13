@@ -9,7 +9,7 @@ type ResetPasswordPageProps = {
 
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const params = (await searchParams) ?? {};
-  const token = typeof params.token === "string" ? params.token : "";
+  const email = typeof params.email === "string" ? params.email : "";
   const error = typeof params.error === "string" ? params.error : null;
   const success = params.success === "1";
 
@@ -45,9 +45,16 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
             </div>
           ) : null}
 
-          {!success && token ? (
+          {!success ? (
             <form action="/auth/password-reset/confirm" method="post" className="stack-sm">
-              <input type="hidden" name="token" value={token} />
+              <label>
+                Email
+                <input name="email" type="email" required autoComplete="email" defaultValue={email} />
+              </label>
+              <label>
+                Reset code
+                <input name="code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required autoComplete="one-time-code" />
+              </label>
               <label>
                 New password
                 <HoldToShowInput
@@ -70,10 +77,6 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
               </label>
               <button type="submit">Reset password</button>
             </form>
-          ) : null}
-
-          {!success && !token ? (
-            <p className="status-text status-text--error">This reset link is missing or invalid.</p>
           ) : null}
 
           <Link href="/login" className="ghost-link">

@@ -9,6 +9,7 @@ const SESSION_COOKIE_NAME =
   process.env.SESSION_COOKIE_NAME ?? "tradex_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
+const ACTIVITY_WRITE_THROTTLE_MS = 60 * 60 * 1000;
 
 function hashSessionToken(sessionToken: string) {
   return createHash("sha256").update(sessionToken).digest("hex");
@@ -40,13 +41,29 @@ export async function getSessionUser() {
     return null;
   }
 
-  if (session.expiresAt <= new Date() || session.user.deletedAt) {
+  const now = new Date();
+  if (session.expiresAt <= now || session.user.deletedAt) {
     await prisma.session.deleteMany({
       where: {
         tokenHash: session.tokenHash,
       },
     });
     return null;
+  }
+
+  if (
+    !session.user.lastActiveAt ||
+    now.getTime() - session.user.lastActiveAt.getTime() > ACTIVITY_WRITE_THROTTLE_MS
+  ) {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        lastActiveAt: now,
+        inactiveWarning25At: null,
+        inactiveWarning28At: null,
+        inactiveFinalWarningAt: null,
+      },
+    });
   }
 
   return session.user;
@@ -130,6 +147,17 @@ export async function createSessionToken(userId: string) {
       userId,
       tokenHash: hashSessionToken(sessionToken),
       expiresAt: new Date(Date.now() + SESSION_MAX_AGE_MS),
+    },
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      lastActiveAt: new Date(),
+      inactiveWarning25At: null,
+      inactiveWarning28At: null,
+      inactiveFinalWarningAt: null,
+      disabledReason: null,
     },
   });
 

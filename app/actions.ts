@@ -34,7 +34,7 @@ export async function loginAction(formData: FormData) {
 
     const existing = await prisma.user.findFirst({
       where: {
-        OR: [{ username }, { email }],
+        email,
       },
       include: { shop: true },
     });
@@ -59,7 +59,7 @@ export async function loginAction(formData: FormData) {
 
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ username }, { email: username }],
+      email: username,
     },
     include: { shop: true },
   });

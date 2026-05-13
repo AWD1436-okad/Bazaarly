@@ -74,18 +74,6 @@ export async function POST(request: Request) {
 
   const checkoutPinLookupHash = getCheckoutPinLookupHash(pinResult.pin);
   const bankNumberLookupHash = getBankNumberLookupHash(bankNumberResult.bankNumber);
-  const existingPinOwner = await prisma.user.findFirst({
-    where: {
-      checkoutPinLookupHash,
-      NOT: { id: user.id },
-    },
-    select: { id: true },
-  });
-
-  if (existingPinOwner) {
-    return redirectWithError(request, "PIN taken");
-  }
-
   const existingBankNumberOwner = await prisma.user.findFirst({
     where: {
       bankNumberLookupHash,
@@ -113,7 +101,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return redirectWithError(request, "PIN or bank number taken");
+      return redirectWithError(request, "Bank number taken");
     }
 
     throw error;

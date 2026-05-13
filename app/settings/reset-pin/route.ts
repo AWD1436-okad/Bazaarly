@@ -65,18 +65,6 @@ export async function POST(request: Request) {
   }
 
   const checkoutPinLookupHash = getCheckoutPinLookupHash(pinResult.pin);
-  const existingPinOwner = await prisma.user.findFirst({
-    where: {
-      checkoutPinLookupHash,
-      id: { not: user.id },
-    },
-    select: { id: true },
-  });
-
-  if (existingPinOwner) {
-    return NextResponse.json({ ok: false, error: "Choose a different PIN" }, { status: 409 });
-  }
-
   await prisma.user.update({
     where: { id: user.id },
     data: {

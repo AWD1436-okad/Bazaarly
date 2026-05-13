@@ -460,7 +460,7 @@ async function main() {
   for (const [index, entry] of INITIAL_USERS.entries()) {
     const securityDetails = seededSecurityDetails(index + 1);
     const user = await prisma.user.upsert({
-      where: { username: entry.username },
+      where: { email: entry.email },
       update: {
         email: entry.email,
         displayName: entry.displayName,
@@ -512,7 +512,7 @@ async function main() {
   }
 
   const botWalletUser = await prisma.user.upsert({
-    where: { username: "bot_market" },
+    where: { email: "bot-market@profitplanet.local" },
     update: {
       email: "bot-market@profitplanet.local",
       displayName: "Profit Planet Bot Market",

@@ -20,17 +20,17 @@ export const preferredRegion = "syd1";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
-  const usernameOrEmail = String(formData.get("username") ?? "").trim().toLowerCase();
+  const email = String(formData.get("email") ?? formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!usernameOrEmail || !password) {
+  if (!email || !password) {
     return NextResponse.redirect(
-      new URL("/login?error=Enter%20your%20username%20and%20password", request.url),
+      new URL("/login?error=Enter%20your%20email%20and%20password", request.url),
       303,
     );
   }
 
-  const throttleKey = createLoginThrottleKey(request, usernameOrEmail);
+  const throttleKey = createLoginThrottleKey(request, email);
   const blockedUntil = await getAuthThrottleBlock("LOGIN", throttleKey);
 
   if (blockedUntil) {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
+      email,
     },
     include: { shop: true },
   });
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       new URL(
         nextBlockedUntil
           ? "/login?error=Too%20many%20login%20attempts.%20Please%20wait%20a%20few%20minutes"
-          : "/login?error=Incorrect%20username%20or%20password",
+          : "/login?error=Incorrect%20email%20or%20password",
         request.url,
       ),
       303,

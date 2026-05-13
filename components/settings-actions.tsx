@@ -781,7 +781,7 @@ export function SettingsActions({
   }
 
   return (
-    <div className="settings-actions">
+    <div className={`settings-actions settings-actions--${currentPlayerMode.toLowerCase()}`}>
       {state.message ? (
         <div className="status-banner status-banner--success">
           <div>
@@ -800,10 +800,19 @@ export function SettingsActions({
       ) : null}
 
       <div className="settings-layout">
+        {currentPlayerMode === "LITTLE" ? (
+          <section className="card settings-card settings-section settings-section--little-simple settings-section--wide">
+            <div className="settings-section__header">
+              <span className="settings-section__eyebrow">Grown-up settings</span>
+              <h2>Need more?</h2>
+            </div>
+            <p className="muted">Password, bank, shop, restocker, and delete tools are lower on this page.</p>
+          </section>
+        ) : null}
         <section className="card settings-card settings-section">
           <div className="settings-section__header">
-            <span className="settings-section__eyebrow">Account</span>
-            <h2>Player identity</h2>
+            <span className="settings-section__eyebrow">{currentPlayerMode === "LITTLE" ? "Player" : "Player"}</span>
+            <h2>{currentPlayerMode === "LITTLE" ? "Me" : "Player details"}</h2>
           </div>
           <div className="settings-list">
             <div className="settings-row">
@@ -814,7 +823,7 @@ export function SettingsActions({
             </div>
             <div className="settings-row">
               <div>
-                <strong>Display name</strong>
+                <strong>{currentPlayerMode === "LITTLE" ? "Name" : "Display name"}</strong>
                 <p className="muted">{displayName}</p>
               </div>
               <button
@@ -833,7 +842,7 @@ export function SettingsActions({
             </div>
             <div className="settings-row">
               <div>
-                <strong>Username</strong>
+                <strong>{currentPlayerMode === "LITTLE" ? "Handle" : "Username"}</strong>
                 <p className="muted">@{username}</p>
               </div>
               <button
@@ -879,10 +888,10 @@ export function SettingsActions({
           </div>
         </section>
 
-        <section className="card settings-card settings-section">
+        <section className="card settings-card settings-section settings-card--grownup">
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Shop</span>
-            <h2>Store profile</h2>
+            <h2>{currentPlayerMode === "LITTLE" ? "My Shop" : "Store profile"}</h2>
             <p>Rename cost: {renameStoreCostLabel}.</p>
           </div>
           <div className="settings-list">
@@ -910,10 +919,10 @@ export function SettingsActions({
           </div>
         </section>
 
-        <section className="card settings-card settings-section">
+        <section className="card settings-card settings-section settings-card--grownup">
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Security</span>
-            <h2>Bank and verification</h2>
+            <h2>{currentPlayerMode === "LITTLE" ? "Safe Details" : "Bank and security"}</h2>
           </div>
           <div className="settings-list">
             <div className="settings-row">
@@ -941,29 +950,18 @@ export function SettingsActions({
                 <strong>Bank PIN</strong>
                 <p className="muted">Protected</p>
               </div>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => {
-                  resetMessages();
-                  setPinResetPassword("");
-                  setNextPin("");
-                  setConfirmNextPin("");
-                  setPinResetOpen(true);
-                }}
-                disabled={submitting !== null}
-              >
+              <a href="/forgot-pin" className="ghost-button">
                 Forgot PIN?
-              </button>
+              </a>
             </div>
           </div>
         </section>
 
         <section className="card settings-card settings-section">
           <div className="settings-section__header">
-            <span className="settings-section__eyebrow">Currency</span>
-            <h2>Display currency</h2>
-            <p>Changes display only. Base values stay in AUD.</p>
+            <span className="settings-section__eyebrow">Money</span>
+            <h2>Currency</h2>
+            {currentPlayerMode === "ADVANCED" ? <p>Changes display only. Base values stay in AUD.</p> : null}
           </div>
           <label className="modal-card__field">
             <span>Search currency by code, name, or country</span>
@@ -1025,7 +1023,7 @@ export function SettingsActions({
               {selectedCurrencyProfile.currencyName} - {selectedCurrencyProfile.symbol}.
             </p>
           ) : null}
-          <p className="muted">Static exchange rates are used for display.</p>
+          {currentPlayerMode === "ADVANCED" ? <p className="muted">Static exchange rates are used for display.</p> : null}
           <div className="settings-section__actions">
             <button
               type="button"
@@ -1040,9 +1038,9 @@ export function SettingsActions({
         <section className="card settings-card settings-section settings-section--wide">
           <div className="settings-section__header settings-section__header--inline">
             <div>
-              <span className="settings-section__eyebrow">Player Mode</span>
-              <h2>Choose your game style</h2>
-              <p>Same world. Different help level.</p>
+              <span className="settings-section__eyebrow">{currentPlayerMode === "LITTLE" ? "My Mode" : "Player Mode"}</span>
+              <h2>{currentPlayerMode === "LITTLE" ? "Game style" : "Choose your game style"}</h2>
+              {currentPlayerMode === "LITTLE" ? null : <p>Same world. Different help level.</p>}
             </div>
             <button
               type="button"
@@ -1079,8 +1077,8 @@ export function SettingsActions({
         <section className="card settings-card settings-section settings-section--wide">
           <div className="settings-section__header settings-section__header--inline">
             <div>
-              <span className="settings-section__eyebrow">Appearance</span>
-              <h2>Theme presets</h2>
+              <span className="settings-section__eyebrow">{currentPlayerMode === "LITTLE" ? "Colors" : "Appearance"}</span>
+              <h2>{currentPlayerMode === "LITTLE" ? "Colors" : "Theme presets"}</h2>
             </div>
             <button
               type="button"
@@ -1132,8 +1130,8 @@ export function SettingsActions({
           <div className="settings-section__header settings-section__header--inline">
             <div>
               <span className="settings-section__eyebrow">Auto Restocker</span>
-              <h2>Subscription and access</h2>
-              <p>Full Access adds {fullAccessCostLabel}. Items still cost money.</p>
+              <h2>Plan and access</h2>
+              <p>Full Access is free. Item costs still come from your balance.</p>
             </div>
             <div className="inline-actions">
               {autoRestockSubscription?.status === "ACTIVE" ? (
@@ -1250,7 +1248,7 @@ export function SettingsActions({
                   <h3>Full Access is {autoRestockSubscription.fullAccessEnabled ? "on" : "off"}</h3>
                   <p>
                     Allow your Restocker to buy eligible restocks automatically. Item costs are still deducted,
-                    and Full Access adds {fullAccessCostLabel} to each 48-hour renewal.
+                    and Full Access is free. Item costs still come from your balance.
                   </p>
                 </div>
                 {autoRestockSubscription.fullAccessEnabled ? (
@@ -1287,7 +1285,7 @@ export function SettingsActions({
               Confirmed replacement is enabled. Activating now will replace your current active plan.
             </p>
           ) : null}
-          <p className="muted">Renews every 48 hours. Low balance cancels it.</p>
+          <p className="muted">Renews every 48 hours.</p>
         </section>
 
         <section className="card settings-card settings-section settings-section--danger settings-section--wide">
@@ -1700,8 +1698,8 @@ export function SettingsActions({
             <div className="modal-card__copy">
               <h3 id="full-access-title">Enable Full Access</h3>
               <p>
-                Full Access lets your Restocker buy automatically. Item costs will still be
-                deducted from your balance, and Full Access adds {fullAccessCostLabel} to each renewal.
+                Full Access is free. Your Restocker can buy automatically, but item costs still
+                come from your balance.
               </p>
             </div>
             <label className="modal-card__field">

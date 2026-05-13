@@ -79,6 +79,10 @@ export function createPinResetThrottleKey(request: Request, userId: string) {
   return buildThrottleHash("PIN_RESET", `${getRequestFingerprint(request)}|${userId}`);
 }
 
+export function createPinRecoveryThrottleKey(request: Request, email: string) {
+  return buildThrottleHash("PIN_RESET", `${getRequestFingerprint(request)}|${email}`);
+}
+
 export async function getAuthThrottleBlock(
   action: AuthThrottleAction,
   keyHash: string,

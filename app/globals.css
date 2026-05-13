@@ -2517,6 +2517,51 @@ textarea {
   padding: 0.62rem 0.7rem;
 }
 
+.settings-actions--little .settings-layout {
+  grid-template-columns: 1fr;
+}
+
+.settings-actions--little .settings-card {
+  border-radius: 30px;
+  padding: clamp(1rem, 4vw, 1.35rem);
+}
+
+.settings-actions--little .settings-card--grownup {
+  border-style: dashed;
+  opacity: 0.94;
+}
+
+.settings-actions--little .settings-card--grownup .settings-list,
+.settings-actions--little .settings-card--grownup .modal-card__field,
+.settings-actions--little .settings-card--grownup .restock-interval-control {
+  gap: 0.5rem;
+}
+
+.settings-actions--little .settings-section__eyebrow {
+  font-size: 0.8rem;
+}
+
+.settings-actions--little .settings-section__header h2 {
+  font-size: clamp(1.35rem, 7vw, 2rem);
+}
+
+.settings-actions--little .settings-row {
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+  padding: 0.95rem;
+}
+
+.settings-actions--little .settings-row .ghost-button,
+.settings-actions--little .settings-row button,
+.settings-actions--little .settings-row a {
+  width: 100%;
+  justify-content: center;
+}
+
+.settings-actions--junior .settings-layout {
+  gap: 1rem;
+}
+
 .settings-row strong,
 .settings-row span,
 .settings-row p {

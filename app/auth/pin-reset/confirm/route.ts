@@ -1,8 +1,7 @@
+import { NotificationType } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { clearSession, getSessionCookieName } from "@/lib/auth";
-import { hashPassword } from "@/lib/password";
-import { isPasswordStrongEnough } from "@/lib/password-reset";
+import { hashCheckoutPin, validateCheckoutPin, getCheckoutPinLookupHash } from "@/lib/pin";
 import { prisma } from "@/lib/prisma";
 import { findUsableRecoveryCode } from "@/lib/recovery-code";
 
@@ -10,10 +9,8 @@ export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 function redirectWithError(request: Request, email: string, error: string) {
-  const url = new URL("/reset-password", request.url);
-  if (email) {
-    url.searchParams.set("email", email);
-  }
+  const url = new URL("/forgot-pin", request.url);
+  if (email) url.searchParams.set("email", email);
   url.searchParams.set("error", error);
   return NextResponse.redirect(url, 303);
 }
@@ -22,24 +19,22 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const code = String(formData.get("code") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  const pinResult = validateCheckoutPin(String(formData.get("newPin") ?? ""));
+  const confirmPin = String(formData.get("confirmPin") ?? "").trim();
 
   if (!email || !code) {
     return redirectWithError(request, email, "Enter your email and reset code.");
   }
-
-  if (!isPasswordStrongEnough(password)) {
-    return redirectWithError(request, email, "Use an 8+ character password.");
+  if (!pinResult.success) {
+    return redirectWithError(request, email, pinResult.error);
   }
-
-  if (password !== confirmPassword) {
-    return redirectWithError(request, email, "Passwords do not match.");
+  if (pinResult.pin !== confirmPin) {
+    return redirectWithError(request, email, "PINs do not match.");
   }
 
   const resetCode = await findUsableRecoveryCode({
     email,
-    purpose: "PASSWORD_RESET",
+    purpose: "PIN_RESET",
     code,
   });
 
@@ -51,37 +46,33 @@ export async function POST(request: Request) {
     await tx.user.update({
       where: { id: resetCode.userId },
       data: {
-        passwordHash: hashPassword(password),
+        checkoutPinHash: hashCheckoutPin(pinResult.pin),
+        checkoutPinLookupHash: getCheckoutPinLookupHash(pinResult.pin),
       },
     });
 
     await tx.recoveryCode.update({
       where: { id: resetCode.id },
-      data: {
-        usedAt: new Date(),
-      },
+      data: { usedAt: new Date() },
     });
 
     await tx.recoveryCode.updateMany({
       where: {
         userId: resetCode.userId,
-        purpose: "PASSWORD_RESET",
+        purpose: "PIN_RESET",
         usedAt: null,
       },
-      data: {
-        usedAt: new Date(),
-      },
+      data: { usedAt: new Date() },
     });
 
-    await tx.session.deleteMany({
-      where: {
+    await tx.notification.create({
+      data: {
         userId: resetCode.userId,
+        type: NotificationType.SYSTEM,
+        message: "Your bank PIN was reset securely.",
       },
     });
   });
 
-  await clearSession();
-  const response = NextResponse.redirect(new URL("/reset-password?success=1", request.url), 303);
-  response.cookies.delete(getSessionCookieName());
-  return response;
+  return NextResponse.redirect(new URL("/forgot-pin?success=1", request.url), 303);
 }

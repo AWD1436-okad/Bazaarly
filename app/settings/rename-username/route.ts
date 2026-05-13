@@ -48,21 +48,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Choose a different username" }, { status: 400 });
   }
 
-  const duplicateUser = await prisma.user.findFirst({
-    where: {
-      id: { not: user.id },
-      username: {
-        equals: username,
-        mode: "insensitive",
-      },
-    },
-    select: { id: true },
-  });
-
-  if (duplicateUser) {
-    return NextResponse.json({ ok: false, error: "Username is already taken" }, { status: 409 });
-  }
-
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: user.id },
