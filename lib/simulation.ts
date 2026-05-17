@@ -117,6 +117,10 @@ function getCategoryAffinityScore(
     (preferenceCategory === ProductCategory.CLEANING_AND_PERSONAL_CARE &&
       listingCategory === ProductCategory.HOME_AND_STORAGE) ||
     (preferenceCategory === ProductCategory.CLOTHING &&
+      listingCategory === ProductCategory.MUSLIM_CLOTHING_AND_APPAREL) ||
+    (preferenceCategory === ProductCategory.MUSLIM_CLOTHING_AND_APPAREL &&
+      listingCategory === ProductCategory.CLOTHING) ||
+    (preferenceCategory === ProductCategory.CLOTHING &&
       listingCategory === ProductCategory.SCHOOL_AND_MISC) ||
     (preferenceCategory === ProductCategory.KITCHEN_AND_COOKWARE &&
       listingCategory === ProductCategory.HOME_AND_STORAGE)
@@ -360,6 +364,7 @@ function getTimeBoost(category: ProductCategory, phase: MarketTimePhase) {
   if (
     phase === MarketTimePhase.AFTERNOON &&
     (category === ProductCategory.CLOTHING ||
+      category === ProductCategory.MUSLIM_CLOTHING_AND_APPAREL ||
       category === ProductCategory.SCHOOL_AND_MISC ||
       category === ProductCategory.HOME_AND_STORAGE ||
       category === ProductCategory.ELECTRONICS)

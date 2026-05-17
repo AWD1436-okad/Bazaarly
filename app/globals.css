@@ -581,6 +581,12 @@ textarea {
   padding: 0;
 }
 
+.product-visual__image--icon {
+  object-fit: contain;
+  padding: 12%;
+  filter: drop-shadow(0 8px 14px rgba(12, 20, 16, 0.12));
+}
+
 .product-visual__fallback {
   display: grid;
   place-items: center;
@@ -1204,19 +1210,34 @@ textarea {
   background: linear-gradient(90deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 70%, transparent));
 }
 
-.category-filter-link__emoji {
+.category-filter-link__icon {
   width: 2rem;
   height: 2rem;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
-  font-size: 0.98rem;
+  overflow: hidden;
+  font-size: 0.58rem;
   line-height: 1;
   background:
     radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9), transparent 46%),
-    var(--primary-gradient);
-  color: var(--primary-text);
+    var(--surface);
+  color: var(--primary);
+  text-transform: uppercase;
   box-shadow: 0 8px 18px var(--control-shadow);
+}
+
+.category-filter-link__image {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+.category-filter-link__icon--all {
+  background: var(--primary-gradient);
+  color: var(--primary-text);
+  font-weight: 900;
+  letter-spacing: 0.03em;
 }
 
 .category-filter-link--all {

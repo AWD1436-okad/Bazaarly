@@ -22,6 +22,7 @@ export type CatalogProduct = {
 
 type CategoryDefinition = {
   label: string;
+  iconSrc: string;
   prefix: string;
   demandScore: number;
   popularityScore: number;
@@ -35,17 +36,17 @@ type CategoryDefinition = {
 export type CategoryOption = {
   value: string;
   label: string;
-  emoji: string;
+  iconSrc: string;
   category?: ProductCategory;
   subcategory?: string | null;
 };
 
-export const MUSLIM_CLOTHING_MEN = "Men Muslim Clothes";
-export const MUSLIM_CLOTHING_WOMEN = "Female Muslim Clothes";
+export const MUSLIM_CLOTHING_APPAREL = "Muslim Clothing & Apparel";
 
 export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> = {
   [ProductCategory.FRUIT_AND_VEGETABLES]: {
     label: "Fruit & Vegetables",
+    iconSrc: "/category-icons/fruit-vegetables.png",
     prefix: "fruitveg",
     demandScore: 1.08,
     popularityScore: 1.07,
@@ -57,6 +58,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.BAKERY_AND_GRAINS]: {
     label: "Bakery & Grains",
+    iconSrc: "/category-icons/bakery-grains.png",
     prefix: "bakerygrains",
     demandScore: 1.04,
     popularityScore: 1.03,
@@ -68,6 +70,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.PANTRY_AND_COOKING]: {
     label: "Pantry & Cooking",
+    iconSrc: "/category-icons/pantry-cooking.png",
     prefix: "pantrycook",
     demandScore: 1.02,
     popularityScore: 1.01,
@@ -78,6 +81,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.DRINKS]: {
     label: "Drinks",
+    iconSrc: "/category-icons/drinks.png",
     prefix: "drinks",
     demandScore: 1.07,
     popularityScore: 1.06,
@@ -89,6 +93,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.MEAT_DAIRY_AND_PROTEIN]: {
     label: "Meat, Dairy & Protein",
+    iconSrc: "/category-icons/meat-dairy-protein.png",
     prefix: "protein",
     demandScore: 1.05,
     popularityScore: 1.04,
@@ -100,6 +105,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.SNACKS_AND_SWEETS]: {
     label: "Snacks & Sweets",
+    iconSrc: "/category-icons/snacks-sweets.png",
     prefix: "snacks",
     demandScore: 1.04,
     popularityScore: 1.06,
@@ -110,6 +116,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.KITCHEN_AND_COOKWARE]: {
     label: "Kitchen & Cookware",
+    iconSrc: "/category-icons/kitchen-cookware.png",
     prefix: "kitchen",
     demandScore: 0.98,
     popularityScore: 1,
@@ -120,6 +127,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.CLEANING_AND_PERSONAL_CARE]: {
     label: "Cleaning & Personal Care",
+    iconSrc: "/category-icons/cleaning-personal-care.png",
     prefix: "care",
     demandScore: 1.01,
     popularityScore: 1.01,
@@ -129,7 +137,8 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
     keywords: ["cleaning", "personal care", "household"],
   },
   [ProductCategory.CLOTHING]: {
-    label: "Clothing",
+    label: "Clothing & Apparel",
+    iconSrc: "/category-icons/clothing-apparel.png",
     prefix: "clothing",
     demandScore: 0.98,
     popularityScore: 1,
@@ -138,8 +147,20 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
     supplierRatio: 0.68,
     keywords: ["clothing", "fashion", "wear"],
   },
+  [ProductCategory.MUSLIM_CLOTHING_AND_APPAREL]: {
+    label: "Muslim Clothing & Apparel",
+    iconSrc: "/category-icons/muslim-clothing-apparel.png",
+    prefix: "muslimclothing",
+    demandScore: 1,
+    popularityScore: 1.02,
+    trendLabel: "Modest style",
+    spoilable: false,
+    supplierRatio: 0.68,
+    keywords: ["muslim clothing", "modest clothing", "apparel", "islamic clothing"],
+  },
   [ProductCategory.HOME_AND_STORAGE]: {
     label: "Home & Storage",
+    iconSrc: "/category-icons/home-storage.png",
     prefix: "home",
     demandScore: 0.97,
     popularityScore: 0.99,
@@ -150,6 +171,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.ELECTRONICS]: {
     label: "Electronics",
+    iconSrc: "/category-icons/electronics.png",
     prefix: "electronics",
     demandScore: 0.94,
     popularityScore: 1.02,
@@ -160,6 +182,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.SCHOOL_AND_MISC]: {
     label: "School & Misc",
+    iconSrc: "/category-icons/school-misc.png",
     prefix: "schoolmisc",
     demandScore: 0.99,
     popularityScore: 1,
@@ -171,83 +194,24 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
 };
 
 export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
-  {
-    value: ProductCategory.FRUIT_AND_VEGETABLES,
-    label: "Fruit & Vegetables",
-    emoji: "🍎",
-  },
-  {
-    value: ProductCategory.BAKERY_AND_GRAINS,
-    label: "Bakery & Grains",
-    emoji: "🍞",
-  },
-  {
-    value: ProductCategory.PANTRY_AND_COOKING,
-    label: "Pantry & Cooking",
-    emoji: "🥫",
-  },
-  {
-    value: ProductCategory.DRINKS,
-    label: "Drinks",
-    emoji: "🥤",
-  },
-  {
-    value: ProductCategory.MEAT_DAIRY_AND_PROTEIN,
-    label: "Meat, Dairy & Protein",
-    emoji: "🥩",
-  },
-  {
-    value: ProductCategory.SNACKS_AND_SWEETS,
-    label: "Snacks & Sweets",
-    emoji: "🍫",
-  },
-  {
-    value: ProductCategory.KITCHEN_AND_COOKWARE,
-    label: "Kitchen & Cookware",
-    emoji: "🍳",
-  },
-  {
-    value: ProductCategory.CLEANING_AND_PERSONAL_CARE,
-    label: "Cleaning & Personal Care",
-    emoji: "🧼",
-  },
-  {
-    value: ProductCategory.CLOTHING,
-    label: "👟 Other Clothes",
-    emoji: "👟",
-    category: ProductCategory.CLOTHING,
-    subcategory: null,
-  },
-  {
-    value: "CLOTHING_MUSLIM_MEN",
-    label: "👞 Men Muslim Clothes",
-    emoji: "👞",
-    category: ProductCategory.CLOTHING,
-    subcategory: MUSLIM_CLOTHING_MEN,
-  },
-  {
-    value: "CLOTHING_MUSLIM_WOMEN",
-    label: "👡 Female Muslim Clothes",
-    emoji: "👡",
-    category: ProductCategory.CLOTHING,
-    subcategory: MUSLIM_CLOTHING_WOMEN,
-  },
-  {
-    value: ProductCategory.HOME_AND_STORAGE,
-    label: "Home & Storage",
-    emoji: "🏠",
-  },
-  {
-    value: ProductCategory.ELECTRONICS,
-    label: "Electronics",
-    emoji: "📱",
-  },
-  {
-    value: ProductCategory.SCHOOL_AND_MISC,
-    label: "School & Misc",
-    emoji: "🎒",
-  },
-] as const;
+  ProductCategory.FRUIT_AND_VEGETABLES,
+  ProductCategory.BAKERY_AND_GRAINS,
+  ProductCategory.PANTRY_AND_COOKING,
+  ProductCategory.DRINKS,
+  ProductCategory.MEAT_DAIRY_AND_PROTEIN,
+  ProductCategory.SNACKS_AND_SWEETS,
+  ProductCategory.KITCHEN_AND_COOKWARE,
+  ProductCategory.CLEANING_AND_PERSONAL_CARE,
+  ProductCategory.CLOTHING,
+  ProductCategory.MUSLIM_CLOTHING_AND_APPAREL,
+  ProductCategory.HOME_AND_STORAGE,
+  ProductCategory.ELECTRONICS,
+  ProductCategory.SCHOOL_AND_MISC,
+].map((category) => ({
+  value: category,
+  label: CATEGORY_DEFINITIONS[category].label,
+  iconSrc: CATEGORY_DEFINITIONS[category].iconSrc,
+}));
 
 export function getCategoryFilterOption(value: string | null | undefined) {
   if (!value || value === "ALL") {
@@ -258,18 +222,6 @@ export function getCategoryFilterOption(value: string | null | undefined) {
 }
 
 export function getCategoryOptionDisplayLabel(category: CategoryOption) {
-  if (category.value === ProductCategory.CLOTHING) {
-    return "\u{1F45F} Other Clothes";
-  }
-
-  if (category.value === "CLOTHING_MUSLIM_MEN") {
-    return "\u{1F45E} Men Muslim Clothes";
-  }
-
-  if (category.value === "CLOTHING_MUSLIM_WOMEN") {
-    return "\u{1F461} Female Muslim Clothes";
-  }
-
   return category.label;
 }
 
@@ -281,10 +233,6 @@ export function getCategoryFilterLabel(value: string | null | undefined) {
   const option = getCategoryFilterOption(value);
   return option ? getCategoryOptionDisplayLabel(option) : "All Products";
 }
-
-export const CATEGORY_COUNT_EXPECTATIONS = Object.fromEntries(
-  CATALOG_SOURCE.map((section) => [section.enumValue, section.items.length]),
-) as Record<ProductCategory, number>;
 
 export const SUPPORTED_UNIT_LABELS = Array.from(
   new Set(CATALOG_SOURCE.flatMap((section) => section.items.map((item) => item.unitLabel))),
@@ -480,7 +428,10 @@ function describeProduct(name: string, category: ProductCategory) {
   const override = PRODUCT_DESCRIPTION_OVERRIDES[name];
   if (override) return override;
 
-  if (category === ProductCategory.CLOTHING) {
+  if (
+    category === ProductCategory.CLOTHING ||
+    category === ProductCategory.MUSLIM_CLOTHING_AND_APPAREL
+  ) {
     return describeClothingProduct(name);
   }
 
@@ -548,30 +499,46 @@ function describeProduct(name: string, category: ProductCategory) {
 function buildCatalogProducts(): CatalogProduct[] {
   return CATALOG_SOURCE.flatMap((section) =>
     section.items.map((item) => {
-      const definition = CATEGORY_DEFINITIONS[section.enumValue];
+      const category =
+        item.subcategory === MUSLIM_CLOTHING_APPAREL
+          ? ProductCategory.MUSLIM_CLOTHING_AND_APPAREL
+          : section.enumValue;
+      const subcategory =
+        category === ProductCategory.MUSLIM_CLOTHING_AND_APPAREL
+          ? MUSLIM_CLOTHING_APPAREL
+          : item.subcategory;
+      const definition = CATEGORY_DEFINITIONS[category];
       const supplierPrice = clampPrice(item.basePrice * definition.supplierRatio, 60);
 
       return {
         sku: `${definition.prefix}-${slugifyName(item.name)}`,
         name: item.name,
-        category: section.enumValue,
-        subcategory: item.subcategory,
+        category,
+        subcategory,
         unitLabel: item.unitLabel,
-        description: describeProduct(item.name, section.enumValue),
+        description: describeProduct(item.name, category),
         basePrice: item.basePrice,
         supplierPrice,
         demandScore: definition.demandScore,
         popularityScore: definition.popularityScore,
-        trendLabel: inferTrendLabel(section.enumValue, item.name),
+        trendLabel: inferTrendLabel(category, item.name),
         spoilable: definition.spoilable,
-        shelfLife: inferShelfLife(section.enumValue, item.unitLabel),
-        keywords: buildKeywords(item.name, section.enumValue, item.unitLabel, item.subcategory),
+        shelfLife: inferShelfLife(category, item.unitLabel),
+        keywords: buildKeywords(item.name, category, item.unitLabel, subcategory),
       };
     }),
   );
 }
 
 export const PRODUCT_CATALOG: CatalogProduct[] = buildCatalogProducts();
+
+export const CATEGORY_COUNT_EXPECTATIONS = PRODUCT_CATALOG.reduce<Record<ProductCategory, number>>(
+  (counts, product) => {
+    counts[product.category] = (counts[product.category] ?? 0) + 1;
+    return counts;
+  },
+  {} as Record<ProductCategory, number>,
+);
 
 export function getCategoryLabel(category: ProductCategory | null | undefined) {
   if (!category) {
@@ -581,11 +548,23 @@ export function getCategoryLabel(category: ProductCategory | null | undefined) {
   return CATEGORY_DEFINITIONS[category].label;
 }
 
+export function getCategoryIconSrc(category: ProductCategory | null | undefined) {
+  if (!category) {
+    return null;
+  }
+
+  return CATEGORY_DEFINITIONS[category].iconSrc;
+}
+
 export function getProductCategoryLabel(
   category: ProductCategory | null | undefined,
   subcategory?: string | null,
 ) {
   const label = getCategoryLabel(category);
+  if (subcategory === label) {
+    return label;
+  }
+
   if (category === ProductCategory.CLOTHING && subcategory) {
     return subcategory;
   }
