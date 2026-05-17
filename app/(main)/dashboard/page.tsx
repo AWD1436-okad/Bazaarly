@@ -46,6 +46,9 @@ type FreeInventoryRow = {
 type BestSellerRow = {
   productId: string;
   productName: string;
+  productCategory: ProductCategory;
+  productSubcategory: string | null;
+  productImageUrl: string | null;
   units: number;
   salesIncome: number;
 };
@@ -236,13 +239,16 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         SELECT
           oli."productId" AS "productId",
           p."name" AS "productName",
+          p."category" AS "productCategory",
+          p."subcategory" AS "productSubcategory",
+          p."imageUrl" AS "productImageUrl",
           COALESCE(SUM(oli."quantity"), 0)::int AS "units",
           COALESCE(SUM(oli."lineTotal"), 0)::int AS "salesIncome"
         FROM "OrderLineItem" oli
         INNER JOIN "Order" o ON o."id" = oli."orderId"
         INNER JOIN "Product" p ON p."id" = oli."productId"
         WHERE o."sellerId" = ${user.id}
-        GROUP BY oli."productId", p."name"
+        GROUP BY oli."productId", p."name", p."category", p."subcategory", p."imageUrl"
         ORDER BY SUM(oli."quantity") DESC, SUM(oli."lineTotal") DESC
         LIMIT 4
       `),
@@ -378,6 +384,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const hasInventory = Boolean(inventoryPresence);
   const bestSellers = bestSellerRows.map((item) => ({
     name: item.productName,
+    category: item.productCategory,
+    subcategory: item.productSubcategory,
+    imageUrl: item.productImageUrl,
     units: item.units,
     salesIncome: item.salesIncome,
   }));
@@ -799,17 +808,22 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             {bestSellers.length === 0 ? (
               <div className="empty-state">Sales insights will appear once orders come in.</div>
             ) : (
-              <div className="table-list">
+              <div className="best-seller-list">
                 {bestSellers.map((item) => (
-                  <div key={item.name} className="table-row">
+                  <div key={item.name} className="best-seller-row">
                     <div className="table-row__meta table-row__meta--with-visual">
-                      <ProductVisual name={item.name} />
+                      <ProductVisual
+                        name={item.name}
+                        category={item.category}
+                        subcategory={item.subcategory}
+                        imageUrl={item.imageUrl}
+                      />
                       <div>
                         <strong>{item.name}</strong>
                         <span className="muted">{item.units} units sold</span>
                       </div>
                     </div>
-                    <strong>{formatCurrency(item.salesIncome, currencyCode)}</strong>
+                    <strong className="best-seller-row__sales">{formatCurrency(item.salesIncome, currencyCode)}</strong>
                   </div>
                 ))}
               </div>

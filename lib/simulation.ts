@@ -27,9 +27,19 @@ import { clamp } from "@/lib/utils";
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 45;
 const BOT_SHOP_PURCHASE_CAP_LOOKBACK_MINUTES = 60;
 const BOT_SHOP_DAILY_CAP_LOOKBACK_MINUTES = 24 * 60;
-const MAX_BOT_PURCHASES_PER_SHOP_PER_HOUR = 2;
-const MAX_BOT_PURCHASES_PER_SHOP_PER_DAY = 8;
-const MAX_BOT_PURCHASES_PER_SIMULATION = 1;
+const BOT_PURCHASE_CHANCE_MULTIPLIER = 1.75;
+const BOT_MIN_COOLDOWN_MS = 2.5 * 60_000;
+const BOT_MAX_COOLDOWN_MS = 8 * 60_000;
+const BOT_ACTIVITY_SMALL_SHOP_MULTIPLIER = 1.1;
+const BOT_ACTIVITY_MEDIUM_SHOP_MULTIPLIER = 1.45;
+const BOT_ACTIVITY_BIG_SHOP_MULTIPLIER = 2.05;
+const BOT_MAX_PURCHASES_SMALL_SHOP_PER_HOUR = 3;
+const BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_HOUR = 5;
+const BOT_MAX_PURCHASES_BIG_SHOP_PER_HOUR = 8;
+const BOT_MAX_PURCHASES_SMALL_SHOP_PER_DAY = 12;
+const BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_DAY = 22;
+const BOT_MAX_PURCHASES_BIG_SHOP_PER_DAY = 40;
+const MAX_BOT_PURCHASES_PER_SIMULATION = 3;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
@@ -219,11 +229,11 @@ function getBotAttemptProbability({
   averageCandidateScore: number;
   hasLoyaltyOption: boolean;
 }) {
-  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (14 * 60 * 1000), 0.02, 1.1);
-  const activityFactor = clamp(bot.activityLevel / 120, 0.32, 0.95);
-  const assortmentFactor = clamp(affordableListingCount / 28, 0.03, 0.9);
-  const shopExposureFactor = clamp(distinctShopCount / 8, 0.04, 0.85);
-  const marketCooldownFactor = clamp(1 - recentMarketSalesCount / 14, 0.28, 1);
+  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (7 * 60 * 1000), 0.05, 1.18);
+  const activityFactor = clamp(bot.activityLevel / 105, 0.42, 1.08);
+  const assortmentFactor = clamp(affordableListingCount / 22, 0.06, 1);
+  const shopExposureFactor = clamp(distinctShopCount / 6, 0.08, 1);
+  const marketCooldownFactor = clamp(1 - recentMarketSalesCount / 28, 0.42, 1);
   const demandFactor = clamp((averageDemand - 0.82) / 0.58, 0, 1);
   const candidateStrengthFactor = clamp(averageCandidateScore / 78, 0, 1);
   const timeOfDayBoost =
@@ -247,17 +257,17 @@ function getBotAttemptProbability({
             : 0.018;
 
   const rawProbability =
-    0.006 +
-      elapsedFactor * 0.14 +
-      activityFactor * 0.035 +
-      assortmentFactor * 0.045 +
-      shopExposureFactor * 0.025 +
-      demandFactor * 0.035 +
-      candidateStrengthFactor * 0.045 +
+    0.018 +
+      elapsedFactor * 0.19 +
+      activityFactor * 0.052 +
+      assortmentFactor * 0.065 +
+      shopExposureFactor * 0.04 +
+      demandFactor * 0.048 +
+      candidateStrengthFactor * 0.058 +
       timeOfDayBoost +
       personalityBias;
 
-  return clamp(rawProbability * marketCooldownFactor, 0.004, 0.18);
+  return clamp(rawProbability * marketCooldownFactor * BOT_PURCHASE_CHANCE_MULTIPLIER, 0.012, 0.42);
 }
 
 function getDynamicBotCooldownMs({
@@ -287,7 +297,7 @@ function getDynamicBotCooldownMs({
   const assortmentModifier = clamp(1 - Math.min(candidateCount, 35) / 180, 0.82, 1.04);
   const randomJitter = 1 + Math.random() * 0.55;
 
-  return Math.round(
+  const rawCooldown = Math.round(
     baseByPersonality *
       (1 / activityModifier) *
       marketHeatModifier *
@@ -295,6 +305,45 @@ function getDynamicBotCooldownMs({
       assortmentModifier *
       randomJitter,
   );
+
+  return Math.round(clamp(rawCooldown * 0.62, BOT_MIN_COOLDOWN_MS, BOT_MAX_COOLDOWN_MS));
+}
+
+function getBotShopActivityProfile({
+  listingCount,
+  totalStock,
+  totalSales,
+}: {
+  listingCount: number;
+  totalStock: number;
+  totalSales: number;
+}) {
+  const shopSizeScore =
+    listingCount * 1.2 +
+    Math.min(totalStock, 220) / 14 +
+    Math.log10(Math.max(1, totalSales + 1)) * 6;
+
+  if (shopSizeScore >= 28) {
+    return {
+      multiplier: BOT_ACTIVITY_BIG_SHOP_MULTIPLIER,
+      hourlyCap: BOT_MAX_PURCHASES_BIG_SHOP_PER_HOUR,
+      dailyCap: BOT_MAX_PURCHASES_BIG_SHOP_PER_DAY,
+    };
+  }
+
+  if (shopSizeScore >= 13) {
+    return {
+      multiplier: BOT_ACTIVITY_MEDIUM_SHOP_MULTIPLIER,
+      hourlyCap: BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_HOUR,
+      dailyCap: BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_DAY,
+    };
+  }
+
+  return {
+    multiplier: BOT_ACTIVITY_SMALL_SHOP_MULTIPLIER,
+    hourlyCap: BOT_MAX_PURCHASES_SMALL_SHOP_PER_HOUR,
+    dailyCap: BOT_MAX_PURCHASES_SMALL_SHOP_PER_DAY,
+  };
 }
 
 function getEffectiveLoyaltyShopId(
@@ -1198,13 +1247,13 @@ export async function runMarketSimulation(force = false, debug = false) {
   await runSoldOutListingCleanup(now);
 
   const marketReadinessScore = clamp(
-    elapsedSinceLastSimulationMs / (2.5 * 60 * 1000) +
+    elapsedSinceLastSimulationMs / (90 * 1000) +
       Math.random() * 0.35,
     0,
     1.35,
   );
 
-  if (!force && worldState.lastSimulatedAt && marketReadinessScore < 0.18) {
+  if (!force && worldState.lastSimulatedAt && marketReadinessScore < 0.08) {
     return {
       skipped: true,
       ...(debug
@@ -1397,6 +1446,15 @@ export async function runMarketSimulation(force = false, debug = false) {
       return [entry.shopId, clamp(listingCountBoost * 0.65 + stockDepthBoost * 0.35, 0, 1)];
     }),
   );
+  const shopSizeStatsByShop = new Map(
+    shopListingDepth.map((entry) => [
+      entry.shopId,
+      {
+        listingCount: entry._count._all,
+        totalStock: entry._sum.quantity ?? 0,
+      },
+    ]),
+  );
 
   const allCandidateListings = (await prisma.listing.findMany({
     where: {
@@ -1447,7 +1505,13 @@ export async function runMarketSimulation(force = false, debug = false) {
   const candidateListings = allCandidateListings.filter((listing) => {
     const hourlySales = hourlyBotSalesByShop.get(listing.shopId) ?? 0;
     const dailySales = dailyBotSalesByShop.get(listing.shopId) ?? 0;
-    return hourlySales < MAX_BOT_PURCHASES_PER_SHOP_PER_HOUR && dailySales < MAX_BOT_PURCHASES_PER_SHOP_PER_DAY;
+    const shopSizeStats = shopSizeStatsByShop.get(listing.shopId);
+    const shopActivity = getBotShopActivityProfile({
+      listingCount: shopSizeStats?.listingCount ?? 1,
+      totalStock: shopSizeStats?.totalStock ?? listing.quantity,
+      totalSales: listing.shop.totalSales,
+    });
+    return hourlySales < shopActivity.hourlyCap && dailySales < shopActivity.dailyCap;
   });
 
   const occupiedAttemptSeconds = new Set<number>();
@@ -1508,25 +1572,43 @@ export async function runMarketSimulation(force = false, debug = false) {
               0,
             ) / affordableListings.length
           : 1;
+      const shopActivityMultiplier =
+        affordableListings.length > 0
+          ? affordableListings.reduce((sum, listing) => {
+              const shopSizeStats = shopSizeStatsByShop.get(listing.shopId);
+              return (
+                sum +
+                getBotShopActivityProfile({
+                  listingCount: shopSizeStats?.listingCount ?? 1,
+                  totalStock: shopSizeStats?.totalStock ?? listing.quantity,
+                  totalSales: listing.shop.totalSales,
+                }).multiplier
+              );
+            }, 0) / affordableListings.length
+          : BOT_ACTIVITY_SMALL_SHOP_MULTIPLIER;
       const elapsedSinceLastAttemptMs = Math.max(
         15_000,
         now.getTime() - (bot.lastAttemptedAt ?? bot.createdAt).getTime(),
       );
       const attemptProbability =
         affordableListings.length > 0
-          ? getBotAttemptProbability({
-              bot,
-              now,
-              elapsedSinceLastAttemptMs,
-              affordableListingCount: affordableListings.length,
-              distinctShopCount: new Set(affordableListings.map((listing) => listing.shopId)).size,
-              recentMarketSalesCount,
-              averageDemand,
-              averageCandidateScore,
-              hasLoyaltyOption: affordableListings.some(
-                (listing) => listing.shopId === effectiveLoyaltyShopId,
-              ),
-            })
+          ? clamp(
+              getBotAttemptProbability({
+                bot,
+                now,
+                elapsedSinceLastAttemptMs,
+                affordableListingCount: affordableListings.length,
+                distinctShopCount: new Set(affordableListings.map((listing) => listing.shopId)).size,
+                recentMarketSalesCount,
+                averageDemand,
+                averageCandidateScore,
+                hasLoyaltyOption: affordableListings.some(
+                  (listing) => listing.shopId === effectiveLoyaltyShopId,
+                ),
+              }) * shopActivityMultiplier,
+              0.012,
+              0.52,
+            )
           : 0;
 
       return {
