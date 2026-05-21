@@ -28,19 +28,22 @@ import { clamp } from "@/lib/utils";
 const BOT_SHOP_ACTIVITY_LOOKBACK_MINUTES = 45;
 const BOT_SHOP_PURCHASE_CAP_LOOKBACK_MINUTES = 60;
 const BOT_SHOP_DAILY_CAP_LOOKBACK_MINUTES = 24 * 60;
-const BOT_PURCHASE_CHANCE_MULTIPLIER = 1.75;
-const BOT_MIN_COOLDOWN_MS = 2.5 * 60_000;
-const BOT_MAX_COOLDOWN_MS = 8 * 60_000;
-const BOT_ACTIVITY_SMALL_SHOP_MULTIPLIER = 1.1;
-const BOT_ACTIVITY_MEDIUM_SHOP_MULTIPLIER = 1.45;
-const BOT_ACTIVITY_BIG_SHOP_MULTIPLIER = 2.05;
-const BOT_MAX_PURCHASES_SMALL_SHOP_PER_HOUR = 3;
-const BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_HOUR = 5;
-const BOT_MAX_PURCHASES_BIG_SHOP_PER_HOUR = 8;
-const BOT_MAX_PURCHASES_SMALL_SHOP_PER_DAY = 12;
-const BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_DAY = 22;
-const BOT_MAX_PURCHASES_BIG_SHOP_PER_DAY = 40;
-const MAX_BOT_PURCHASES_PER_SIMULATION = 3;
+const BOT_PURCHASE_CHANCE_BASE = 0.028;
+const BOT_PURCHASE_CHANCE_MULTIPLIER = 2.45;
+const BOT_MIN_PURCHASE_CHANCE = 0.025;
+const BOT_MAX_PURCHASE_CHANCE = 0.68;
+const BOT_MIN_COOLDOWN_MS = 75_000;
+const BOT_MAX_COOLDOWN_MS = 4.5 * 60_000;
+const BOT_ACTIVITY_SMALL_SHOP_MULTIPLIER = 1.35;
+const BOT_ACTIVITY_MEDIUM_SHOP_MULTIPLIER = 1.9;
+const BOT_ACTIVITY_BIG_SHOP_MULTIPLIER = 2.85;
+const BOT_MAX_PURCHASES_SMALL_SHOP_PER_HOUR = 5;
+const BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_HOUR = 8;
+const BOT_MAX_PURCHASES_BIG_SHOP_PER_HOUR = 12;
+const BOT_MAX_PURCHASES_SMALL_SHOP_PER_DAY = 20;
+const BOT_MAX_PURCHASES_MEDIUM_SHOP_PER_DAY = 36;
+const BOT_MAX_PURCHASES_BIG_SHOP_PER_DAY = 60;
+const MAX_BOT_PURCHASES_PER_SIMULATION = 5;
 const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
@@ -230,11 +233,11 @@ function getBotAttemptProbability({
   averageCandidateScore: number;
   hasLoyaltyOption: boolean;
 }) {
-  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (7 * 60 * 1000), 0.05, 1.18);
-  const activityFactor = clamp(bot.activityLevel / 105, 0.42, 1.08);
-  const assortmentFactor = clamp(affordableListingCount / 22, 0.06, 1);
-  const shopExposureFactor = clamp(distinctShopCount / 6, 0.08, 1);
-  const marketCooldownFactor = clamp(1 - recentMarketSalesCount / 28, 0.42, 1);
+  const elapsedFactor = clamp(elapsedSinceLastAttemptMs / (4.5 * 60 * 1000), 0.08, 1.25);
+  const activityFactor = clamp(bot.activityLevel / 95, 0.48, 1.18);
+  const assortmentFactor = clamp(affordableListingCount / 16, 0.08, 1);
+  const shopExposureFactor = clamp(distinctShopCount / 5, 0.1, 1);
+  const marketCooldownFactor = clamp(1 - recentMarketSalesCount / 44, 0.58, 1);
   const demandFactor = clamp((averageDemand - 0.82) / 0.58, 0, 1);
   const candidateStrengthFactor = clamp(averageCandidateScore / 78, 0, 1);
   const timeOfDayBoost =
@@ -258,17 +261,21 @@ function getBotAttemptProbability({
             : 0.018;
 
   const rawProbability =
-    0.018 +
-      elapsedFactor * 0.19 +
-      activityFactor * 0.052 +
-      assortmentFactor * 0.065 +
-      shopExposureFactor * 0.04 +
-      demandFactor * 0.048 +
-      candidateStrengthFactor * 0.058 +
+    BOT_PURCHASE_CHANCE_BASE +
+      elapsedFactor * 0.24 +
+      activityFactor * 0.07 +
+      assortmentFactor * 0.085 +
+      shopExposureFactor * 0.055 +
+      demandFactor * 0.058 +
+      candidateStrengthFactor * 0.072 +
       timeOfDayBoost +
       personalityBias;
 
-  return clamp(rawProbability * marketCooldownFactor * BOT_PURCHASE_CHANCE_MULTIPLIER, 0.012, 0.42);
+  return clamp(
+    rawProbability * marketCooldownFactor * BOT_PURCHASE_CHANCE_MULTIPLIER,
+    BOT_MIN_PURCHASE_CHANCE,
+    BOT_MAX_PURCHASE_CHANCE,
+  );
 }
 
 function getDynamicBotCooldownMs({
@@ -284,14 +291,14 @@ function getDynamicBotCooldownMs({
 }) {
   const baseByPersonality =
     bot.type === BotPersonality.BULK
-      ? 11 * 60_000
+      ? 7 * 60_000
       : bot.type === BotPersonality.LOYAL
-        ? 10 * 60_000
+        ? 6 * 60_000
         : bot.type === BotPersonality.BUDGET
-          ? 9 * 60_000
+          ? 5.5 * 60_000
           : bot.type === BotPersonality.QUALITY
-            ? 12 * 60_000
-            : 10 * 60_000;
+            ? 7 * 60_000
+            : 6 * 60_000;
   const activityModifier = clamp(bot.activityLevel / 110, 0.45, 1.05);
   const marketHeatModifier = clamp(1 + marketHeat * 0.55, 1, 1.55);
   const demandModifier = clamp(1 - (averageDemand - 1) * 0.14, 0.86, 1.18);
@@ -307,7 +314,7 @@ function getDynamicBotCooldownMs({
       randomJitter,
   );
 
-  return Math.round(clamp(rawCooldown * 0.62, BOT_MIN_COOLDOWN_MS, BOT_MAX_COOLDOWN_MS));
+  return Math.round(clamp(rawCooldown * 0.42, BOT_MIN_COOLDOWN_MS, BOT_MAX_COOLDOWN_MS));
 }
 
 function getBotShopActivityProfile({
@@ -1641,8 +1648,8 @@ export async function runMarketSimulation(force = false, debug = false) {
                   (listing) => listing.shopId === effectiveLoyaltyShopId,
                 ),
               }) * shopActivityMultiplier,
-              0.012,
-              0.52,
+              BOT_MIN_PURCHASE_CHANCE,
+              BOT_MAX_PURCHASE_CHANCE,
             )
           : 0;
 
