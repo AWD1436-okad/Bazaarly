@@ -3,6 +3,12 @@ import { Prisma, ProductCategory, ShopStatus, type MarketEvent } from "@prisma/c
 import { getCategoryFilterOption, getCategoryLabel, getProductCategoryLabel } from "@/lib/catalog";
 import { convertCurrencyInputToAudCents } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import {
+  getSearchTokenVariants,
+  normalizeSearchText,
+  textMatchesSearch,
+  tokenizeSearchText,
+} from "@/lib/search-utils";
 
 export type MarketplaceParams = {
   q?: string;
@@ -74,13 +80,7 @@ type ListingWithRelations = {
 };
 
 function tokenize(query: string) {
-  return query
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9\s]+/g, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
+  return tokenizeSearchText(query);
 }
 
 type SearchContext = {
@@ -89,7 +89,7 @@ type SearchContext = {
 };
 
 function buildSearchContext(query: string): SearchContext | null {
-  const normalized = tokenize(query).join(" ");
+  const normalized = normalizeSearchText(query);
 
   if (!normalized) {
     return null;
@@ -135,9 +135,13 @@ function getFuzzyTokenScore(searchContext: SearchContext, values: string[]) {
     const compactToken = token.replace(/\s+/g, "");
 
     if (!compactToken) continue;
-    if (compactToken === compactQuery) bestScore = Math.max(bestScore, 80);
-    if (compactToken.includes(compactQuery) || compactQuery.includes(compactToken)) {
-      bestScore = Math.max(bestScore, 54 - Math.abs(compactToken.length - compactQuery.length) * 4);
+    const queryVariants = getSearchTokenVariants(compactQuery);
+
+    for (const queryVariant of queryVariants) {
+      if (compactToken === queryVariant) bestScore = Math.max(bestScore, 84);
+      if (compactToken.includes(queryVariant) || queryVariant.includes(compactToken)) {
+        bestScore = Math.max(bestScore, 58 - Math.abs(compactToken.length - queryVariant.length) * 4);
+      }
     }
 
     const distance = levenshteinDistance(compactQuery, compactToken);
@@ -207,22 +211,16 @@ function scoreListing(listing: ListingWithRelations, searchContext: SearchContex
 }
 
 function hasExactQueryMatch(listing: ListingWithRelations, searchContext: SearchContext) {
-  const name = listing.product.name.toLowerCase();
-  const shopName = listing.shop.name.toLowerCase();
-  const category = getCategoryLabel(listing.product.category).toLowerCase();
-  const categoryDisplay = getProductCategoryLabel(
-    listing.product.category,
-    listing.product.subcategory,
-  ).toLowerCase();
-  const description = listing.product.description.toLowerCase();
-
-  return (
-    name.includes(searchContext.normalized) ||
-    shopName.includes(searchContext.normalized) ||
-    category.includes(searchContext.normalized) ||
-    categoryDisplay.includes(searchContext.normalized) ||
-    description.includes(searchContext.normalized)
-  );
+  return textMatchesSearch(searchContext.normalized, [
+    listing.product.name,
+    listing.shop.name,
+    getCategoryLabel(listing.product.category),
+    getProductCategoryLabel(listing.product.category, listing.product.subcategory),
+    listing.product.description,
+    ...(Array.isArray(listing.product.keywords)
+      ? listing.product.keywords.map((keyword: unknown) => String(keyword))
+      : []),
+  ]);
 }
 
 async function getMarketplaceSupportData() {

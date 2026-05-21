@@ -26,6 +26,13 @@ import { sanitizeStockCount, getLiveStockStatusMessage } from "@/lib/stock";
 const INVENTORY_PAGE_SIZE = 3;
 const LISTING_PAGE_SIZE = 3;
 const LISTING_OPTION_LIMIT = 40;
+const PLAYER_LEVELS = [
+  { name: "Street Seller", xp: 0 },
+  { name: "Corner Shop", xp: 180 },
+  { name: "Local Market", xp: 450 },
+  { name: "Retail Empire", xp: 950 },
+  { name: "Planet Tycoon", xp: 1700 },
+] as const;
 
 type DashboardProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -379,6 +386,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       : "2.50";
   const todayProfit = todayProfitSummary.netProfitCents;
   const totalProfit = totalProfitSummary.netProfitCents;
+  const progression = getProgression(totalProfit, user.shop.totalSales, activeListingCount);
 
   const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
@@ -511,6 +519,25 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <span className="metric-card__helper">{moneyLabels.totalNetHelper}</span>
           ) : null}
         </article>
+      </section>
+
+      <section className="card progression-card">
+        <div className="progression-card__planet" aria-hidden="true">
+          PP
+        </div>
+        <div className="progression-card__copy">
+          <span className="tag">Level {progression.level}</span>
+          <h2>{progression.title}</h2>
+          <p>
+            {progression.atMaxLevel
+              ? "You reached the top shop tier."
+              : `${progression.xpToNext} XP to ${progression.nextTitle}.`}
+          </p>
+          <div className="challenge-progress progression-card__bar" aria-label={`${progression.progress}% to next level`}>
+            <span style={{ width: `${progression.progress}%` }} />
+          </div>
+        </div>
+        <strong className="progression-card__xp">{progression.xp} XP</strong>
       </section>
 
       <InstallAppCard compact />
@@ -866,4 +893,30 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       </section>
     </div>
   );
+}
+
+function getProgression(totalProfit: number, totalSales: number, activeListings: number) {
+  const safeProfitXp = Math.max(0, Math.floor(totalProfit / 1000));
+  const xp = safeProfitXp + totalSales * 8 + activeListings * 10;
+  let currentIndex = 0;
+  for (let index = 0; index < PLAYER_LEVELS.length; index += 1) {
+    if (xp >= PLAYER_LEVELS[index].xp) {
+      currentIndex = index;
+    }
+  }
+  const current = PLAYER_LEVELS[currentIndex];
+  const next = PLAYER_LEVELS[currentIndex + 1] ?? null;
+  const progress = next
+    ? Math.min(100, Math.round(((xp - current.xp) / (next.xp - current.xp)) * 100))
+    : 100;
+
+  return {
+    xp,
+    level: currentIndex + 1,
+    title: current.name,
+    nextTitle: next?.name ?? "Max level",
+    atMaxLevel: !next,
+    progress,
+    xpToNext: next ? Math.max(0, next.xp - xp) : 0,
+  };
 }

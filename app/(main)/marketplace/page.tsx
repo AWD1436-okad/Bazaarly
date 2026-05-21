@@ -22,10 +22,6 @@ function buildMarketplaceHref(
 
   Object.entries(params).forEach(([key, value]) => {
     if (typeof value === "string" && key !== "category" && key !== "page" && value.trim()) {
-      if (category && key === "q") {
-        return;
-      }
-
       nextParams.set(key, value);
     }
   });
@@ -48,17 +44,17 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
   const selectedCategory =
     typeof params.category === "string" && params.category !== "ALL" ? params.category : "ALL";
   const hasActiveMarketplaceSearch =
-    (selectedCategory === "ALL" && typeof params.q === "string" && params.q.trim().length > 0) ||
+    (typeof params.q === "string" && params.q.trim().length > 0) ||
     (typeof params.category === "string" && params.category !== "ALL") ||
     (typeof params.stock === "string" && params.stock.length > 0) ||
     (typeof params.minRating === "string" && params.minRating.length > 0) ||
     (typeof params.minPrice === "string" && params.minPrice.length > 0) ||
     (typeof params.maxPrice === "string" && params.maxPrice.length > 0);
   const queryText = typeof params.q === "string" ? params.q.trim() : "";
-  const hasQuery = selectedCategory === "ALL" && queryText.length > 0;
+  const hasQuery = queryText.length > 0;
   const selectedCategoryLabel = getCategoryFilterLabel(selectedCategory);
   const marketplace = await getMarketplaceData({
-    q: selectedCategory === "ALL" && typeof params.q === "string" ? params.q : undefined,
+    q: typeof params.q === "string" ? params.q : undefined,
     sort: typeof params.sort === "string" ? params.sort : undefined,
     category: typeof params.category === "string" ? params.category : undefined,
     stock: typeof params.stock === "string" ? params.stock : undefined,
@@ -122,17 +118,15 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
             {selectedCategory !== "ALL" ? (
               <input type="hidden" name="category" value={selectedCategory} />
             ) : null}
-            {selectedCategory === "ALL" ? (
-              <label>
-                Search
-                <input
-                  name="q"
-                  type="search"
-                  placeholder={playerModeConfig.value === "LITTLE" ? "Find things" : "Search products or shops"}
-                  defaultValue={typeof params.q === "string" ? params.q : ""}
-                />
-              </label>
-            ) : null}
+            <label>
+              Search
+              <input
+                name="q"
+                type="search"
+                placeholder={playerModeConfig.value === "LITTLE" ? "Find things" : "Search products or shops"}
+                defaultValue={typeof params.q === "string" ? params.q : ""}
+              />
+            </label>
             {playerModeConfig.value === "LITTLE" || playerModeConfig.value === "JUNIOR" ? null : (
               <>
                 <label>

@@ -17,23 +17,20 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
 
   const params = (await searchParams) ?? {};
   const error = typeof params.error === "string" ? params.error : null;
+  const defaultShopName = `${user.displayName}'s Shop`;
 
   return (
     <main className="app-shell page-grid">
       <section className="hero-card">
         <div className="stack">
           <span className="tag">Create Your Shop</span>
-          <h1>Set up your place in Profit Planet.</h1>
-          <p>
-            Every player gets one shop in the same shared world. Pick a strong name,
-            write a short description, choose your focus, and we will send you
-            straight to the seller dashboard.
-          </p>
+          <h1>Set up your shop.</h1>
+          <p>Use the starter details or change them.</p>
 
           <StatusBanner
             tone="warning"
             title="First steps after setup"
-            body="1. Review your starter stock. 2. Create your first listing. 3. Your shop goes live for the whole server."
+            body="Next: list your starter stock, then shoppers can buy from you."
           />
         </div>
 
@@ -64,7 +61,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
           <div className="filters-grid">
             <label>
               Shop name
-              <input name="name" placeholder="Sunny Basket" required />
+              <input name="name" defaultValue={defaultShopName} required />
             </label>
 
             <label>
@@ -95,7 +92,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
             Shop description
             <textarea
               name="description"
-              placeholder="Tell shoppers what your store is best at."
+              defaultValue="A friendly Profit Planet shop with useful deals."
               required
             />
           </label>
@@ -104,7 +101,7 @@ export default async function ShopOnboardingPage({ searchParams }: OnboardingPro
             <div>
               <strong>After this, you&apos;ll land on your seller dashboard.</strong>
               <p className="muted">
-                We&apos;ll start you with inventory so you can list straight away.
+                Starter stock is ready after setup.
               </p>
             </div>
             <button type="submit">Create my shop</button>

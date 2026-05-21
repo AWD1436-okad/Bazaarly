@@ -13,6 +13,14 @@ type NavigationProps = {
   balance: number;
   unreadNotifications: number;
   unreadNotificationLabel?: string | null;
+  recentNotifications?: Array<{
+    id: string;
+    type: string;
+    message: string;
+    read: boolean;
+    createdAtLabel: string;
+  }>;
+  cartItemCount?: number;
   currentSearch?: string;
   currentSort?: string;
   currencyCode?: string;
@@ -23,6 +31,8 @@ export function Navigation({
   balance,
   unreadNotifications,
   unreadNotificationLabel,
+  recentNotifications = [],
+  cartItemCount = 0,
   currentSearch,
   currentSort,
   currencyCode = "AUD",
@@ -37,7 +47,7 @@ export function Navigation({
     { href: "/dashboard/supplier", label: modeConfig.navLabels.supplier, icon: APP_ICONS.supplier },
     { href: "/challenges", label: modeConfig.navLabels.challenges, icon: APP_ICONS.challenges },
     { href: "/orders", label: modeConfig.navLabels.orders, icon: APP_ICONS.orders },
-    { href: "/cart", label: modeConfig.navLabels.cart, icon: APP_ICONS.cart },
+    { href: "/cart", label: modeConfig.navLabels.cart, icon: APP_ICONS.cart, badge: cartItemCount },
     { href: "/settings", label: modeConfig.navLabels.settings, icon: APP_ICONS.settings },
   ] as const;
 
@@ -62,13 +72,40 @@ export function Navigation({
           <AppIcon icon={APP_ICONS.wallet} tone="gradient" />
           {formatCurrency(balance, currencyCode)}
         </span>
-        <Link href="/notifications" className="notification-pill">
-          <AppIcon icon={APP_ICONS.bell} />
-          Notifications
-          {unreadNotifications > 0 ? (
-            <strong>{unreadNotificationLabel ?? unreadNotifications}</strong>
-          ) : null}
-        </Link>
+        <details className="notification-menu">
+          <summary className="notification-pill">
+            <AppIcon icon={APP_ICONS.bell} />
+            Notifications
+            {unreadNotifications > 0 ? (
+              <strong>{unreadNotificationLabel ?? unreadNotifications}</strong>
+            ) : null}
+          </summary>
+          <div className="notification-menu__panel">
+            <div className="section-row">
+              <strong>Latest updates</strong>
+              <Link href="/notifications" className="ghost-link">
+                See all
+              </Link>
+            </div>
+            {recentNotifications.length === 0 ? (
+              <p className="muted">No updates yet.</p>
+            ) : (
+              <div className="notification-menu__list">
+                {recentNotifications.map((notification) => (
+                  <Link
+                    key={notification.id}
+                    href="/notifications"
+                    className={notification.read ? "notification-menu__item" : "notification-menu__item notification-menu__item--unread"}
+                  >
+                    <span>{notification.type.replace("_", " ")}</span>
+                    <strong>{notification.message}</strong>
+                    <small>{notification.createdAtLabel}</small>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </details>
       </div>
 
       {showSearch ? (
@@ -99,6 +136,7 @@ export function Navigation({
           >
             <AppIcon icon={item.icon} />
             {item.label}
+            {"badge" in item && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
           </Link>
         ))}
       </nav>
@@ -112,6 +150,7 @@ export function Navigation({
         >
           <AppIcon icon={item.icon} />
           <span>{item.label}</span>
+          {"badge" in item && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
         </Link>
       ))}
     </nav>

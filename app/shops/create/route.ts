@@ -29,8 +29,11 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+  const fallbackName = `${user.displayName}'s Shop`;
+  const name = String(formData.get("name") ?? "").trim() || fallbackName;
+  const description =
+    String(formData.get("description") ?? "").trim() ||
+    "A friendly Profit Planet shop with useful deals.";
   const categoryValue = String(formData.get("categoryFocus") ?? "");
   const accentColor = String(formData.get("accentColor") ?? "#2D6A4F");
 

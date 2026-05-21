@@ -791,6 +791,84 @@ textarea {
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
+.progression-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: clamp(0.85rem, 2vw, 1.25rem);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 8% 20%, var(--accent-soft), transparent 28%),
+    radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 24%),
+    var(--surface-elevated);
+}
+
+.progression-card__planet {
+  display: grid;
+  place-items: center;
+  width: clamp(4rem, 12vw, 5.6rem);
+  height: clamp(4rem, 12vw, 5.6rem);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.58), transparent 32%),
+    var(--primary-gradient);
+  color: var(--primary-text);
+  font-size: clamp(1.15rem, 4vw, 1.7rem);
+  font-weight: 950;
+  box-shadow: 0 16px 36px var(--control-shadow);
+  animation: planet-float 2.8s ease-in-out infinite;
+}
+
+.progression-card__copy {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.progression-card__copy h2,
+.progression-card__copy p {
+  margin: 0;
+}
+
+.progression-card__bar span {
+  animation: progress-fill 0.28s ease-out both;
+}
+
+.progression-card__xp {
+  justify-self: end;
+  font-size: clamp(1.05rem, 3vw, 1.45rem);
+  white-space: nowrap;
+}
+
+@keyframes planet-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+}
+
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0.82);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progression-card__planet,
+  .progression-card__bar span,
+  .notification-menu__panel {
+    animation: none;
+  }
+}
+
 .currency-chip {
   display: inline-flex;
   align-items: center;
@@ -907,6 +985,7 @@ textarea {
 
 .topbar-link,
 .notification-pill {
+  position: relative;
   min-height: 44px;
   padding: 0.48rem 0.76rem 0.48rem 0.52rem;
   border: 1px solid var(--border);
@@ -929,6 +1008,97 @@ textarea {
   border-color: var(--primary);
   transform: translateY(-1px);
   box-shadow: 0 12px 26px var(--control-shadow);
+}
+
+.notification-menu {
+  position: relative;
+}
+
+.notification-menu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.notification-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.notification-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 90;
+  display: grid;
+  gap: 0.7rem;
+  width: min(360px, calc(100vw - 1.5rem));
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+  box-shadow: 0 22px 55px var(--control-shadow);
+  backdrop-filter: blur(18px);
+  transform-origin: top right;
+  animation: panel-drop-in 0.18s ease both;
+}
+
+.notification-menu__list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.notification-menu__item {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-alt);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.notification-menu__item--unread {
+  border-color: var(--primary);
+  background:
+    radial-gradient(circle at top left, var(--accent-soft), transparent 42%),
+    var(--surface-alt);
+}
+
+.notification-menu__item span,
+.notification-menu__item small,
+.nav-item-badge {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notification-menu__item strong {
+  line-height: 1.25;
+}
+
+.nav-item-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--primary-gradient);
+  color: var(--primary-text);
+  line-height: 1;
+}
+
+@keyframes panel-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .topbar-link--active {
@@ -3286,6 +3456,15 @@ textarea {
     grid-template-columns: 1fr;
     align-items: stretch;
     min-height: auto;
+  }
+
+  .progression-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .progression-card__xp {
+    justify-self: start;
   }
 
   .best-seller-row {

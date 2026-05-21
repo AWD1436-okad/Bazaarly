@@ -1,4 +1,5 @@
 import type { Route } from "next";
+import { BusinessLedgerEntryCategory } from "@prisma/client";
 import Link from "next/link";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { ProductVisual } from "@/components/product-visual";
@@ -60,7 +61,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
   const buyerPage = parsePositivePage(params.buyerPage);
   const sellerPage = parsePositivePage(params.sellerPage);
 
-  const [buyerOrders, sellerOrders] = await Promise.all([
+  const [buyerOrders, sellerOrders, stockPurchases] = await Promise.all([
     prisma.order.findMany({
       where: { buyerId: user.id },
       select: {
@@ -124,6 +125,20 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
       orderBy: { createdAt: "desc" },
       skip: (sellerPage - 1) * ORDER_HISTORY_PAGE_SIZE,
       take: ORDER_HISTORY_PAGE_SIZE + 1,
+    }),
+    prisma.businessLedgerEntry.findMany({
+      where: {
+        userId: user.id,
+        category: BusinessLedgerEntryCategory.STOCK_PURCHASE,
+      },
+      select: {
+        id: true,
+        amount: true,
+        description: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: ORDER_HISTORY_PAGE_SIZE,
     }),
   ]);
   const visibleBuyerOrders = buyerOrders.slice(0, ORDER_HISTORY_PAGE_SIZE);
@@ -227,6 +242,29 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                 </div>
               )}
             </>
+          )}
+        </article>
+
+        <article className="card">
+          <div className="card-header">
+            <div className="card-header__copy">
+              <h2>Stock purchases</h2>
+            </div>
+          </div>
+          {stockPurchases.length === 0 ? (
+            <div className="empty-state">No supplier stock purchases yet.</div>
+          ) : (
+            <div className="table-list">
+              {stockPurchases.map((purchase) => (
+                <div key={purchase.id} className="order-row order-row--receipt">
+                  <div>
+                    <strong>{purchase.description.replace(/^Supplier stock purchase:\s*/i, "Supplier stock: ")}</strong>
+                    <span className="muted">{purchase.createdAt.toLocaleString()}</span>
+                  </div>
+                  <strong>{formatCurrency(purchase.amount, currencyCode)}</strong>
+                </div>
+              ))}
+            </div>
           )}
         </article>
 

@@ -84,11 +84,11 @@ const ADVANCED_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinitio
       rewardCents: REWARD_CENTS.Easy,
     },
     {
-      key: "buy-250-supplier-stock",
+      key: "buy-150-supplier-stock",
       type: "BUY_SUPPLIER_STOCK",
       label: "Add supplier stock target",
       difficulty: "Easy",
-      target: 25_000,
+      target: 15_000,
       rewardCents: REWARD_CENTS.Easy,
     },
     {
@@ -265,7 +265,7 @@ const JUNIOR_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[
 const YOUNG_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   Easy: [
     { key: "young-sell-8-items", type: "SELL_ITEMS", label: "Sell 8 items", difficulty: "Easy", target: 8, rewardCents: REWARD_CENTS.Easy },
-    { key: "young-buy-250-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy stock target", difficulty: "Easy", target: 25_000, rewardCents: REWARD_CENTS.Easy },
+    { key: "young-buy-150-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy stock target", difficulty: "Easy", target: 15_000, rewardCents: REWARD_CENTS.Easy },
     { key: "young-keep-8-for-sale", type: "ACTIVE_LISTINGS", label: "Keep 8 items for sale", difficulty: "Easy", target: 8, rewardCents: REWARD_CENTS.Easy },
     { key: "young-list-6-products", type: "LIST_PRODUCTS", label: "Put 6 items in your shop", difficulty: "Easy", target: 6, rewardCents: REWARD_CENTS.Easy },
   ],

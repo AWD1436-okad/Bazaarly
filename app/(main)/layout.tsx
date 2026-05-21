@@ -9,6 +9,7 @@ import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
 import { getPlayerModeConfig, PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
@@ -28,10 +29,30 @@ export default async function MainLayout({ children }: MainLayoutProps) {
     );
   }
 
-  const [unreadNotifications, liveStateVersion, currencyCode] = await Promise.all([
+  const [unreadNotifications, liveStateVersion, currencyCode, activeCart, recentNotifications] = await Promise.all([
     getUnreadNotificationBadge(user.id),
     getLiveStateVersion(user.id),
     getActiveCurrencyCode(user.id),
+    prisma.cart.findFirst({
+      where: { userId: user.id, status: "ACTIVE" },
+      select: {
+        items: {
+          select: { quantity: true },
+        },
+      },
+    }),
+    prisma.notification.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        type: true,
+        message: true,
+        read: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+    }),
   ]);
   const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
   const playerModeConfirmed = Boolean((user as { playerModeConfirmed?: boolean | null }).playerModeConfirmed);
@@ -58,6 +79,11 @@ export default async function MainLayout({ children }: MainLayoutProps) {
         currencyCode={currencyCode}
         unreadNotifications={unreadNotifications.unreadCount}
         unreadNotificationLabel={unreadNotifications.label}
+        recentNotifications={recentNotifications.map((notification) => ({
+          ...notification,
+          createdAtLabel: notification.createdAt.toLocaleString(),
+        }))}
+        cartItemCount={activeCart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0}
         playerMode={playerModeConfig.value}
       />
       {children}

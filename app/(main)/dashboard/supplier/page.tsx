@@ -20,6 +20,7 @@ import { formatPriceWithUnit } from "@/lib/money";
 import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
+import { getSearchTokenVariants, normalizeSearchText, tokenizeSearchText } from "@/lib/search-utils";
 import { sanitizeStockCount } from "@/lib/stock";
 
 type SupplierPageProps = {
@@ -68,12 +69,7 @@ function buildSupplierHref(category: string | null) {
 }
 
 function normalizeSearchValue(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9\s]+/g, " ")
-    .replace(/\s+/g, " ");
+  return normalizeSearchText(value);
 }
 
 function levenshteinDistance(left: string, right: string) {
@@ -111,10 +107,10 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
   const description = normalizeSearchValue(product.description);
   const searchableTokens = Array.from(
     new Set([
-      ...name.split(" "),
-      ...category.split(" "),
-      ...categoryDisplay.split(" "),
-      ...description.split(" "),
+      ...tokenizeSearchText(name),
+      ...tokenizeSearchText(category),
+      ...tokenizeSearchText(categoryDisplay),
+      ...tokenizeSearchText(description),
     ]),
   ).filter(Boolean);
 
@@ -130,8 +126,11 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
     const compactToken = token.replace(/\s+/g, "");
 
     if (!compactToken) continue;
-    if (compactToken.startsWith(compactQuery) || compactQuery.startsWith(compactToken)) {
-      return 620 - Math.abs(compactToken.length - compactQuery.length) * 12;
+    const queryVariants = getSearchTokenVariants(compactQuery);
+    for (const queryVariant of queryVariants) {
+      if (compactToken.startsWith(queryVariant) || queryVariant.startsWith(compactToken)) {
+        return 640 - Math.abs(compactToken.length - queryVariant.length) * 10;
+      }
     }
 
     bestDistance = Math.min(bestDistance, levenshteinDistance(compactQuery, compactToken));
@@ -300,27 +299,26 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
         )}
 
         <div className="stack">
-          {!selectedCategory ? (
-            <section className="card supplier-toolbar">
-              <form action="/dashboard/supplier" className="supplier-filter-row">
-                <label>
-                  Search
-                  <input
-                    type="search"
-                    name="q"
-                    defaultValue={searchQuery}
-                    placeholder="Search stock to buy"
-                  />
-                </label>
-                <button type="submit">Search</button>
-                {searchQuery ? (
-                  <a href="/dashboard/supplier" className="ghost-button">
-                    Clear
-                  </a>
-                ) : null}
-              </form>
-            </section>
-          ) : null}
+          <section className="card supplier-toolbar">
+            <form action="/dashboard/supplier" className="supplier-filter-row">
+              {selectedCategory ? <input type="hidden" name="category" value={selectedCategory.value} /> : null}
+              <label>
+                Search
+                <input
+                  type="search"
+                  name="q"
+                  defaultValue={searchQuery}
+                  placeholder="Search stock to buy"
+                />
+              </label>
+              <button type="submit">Search</button>
+              {searchQuery ? (
+                <a href={buildSupplierHref(selectedCategory?.value ?? null)} className="ghost-button">
+                  Clear
+                </a>
+              ) : null}
+            </form>
+          </section>
 
           <section className="page-header">
             <div>
@@ -391,8 +389,8 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                   <p className="supplier-card__description">{item.description}</p>
 
                   <div className="supplier-card__meta">
-                    <span className="muted">Unit basis</span>
-                    <strong>{item.unitLabel}</strong>
+                    <span className="muted">Sold as</span>
+                    <strong>{item.unitLabel || "each"}</strong>
                     <span className="muted">Stock available</span>
                     <strong>{sanitizeStockCount(item.supplierStock)}</strong>
                   </div>
