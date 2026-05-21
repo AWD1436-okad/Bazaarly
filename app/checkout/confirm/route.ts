@@ -404,6 +404,15 @@ export async function POST(request: Request) {
             source: "marketplace_checkout",
             cartId: cart.id,
             shopId: cart.shopId,
+            items: marketplaceItems.map((item) => ({
+              productName: item.listing.product.name,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.lineTotal,
+            })),
+            total: marketplaceTotal,
+            balanceBefore: buyer.balance,
+            balanceAfter: buyer.balance - totalPrice,
           },
         });
       }
@@ -430,6 +439,15 @@ export async function POST(request: Request) {
           data: {
             source: "supplier_checkout",
             cartId: cart.id,
+            items: supplierItems.map((item) => ({
+              productName: item.productName,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.lineTotal,
+            })),
+            total: supplierTotal,
+            balanceBefore: buyer.balance,
+            balanceAfter: buyer.balance - totalPrice,
           },
         });
 

@@ -533,14 +533,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           }
         />
       ) : null}
-      {user.balance < 50000 ? (
+      {user.balance < 3_000 ? (
         <StatusBanner
           tone="warning"
-          title="Low balance warning"
-          body={`Your balance is ${formatCurrency(
-            user.balance,
-            currencyCode,
-          )}. Restock carefully to avoid cancelled subscriptions or failed checkouts.`}
+          title="Money is running low"
+          body={`You have ${formatCurrency(user.balance, currencyCode)} left. Sell stock or choose cheaper items before your next buy.`}
         />
       ) : null}
 

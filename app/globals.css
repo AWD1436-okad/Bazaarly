@@ -257,6 +257,16 @@ button:hover {
   box-shadow: 0 14px 30px var(--control-shadow);
 }
 
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 70%, white);
+  outline-offset: 3px;
+}
+
 .cta-link-button {
   display: inline-flex;
   align-items: center;
@@ -969,6 +979,45 @@ textarea {
   background: var(--badge-bg);
   color: var(--badge-text);
   font-weight: 950;
+}
+
+.receipt-row__header,
+.receipt-line,
+.receipt-balance {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.receipt-row__header {
+  margin-bottom: 0.65rem;
+}
+
+.receipt-row__header strong,
+.receipt-row__header span {
+  display: block;
+}
+
+.receipt-line-list {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-elevated);
+}
+
+.receipt-line span,
+.receipt-balance span {
+  color: var(--muted);
+}
+
+.receipt-balance {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 @keyframes planet-float {

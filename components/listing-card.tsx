@@ -22,6 +22,7 @@ type ListingCardProps = {
       imageUrl?: string | null;
     };
     shop: {
+      ownerId?: string;
       name: string;
       rating: number;
     };
@@ -29,6 +30,7 @@ type ListingCardProps = {
   showShopLink?: boolean;
   shopNameOverride?: string;
   currencyCode?: string;
+  viewerUserId?: string;
 };
 
 export function ListingCard({
@@ -36,8 +38,11 @@ export function ListingCard({
   showShopLink = true,
   shopNameOverride,
   currencyCode = "AUD",
+  viewerUserId,
 }: ListingCardProps) {
   const shopLabel = shopNameOverride ?? listing.shop.name;
+  const isOwnListing = Boolean(viewerUserId && listing.shop.ownerId === viewerUserId);
+  const unitLabel = listing.product.unitLabel || "each";
 
   return (
     <article className="card supplier-card listing-card">
@@ -62,7 +67,7 @@ export function ListingCard({
         </div>
 
         <div className="listing-card__price">
-          <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)}</strong>
+          <strong>{formatPriceWithUnit(listing.price, unitLabel, currencyCode)}</strong>
           <span>{getStockAvailabilityLabel(listing.quantity)}</span>
         </div>
       </div>
@@ -70,9 +75,9 @@ export function ListingCard({
       <p className="supplier-card__description listing-card__description">{listing.product.description}</p>
 
       <div className="supplier-card__meta listing-card__meta-grid">
-        <span className="muted">Unit basis</span>
-        <strong>{listing.product.unitLabel}</strong>
-        <span className="muted">Shop stock</span>
+        <span className="muted">Sold as</span>
+        <strong>{unitLabel}</strong>
+        <span className="muted">Available</span>
         <strong>{sanitizeStockCount(listing.quantity)}</strong>
       </div>
 
@@ -84,7 +89,11 @@ export function ListingCard({
         ) : (
           <span className="muted listing-card__inline-note">Buying from this shop</span>
         )}
-        <InlineCartActions listingId={listing.id} maxQuantity={listing.quantity} />
+        {isOwnListing ? (
+          <span className="muted listing-card__inline-note">Your listing</span>
+        ) : (
+          <InlineCartActions listingId={listing.id} maxQuantity={listing.quantity} />
+        )}
       </div>
     </article>
   );

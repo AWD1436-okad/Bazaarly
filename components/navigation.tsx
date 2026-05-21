@@ -39,7 +39,7 @@ export function Navigation({
   playerMode = "ADVANCED",
 }: NavigationProps) {
   const pathname = usePathname();
-  const showSearch = pathname === "/marketplace" || pathname?.startsWith("/shop/");
+  const showSearch = pathname?.startsWith("/shop/");
   const modeConfig = getPlayerModeConfig(playerMode);
   const navItems = [
     { href: "/dashboard", label: modeConfig.navLabels.dashboard, icon: APP_ICONS.dashboard },
@@ -142,7 +142,7 @@ export function Navigation({
       </nav>
     </header>
     <nav className="mobile-bottom-nav" aria-label="Main mobile navigation">
-      {navItems.slice(0, 5).map((item) => (
+      {[navItems[0], navItems[1], navItems[2], navItems[5], navItems[6]].map((item) => (
         <Link
           key={item.href}
           href={item.href as Route}

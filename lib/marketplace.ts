@@ -52,6 +52,7 @@ const listingCardSelect = {
   },
   shop: {
     select: {
+      ownerId: true,
       name: true,
       rating: true,
     },
@@ -74,6 +75,7 @@ type ListingWithRelations = {
     keywords: unknown;
   };
   shop: {
+    ownerId: string;
     name: string;
     rating: number;
   };

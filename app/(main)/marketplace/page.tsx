@@ -62,7 +62,6 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     minPrice: typeof params.minPrice === "string" ? params.minPrice : undefined,
     maxPrice: typeof params.maxPrice === "string" ? params.maxPrice : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
-    excludeOwnerId: user.id,
     currencyCode,
   });
 
@@ -179,14 +178,14 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       {hasQuery && marketplace.searchSummary?.showingClosestMatches ? (
         <StatusBanner
           tone="warning"
-          title="No exact match found"
-          body={`Showing closest matches for "${marketplace.searchSummary.query}".`}
+          title="Showing closest matches"
+          body={`No exact title match for "${marketplace.searchSummary.query}", so these are the nearest results.`}
         />
       ) : null}
 
       {marketplace.listings.length === 0 ? (
         <div className="empty-state">
-          <p>No exact match found.</p>
+          <p>No listings found.</p>
           {playerModeConfig.value === "LITTLE" ? null : (
             <p className="muted">Try fewer words or clear filters.</p>
           )}
@@ -195,7 +194,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         <>
           <section className="listing-grid listing-grid--list">
             {marketplace.listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} currencyCode={currencyCode} />
+              <ListingCard key={listing.id} listing={listing} currencyCode={currencyCode} viewerUserId={user.id} />
             ))}
           </section>
         </>
