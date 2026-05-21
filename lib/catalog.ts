@@ -211,6 +211,7 @@ export const CATEGORY_OPTIONS: readonly CategoryOption[] = [
   value: category,
   label: CATEGORY_DEFINITIONS[category].label,
   iconSrc: CATEGORY_DEFINITIONS[category].iconSrc,
+  category,
 }));
 
 export function getCategoryFilterOption(value: string | null | undefined) {

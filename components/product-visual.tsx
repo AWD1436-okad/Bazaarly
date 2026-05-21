@@ -1,7 +1,7 @@
 import type { ProductCategory } from "@prisma/client";
 import Image from "next/image";
 
-import { getCategoryIconSrc } from "@/lib/catalog";
+import { CategoryIcon } from "@/components/category-icon";
 
 type ProductVisualProps = {
   name: string;
@@ -18,7 +18,7 @@ export function ProductVisual({
   size = "compact",
 }: ProductVisualProps) {
   const className = ["product-visual", `product-visual--${size}`].join(" ");
-  const categoryIconSrc = getCategoryIconSrc(category);
+  const iconSize = size === "compact" ? "sm" : size === "card" ? "md" : "lg";
 
   return (
     <span className={className} aria-hidden="true">
@@ -31,18 +31,11 @@ export function ProductVisual({
           className="product-visual__image product-visual__image--photo"
           unoptimized
         />
-      ) : categoryIconSrc ? (
-        <Image
-          src={categoryIconSrc}
-          alt=""
-          fill
-          sizes={size === "hero" ? "180px" : size === "card" ? "120px" : "56px"}
-          className="product-visual__image product-visual__image--icon"
-          title={name}
-        />
+      ) : category ? (
+        <CategoryIcon category={category} label={name} size={iconSize} />
       ) : (
         <span className="product-visual__fallback" title={name}>
-          pp
+          <CategoryIcon label={name} size={iconSize} />
         </span>
       )}
     </span>

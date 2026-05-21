@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+import { CategoryIcon } from "@/components/category-icon";
 import { getCategoryOptionDisplayLabel, type CategoryOption } from "@/lib/catalog";
 
 type CategoryFilterListProps = {
@@ -35,13 +34,7 @@ export function CategoryFilterList({
               aria-current={isActive ? "page" : undefined}
             >
               <span className="category-filter-link__icon" aria-hidden="true">
-                <Image
-                  src={category.iconSrc}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="category-filter-link__image"
-                />
+                <CategoryIcon category={category.category ?? null} size="sm" />
               </span>
               <span>{label}</span>
             </a>
@@ -63,7 +56,7 @@ export function CategoryFilterList({
           className="category-filter-link__icon category-filter-link__icon--all"
           aria-hidden="true"
         >
-          all
+          <CategoryIcon size="sm" />
         </span>
         <span>{allLabel}</span>
       </a>
