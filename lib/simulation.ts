@@ -661,6 +661,37 @@ function getDesiredBotQuantity(
   return randomIntInclusive(1, maxPurchaseableUnits);
 }
 
+function getBotPurchaseNotificationMessage({
+  bot,
+  shopName,
+  productName,
+  quantity,
+  totalPrice,
+  currencyCode,
+}: {
+  bot: Pick<ActiveBotRecord, "displayName" | "type">;
+  shopName: string;
+  productName: string;
+  quantity: number;
+  totalPrice: number;
+  currencyCode: string;
+}) {
+  const totalLabel = formatCurrency(totalPrice, currencyCode);
+
+  switch (bot.type) {
+    case BotPersonality.BUDGET:
+      return `${bot.displayName} found a good deal and bought ${quantity}x ${productName} from ${shopName} for ${totalLabel}.`;
+    case BotPersonality.QUALITY:
+      return `${bot.displayName} chose your quality stock: ${quantity}x ${productName} for ${totalLabel}.`;
+    case BotPersonality.BULK:
+      return `${bot.displayName} made a bulk buy: ${quantity}x ${productName} from ${shopName} for ${totalLabel}.`;
+    case BotPersonality.LOYAL:
+      return `${bot.displayName} came back to your shop and bought ${quantity}x ${productName} for ${totalLabel}.`;
+    default:
+      return `${bot.displayName} visited ${shopName} and bought ${quantity}x ${productName} for ${totalLabel}.`;
+  }
+}
+
 async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCycleResult[]> {
   const results: AutoRestockCycleResult[] = [];
   const activeSubscriptions = await prisma.autoRestockSubscription.findMany({
@@ -1820,10 +1851,14 @@ export async function runMarketSimulation(force = false, debug = false) {
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-            message: `${bot.displayName} purchased from ${freshListing.shop.name}: ${selectedQuantity}x ${freshListing.product.name}. Total ${formatCurrency(
+            message: getBotPurchaseNotificationMessage({
+              bot,
+              shopName: freshListing.shop.name,
+              productName: freshListing.product.name,
+              quantity: selectedQuantity,
               totalPrice,
-              seller.currencyCode,
-            )}.`,
+              currencyCode: seller.currencyCode,
+            }),
             createdAt: attemptedAt,
           },
         });

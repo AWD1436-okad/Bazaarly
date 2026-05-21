@@ -673,28 +673,28 @@ export const INITIAL_USERS = [
 
 export const INITIAL_BOTS = [
   {
-    displayName: "Budget Bro",
+    displayName: "Budget Ben",
     type: BotPersonality.BUDGET,
     budget: 3200,
     preferenceCategory: ProductCategory.FRUIT_AND_VEGETABLES,
     activityLevel: 76,
   },
   {
-    displayName: "Quality Queen",
+    displayName: "Premium Aisha",
     type: BotPersonality.QUALITY,
     budget: 8500,
     preferenceCategory: ProductCategory.MEAT_DAIRY_AND_PROTEIN,
     activityLevel: 64,
   },
   {
-    displayName: "Loyal Lad",
+    displayName: "Loyal Layla",
     type: BotPersonality.LOYAL,
     budget: 5200,
     preferenceCategory: ProductCategory.DRINKS,
     activityLevel: 66,
   },
   {
-    displayName: "Bulk Brook",
+    displayName: "Bulk Bro",
     type: BotPersonality.BULK,
     budget: 9800,
     preferenceCategory: ProductCategory.BAKERY_AND_GRAINS,

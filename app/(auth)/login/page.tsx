@@ -41,23 +41,32 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               priority
             />
             <h1>Grow your profit planet.</h1>
-            <p className="muted">
-              Build a shop, buy stock, set prices, and turn smart trades into a stronger business world.
+            <p className="muted auth-hero-lead">
+              Start as a street seller, buy your first stock, make sales, unlock levels, and race other shops to
+              become a Business Tycoon.
             </p>
           </div>
 
           <div className="auth-game-panel">
-            <span className="tag">Marketplace game loop</span>
-            <div className="auth-game-panel__steps">
-              <span>Buy stock</span>
-              <span>List products</span>
-              <span>Make sales</span>
-              <span>Track money</span>
-              <span>Complete challenges</span>
+            <div className="auth-planet-preview" aria-hidden="true">
+              <span>PP</span>
+              <i />
+              <i />
             </div>
-            <p>
-              Spend carefully, price fairly, keep stock moving, and grow your shop.
-            </p>
+            <span className="tag">First 5 minutes</span>
+            <div className="auth-game-panel__steps">
+              <span>1. Buy stock</span>
+              <span>2. List it</span>
+              <span>3. Make profit</span>
+              <span>4. Claim rewards</span>
+            </div>
+            <div className="auth-xp-preview">
+              <strong>Level 1: Street Seller</strong>
+              <div className="challenge-progress" aria-hidden="true">
+                <span style={{ width: "38%" }} />
+              </div>
+              <small>XP, daily goals, bot shoppers, and live market events keep the world moving.</small>
+            </div>
           </div>
 
           {error ? (
@@ -71,9 +80,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="card">
             <h2>Secure login</h2>
-            <p className="muted">
-              Continue running your shop and checking live sales.
-            </p>
             <form action="/auth/login" method="post" className="stack-sm">
               <label>
                 Email
@@ -93,10 +99,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <div className="stack">
           <div className="card">
-            <h2>Create a new player</h2>
-            <p className="muted">
-              Pick your mode, set up your safe PIN, then open your shop.
-            </p>
+            <h2>Start trading</h2>
             <form action="/auth/register" method="post" className="stack-sm">
               <label>
                 Display name
@@ -148,8 +151,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   ))}
                 </div>
               </fieldset>
-              <button type="submit">Create account</button>
+              <button type="submit">Start Trading</button>
             </form>
+          </div>
+          <div className="auth-win-card">
+            <span className="tag">Win goals</span>
+            <strong>Reach the profit target</strong>
+            <span>Unlock Planet Tycoon, beat daily goals, and climb the shop leaderboard.</span>
           </div>
         </div>
       </section>

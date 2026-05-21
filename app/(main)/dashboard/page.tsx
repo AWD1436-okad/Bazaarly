@@ -1,4 +1,4 @@
-import { Prisma, ProductCategory } from "@prisma/client";
+import { Prisma, ProductCategory, ShopStatus } from "@prisma/client";
 import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -93,6 +93,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   if (!user.shop) {
     redirect("/onboarding/shop");
   }
+  const currentShopId = user.shop.id;
 
   const params = (await searchParams) ?? {};
   const welcome = params.welcome === "1";
@@ -122,6 +123,9 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     listingTotalCount,
     activeListingCount,
     pausedListingCount,
+    activeMarketEvent,
+    trendingStates,
+    leaderboardShops,
   ] =
     await Promise.all([
       prisma.inventory.findMany({
@@ -297,6 +301,65 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           isPaused: true,
         },
       }),
+      prisma.marketEvent.findFirst({
+        where: {
+          active: true,
+          startsAt: { lte: new Date() },
+          endsAt: { gte: new Date() },
+        },
+        select: {
+          name: true,
+          description: true,
+          effectValue: true,
+          endsAt: true,
+          category: true,
+          product: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: { startsAt: "desc" },
+      }),
+      prisma.marketProductState.findMany({
+        where: {
+          product: {
+            listings: {
+              some: {
+                active: true,
+                isPaused: false,
+                quantity: { gt: 0 },
+              },
+            },
+          },
+        },
+        select: {
+          demandScore: true,
+          trendLabel: true,
+          product: {
+            select: {
+              name: true,
+              category: true,
+              subcategory: true,
+              imageUrl: true,
+            },
+          },
+        },
+        orderBy: [{ demandScore: "desc" }, { popularityScore: "desc" }],
+        take: 3,
+      }),
+      prisma.shop.findMany({
+        where: { status: ShopStatus.ACTIVE },
+        select: {
+          id: true,
+          name: true,
+          rating: true,
+          totalRevenue: true,
+          totalSales: true,
+        },
+        orderBy: [{ totalRevenue: "desc" }, { totalSales: "desc" }],
+        take: 3,
+      }),
     ]);
 
   const listingOptionRows = listingOptions
@@ -387,9 +450,17 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const todayProfit = todayProfitSummary.netProfitCents;
   const totalProfit = totalProfitSummary.netProfitCents;
   const progression = getProgression(totalProfit, user.shop.totalSales, activeListingCount);
-
-  const hasListings = visibleListings.some((listing) => listing.quantity > 0);
   const hasInventory = Boolean(inventoryPresence);
+  const starterMissions = getStarterMissions({
+    hasInventory,
+    activeListingCount,
+    totalSales: user.shop.totalSales,
+    totalProfit,
+    currencyCode,
+  });
+  const nextStarterMission = starterMissions.find((mission) => !mission.complete);
+  const winProgress = getWinProgress(totalProfit, activeListingCount, progression.level);
+
   const bestSellers = bestSellerRows.map((item) => ({
     name: item.productName,
     category: item.productCategory,
@@ -538,6 +609,70 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           </div>
         </div>
         <strong className="progression-card__xp">{progression.xp} XP</strong>
+      </section>
+
+      <section className="gameplay-grid">
+        <article className="card mission-card">
+          <div className="card-header">
+            <div className="card-header__copy">
+              <span className="tag">Starter path</span>
+              <h2>{nextStarterMission ? nextStarterMission.title : "Starter path complete"}</h2>
+              <p>{nextStarterMission ? nextStarterMission.helper : "Keep growing toward Planet Tycoon."}</p>
+            </div>
+            <Link href={(nextStarterMission?.href ?? "/challenges") as Route} className="ghost-button">
+              {nextStarterMission ? nextStarterMission.action : "Daily goals"}
+            </Link>
+          </div>
+          <div className="mission-track">
+            {starterMissions.map((mission, index) => (
+              <div key={mission.title} className={mission.complete ? "mission-step mission-step--done" : "mission-step"}>
+                <span>{mission.complete ? "✓" : index + 1}</span>
+                <div>
+                  <strong>{mission.title}</strong>
+                  <small>{mission.reward}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="card world-event-card">
+          <div className="card-header">
+            <div className="card-header__copy">
+              <span className="tag">Live world</span>
+              <h2>{activeMarketEvent?.name ?? "Customer rush is building"}</h2>
+              <p>
+                {activeMarketEvent?.description ??
+                  "Trending products shift as bots and players buy from the shared marketplace."}
+              </p>
+            </div>
+          </div>
+          <div className="world-event-list">
+            {trendingStates.map((state) => (
+              <div key={state.product.name} className="world-event-row">
+                <ProductVisual
+                  name={state.product.name}
+                  category={state.product.category}
+                  subcategory={state.product.subcategory}
+                  imageUrl={state.product.imageUrl}
+                />
+                <div>
+                  <strong>{state.product.name}</strong>
+                  <span>{state.trendLabel} · demand {state.demandScore.toFixed(2)}x</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="card win-condition-card">
+          <span className="tag">Empire goal</span>
+          <h2>Build your Profit Planet</h2>
+          <p>Reach {formatCurrency(1_000_000, currencyCode)} net profit, hit Level 5, and climb the leaderboard.</p>
+          <div className="challenge-progress" aria-label={`${winProgress}% toward empire goal`}>
+            <span style={{ width: `${winProgress}%` }} />
+          </div>
+        </article>
       </section>
 
       <InstallAppCard compact />
@@ -889,10 +1024,79 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             )}
           </section>
 
+          <section className="card leaderboard-card">
+            <div className="card-header">
+              <div className="card-header__copy">
+                <h2>Shop leaderboard</h2>
+              </div>
+              <span className="tag">Top revenue</span>
+            </div>
+            <div className="leaderboard-list">
+              {leaderboardShops.map((shop, index) => (
+                <div key={shop.id} className={shop.id === currentShopId ? "leaderboard-row leaderboard-row--you" : "leaderboard-row"}>
+                  <span className="leaderboard-rank">#{index + 1}</span>
+                  <div>
+                    <strong>{shop.name}</strong>
+                    <small>{shop.totalSales} sales - rating {shop.rating.toFixed(1)}</small>
+                  </div>
+                  <strong>{formatCurrency(shop.totalRevenue, currencyCode)}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
         </div>
       </section>
     </div>
   );
+}
+
+function getStarterMissions({
+  hasInventory,
+  activeListingCount,
+  totalSales,
+  totalProfit,
+  currencyCode,
+}: {
+  hasInventory: boolean;
+  activeListingCount: number;
+  totalSales: number;
+  totalProfit: number;
+  currencyCode: string;
+}) {
+  return [
+    {
+      title: "Buy your first stock",
+      helper: "Pick something cheap, add it to your cart, and stock your shop.",
+      action: "Buy stock",
+      href: "/dashboard/supplier",
+      reward: `Task rewards can pay ${formatCurrency(5_000, currencyCode)}.`,
+      complete: hasInventory || activeListingCount > 0 || totalSales > 0,
+    },
+    {
+      title: "List it for sale",
+      helper: "Put owned stock into your shop so customers can buy it.",
+      action: "Create listing",
+      href: "/dashboard",
+      reward: `Complete listing tasks for ${formatCurrency(5_000, currencyCode)}+ rewards.`,
+      complete: activeListingCount > 0 || totalSales > 0,
+    },
+    {
+      title: "Make your first profit",
+      helper: "Bots and players can buy your items once they are live.",
+      action: "View goals",
+      href: "/challenges",
+      reward: "Unlock XP, challenge rewards, and higher shop levels.",
+      complete: totalSales > 0 || totalProfit > 0,
+    },
+  ];
+}
+
+function getWinProgress(totalProfit: number, activeListings: number, level: number) {
+  const profitScore = Math.min(55, Math.max(0, totalProfit) / 1_000_000 * 55);
+  const listingScore = Math.min(20, activeListings / 25 * 20);
+  const levelScore = Math.min(25, level / PLAYER_LEVELS.length * 25);
+  return Math.max(3, Math.round(profitScore + listingScore + levelScore));
 }
 
 function getProgression(totalProfit: number, totalSales: number, activeListings: number) {
