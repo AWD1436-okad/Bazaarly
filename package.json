@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "money:audit": "node scripts/check-money-displays.mjs",
+    "profit:test": "tsx scripts/test-profit.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

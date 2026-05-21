@@ -68,38 +68,29 @@ export async function getNetProfitSummary({ userId, startAt, endAt }: ProfitSumm
         }
       : undefined;
 
-  const [salesIncome, businessExpenses] = await Promise.all([
-    prisma.order.aggregate({
+  const salesSummary = await prisma.orderLineItem.aggregate({
       where: {
-        sellerId: userId,
-        ...(createdAt ? { createdAt } : {}),
+        order: {
+          sellerId: userId,
+          ...(createdAt ? { createdAt } : {}),
+        },
       },
       _sum: {
-        totalPrice: true,
+        lineTotal: true,
+        lineProfit: true,
       },
-    }),
-    prisma.businessLedgerEntry.aggregate({
-      where: {
-        userId,
-        type: BusinessLedgerEntryType.EXPENSE,
-        ...(createdAt ? { createdAt } : {}),
-      },
-      _sum: {
-        amount: true,
-      },
-    }),
-  ]);
+    });
 
-  const salesIncomeCents = salesIncome._sum.totalPrice ?? 0;
-  const businessExpenseCents = businessExpenses._sum.amount ?? 0;
+  const salesIncomeCents = salesSummary._sum.lineTotal ?? 0;
+  const netProfitCents = salesSummary._sum.lineProfit ?? 0;
 
-  // Profit Planet uses a ledger-style game score:
-  // sales money received - stock/restock/subscription/feature costs.
-  // Stock costs are counted when the player spends money, not later at sale time.
+  // Profit is sale revenue minus the cost basis of the sold quantity.
+  // Stock purchases stay in the ledger/receipts, but do not reduce profit
+  // until those units are actually sold.
   return {
     salesIncomeCents,
-    businessExpenseCents,
-    netProfitCents: salesIncomeCents - businessExpenseCents,
+    businessExpenseCents: salesIncomeCents - netProfitCents,
+    netProfitCents,
   };
 }
 

@@ -102,7 +102,7 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       todayNet: "Today's profit",
       totalNet: "Total profit",
       balanceHelper: "",
-      todayNetHelper: "Sales money minus costs.",
+      todayNetHelper: "Sales money minus item costs.",
       totalNetHelper: "",
     },
   },
@@ -136,7 +136,7 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       todayNet: "Today profit",
       totalNet: "Total profit",
       balanceHelper: "",
-      todayNetHelper: "Sales minus stock costs.",
+      todayNetHelper: "Sales minus sold-item costs.",
       totalNetHelper: "",
     },
   },
@@ -170,8 +170,8 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
       todayNet: "Today Profit",
       totalNet: "Total Profit",
       balanceHelper: "Money you can spend.",
-      todayNetHelper: "Sales minus stock and business costs.",
-      totalNetHelper: "All sales minus stock and business costs.",
+      todayNetHelper: "Sales revenue minus sold-item cost.",
+      totalNetHelper: "All sales revenue minus sold-item cost.",
     },
   },
 };
@@ -195,11 +195,11 @@ export function getPlayerModeProfitChallengeLabel(value: unknown, amountLabel: s
   }
 
   if (playerMode === "JUNIOR") {
-    return `Make ${amountLabel} profit after costs`;
+    return `Make ${amountLabel} profit after item costs`;
   }
 
   if (playerMode === "YOUNG") {
-    return `Make ${amountLabel} profit after stock costs`;
+    return `Make ${amountLabel} profit after sold-item costs`;
   }
 
   return `Earn ${amountLabel} net profit`;

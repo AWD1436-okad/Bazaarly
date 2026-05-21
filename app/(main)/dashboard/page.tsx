@@ -57,7 +57,8 @@ type BestSellerRow = {
   productSubcategory: string | null;
   productImageUrl: string | null;
   units: number;
-  salesIncome: number;
+  revenueCents: number;
+  profitCents: number;
 };
 
 function buildDashboardHref(
@@ -211,6 +212,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             select: {
               id: true,
               quantity: true,
+              lineProfit: true,
               product: {
                 select: {
                   id: true,
@@ -254,13 +256,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           p."subcategory" AS "productSubcategory",
           p."imageUrl" AS "productImageUrl",
           COALESCE(SUM(oli."quantity"), 0)::int AS "units",
-          COALESCE(SUM(oli."lineTotal"), 0)::int AS "salesIncome"
+          COALESCE(SUM(oli."lineTotal"), 0)::int AS "revenueCents",
+          COALESCE(SUM(oli."lineProfit"), 0)::int AS "profitCents"
         FROM "OrderLineItem" oli
         INNER JOIN "Order" o ON o."id" = oli."orderId"
         INNER JOIN "Product" p ON p."id" = oli."productId"
         WHERE o."sellerId" = ${user.id}
         GROUP BY oli."productId", p."name", p."category", p."subcategory", p."imageUrl"
-        ORDER BY SUM(oli."quantity") DESC, SUM(oli."lineTotal") DESC
+        ORDER BY SUM(oli."quantity") DESC, SUM(oli."lineProfit") DESC
         LIMIT 4
       `),
       prisma.inventory.findFirst({
@@ -467,7 +470,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     subcategory: item.productSubcategory,
     imageUrl: item.productImageUrl,
     units: item.units,
-    salesIncome: item.salesIncome,
+    revenueCents: item.revenueCents,
+    profitCents: item.profitCents,
   }));
   const challengeSet = await getDashboardChallenges({
     userId: user.id,
@@ -951,7 +955,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         </span>
                       </div>
                     </div>
-                    <strong>{formatCurrency(sale.totalPrice, currencyCode)}</strong>
+                    <div className="stack-xs align-end">
+                      <strong>{formatCurrency(sale.lineItems.reduce((sum, line) => sum + line.lineProfit, 0), currencyCode)} profit</strong>
+                      <span className="muted">{formatCurrency(sale.totalPrice, currencyCode)} revenue</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -982,7 +989,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                         <span className="muted">{item.units} units sold</span>
                       </div>
                     </div>
-                    <strong className="best-seller-row__sales">{formatCurrency(item.salesIncome, currencyCode)}</strong>
+                    <div className="best-seller-row__sales stack-xs">
+                      <strong>{formatCurrency(item.profitCents, currencyCode)}</strong>
+                      <span className="muted">{formatCurrency(item.revenueCents, currencyCode)} revenue</span>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -6,6 +6,7 @@ import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
 import { encryptBankNumber, verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
+import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { isSafePositiveQuantity } from "@/lib/route-validation";
@@ -146,13 +147,17 @@ export async function POST(request: Request) {
           active: boolean;
           product: {
             name: string;
+            basePrice: number;
           };
         };
         inventory: {
           id: string;
           quantity: number;
           allocatedQuantity: number;
+          averageUnitCost: number;
         };
+        costUnitPrice: number;
+        lineProfit: number;
       }> = [];
       const supplierItems: Array<{
         productId: string;
@@ -239,6 +244,7 @@ export async function POST(request: Request) {
             id: true,
             quantity: true,
             allocatedQuantity: true,
+            averageUnitCost: true,
           },
         });
 
@@ -249,6 +255,15 @@ export async function POST(request: Request) {
         await tx.$queryRaw`SELECT "id" FROM "Inventory" WHERE "id" = ${inventory.id} FOR UPDATE`;
 
         const lineTotal = item.unitPriceSnapshot * item.quantity;
+        const costUnitPrice = getSaleCostUnitPrice({
+          inventoryAverageUnitCost: inventory.averageUnitCost,
+          productBasePrice: listing.product.basePrice,
+        });
+        const lineProfit = calculateProfit({
+          sellingUnitPrice: item.unitPriceSnapshot,
+          costUnitPrice,
+          quantity: item.quantity,
+        });
         totalPrice += lineTotal;
         marketplaceTotal += lineTotal;
         saleSummary.push(`${item.quantity}x ${listing.product.name}`);
@@ -258,6 +273,8 @@ export async function POST(request: Request) {
           lineTotal,
           listing,
           inventory,
+          costUnitPrice,
+          lineProfit,
         });
       }
 
@@ -343,7 +360,9 @@ export async function POST(request: Request) {
               listingId: item.listing.id,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              costUnitPrice: item.costUnitPrice,
               lineTotal: item.lineTotal,
+              lineProfit: item.lineProfit,
             },
           });
 
@@ -373,14 +392,16 @@ export async function POST(request: Request) {
           },
         });
 
+        const marketplaceProfit = marketplaceItems.reduce((sum, item) => sum + item.lineProfit, 0);
+
         await tx.notification.create({
           data: {
             userId: seller.id,
             type: NotificationType.SALE,
-            message: `${buyer.displayName} purchased from ${cart.shop.name}: ${saleSummary.join(", ")}. Total ${formatCurrency(
+            message: `${buyer.displayName} purchased from ${cart.shop.name}: ${saleSummary.join(", ")}. Revenue ${formatCurrency(
               marketplaceTotal,
               seller.currencyCode,
-            )}.`,
+            )}. Profit ${formatCurrency(marketplaceProfit, seller.currencyCode)}.`,
           },
         });
 

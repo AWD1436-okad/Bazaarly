@@ -2213,6 +2213,11 @@ button:hover .app-icon,
   gap: 0.4rem;
 }
 
+.align-end {
+  justify-items: end;
+  text-align: right;
+}
+
 .table-list {
   display: grid;
   gap: 0.55rem;

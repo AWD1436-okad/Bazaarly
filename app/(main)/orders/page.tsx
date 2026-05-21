@@ -131,6 +131,10 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
         lineItems: {
           select: {
             quantity: true,
+            unitPrice: true,
+            costUnitPrice: true,
+            lineTotal: true,
+            lineProfit: true,
             product: {
               select: {
                 name: true,
@@ -163,6 +167,10 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
         lineItems: {
           select: {
             quantity: true,
+            unitPrice: true,
+            costUnitPrice: true,
+            lineTotal: true,
+            lineProfit: true,
             product: {
               select: {
                 name: true,
@@ -380,7 +388,10 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                     </div>
                     <div className="section-row">
                       <span>{order.createdAt.toLocaleString()}</span>
-                       <strong>{formatCurrency(order.totalPrice, currencyCode)}</strong>
+                       <div className="stack-xs align-end">
+                         <strong>{formatCurrency(order.lineItems.reduce((sum, line) => sum + line.lineProfit, 0), currencyCode)} profit</strong>
+                         <span className="muted">{formatCurrency(order.totalPrice, currencyCode)} revenue</span>
+                       </div>
                     </div>
                   </div>
                 ))}

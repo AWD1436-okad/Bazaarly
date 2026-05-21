@@ -19,6 +19,7 @@ import {
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
+import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
 import { prisma } from "@/lib/prisma";
 import { runSoldOutListingCleanup } from "@/lib/sold-out-cleanup";
 import { sanitizeStockCount } from "@/lib/stock";
@@ -667,6 +668,7 @@ function getBotPurchaseNotificationMessage({
   productName,
   quantity,
   totalPrice,
+  profit,
   currencyCode,
 }: {
   bot: Pick<ActiveBotRecord, "displayName" | "type">;
@@ -674,21 +676,23 @@ function getBotPurchaseNotificationMessage({
   productName: string;
   quantity: number;
   totalPrice: number;
+  profit: number;
   currencyCode: string;
 }) {
   const totalLabel = formatCurrency(totalPrice, currencyCode);
+  const profitLabel = formatCurrency(profit, currencyCode);
 
   switch (bot.type) {
     case BotPersonality.BUDGET:
-      return `${bot.displayName} found a good deal and bought ${quantity}x ${productName} from ${shopName} for ${totalLabel}.`;
+      return `${bot.displayName} found a good deal and bought ${quantity}x ${productName} from ${shopName}. Revenue ${totalLabel}. Profit ${profitLabel}.`;
     case BotPersonality.QUALITY:
-      return `${bot.displayName} chose your quality stock: ${quantity}x ${productName} for ${totalLabel}.`;
+      return `${bot.displayName} chose your quality stock: ${quantity}x ${productName}. Revenue ${totalLabel}. Profit ${profitLabel}.`;
     case BotPersonality.BULK:
-      return `${bot.displayName} made a bulk buy: ${quantity}x ${productName} from ${shopName} for ${totalLabel}.`;
+      return `${bot.displayName} made a bulk buy: ${quantity}x ${productName} from ${shopName}. Revenue ${totalLabel}. Profit ${profitLabel}.`;
     case BotPersonality.LOYAL:
-      return `${bot.displayName} came back to your shop and bought ${quantity}x ${productName} for ${totalLabel}.`;
+      return `${bot.displayName} came back to your shop and bought ${quantity}x ${productName}. Revenue ${totalLabel}. Profit ${profitLabel}.`;
     default:
-      return `${bot.displayName} visited ${shopName} and bought ${quantity}x ${productName} for ${totalLabel}.`;
+      return `${bot.displayName} visited ${shopName} and bought ${quantity}x ${productName}. Revenue ${totalLabel}. Profit ${profitLabel}.`;
   }
 }
 
@@ -1753,6 +1757,7 @@ export async function runMarketSimulation(force = false, debug = false) {
             id: true,
             quantity: true,
             allocatedQuantity: true,
+            averageUnitCost: true,
           },
         });
 
@@ -1772,6 +1777,15 @@ export async function runMarketSimulation(force = false, debug = false) {
           0,
           inventory.allocatedQuantity - selectedQuantity,
         );
+        const costUnitPrice = getSaleCostUnitPrice({
+          inventoryAverageUnitCost: inventory.averageUnitCost,
+          productBasePrice: freshListing.product.basePrice,
+        });
+        const lineProfit = calculateProfit({
+          sellingUnitPrice: freshListing.price,
+          costUnitPrice,
+          quantity: selectedQuantity,
+        });
 
         const order = await tx.order.create({
           data: {
@@ -1790,7 +1804,9 @@ export async function runMarketSimulation(force = false, debug = false) {
             listingId: freshListing.id,
             quantity: selectedQuantity,
             unitPrice: freshListing.price,
+            costUnitPrice,
             lineTotal: totalPrice,
+            lineProfit,
             createdAt: attemptedAt,
           },
         });
@@ -1857,6 +1873,7 @@ export async function runMarketSimulation(force = false, debug = false) {
               productName: freshListing.product.name,
               quantity: selectedQuantity,
               totalPrice,
+              profit: lineProfit,
               currencyCode: seller.currencyCode,
             }),
             createdAt: attemptedAt,

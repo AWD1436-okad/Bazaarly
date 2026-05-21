@@ -449,7 +449,9 @@ model OrderLineItem {
   listingId  String?
   quantity   Int
   unitPrice  Int
+  costUnitPrice Int @default(0)
   lineTotal  Int
+  lineProfit Int @default(0)
   createdAt  DateTime  @default(now())
   order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product    Product   @relation(fields: [productId], references: [id], onDelete: Restrict)

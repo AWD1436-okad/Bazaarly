@@ -21,6 +21,7 @@ import {
   hashCheckoutPin,
 } from "../lib/pin";
 import { buildCatalogPriceProfiles } from "../lib/price-profiles";
+import { calculateProfit, getSaleCostUnitPrice } from "../lib/profit";
 
 const prisma = new PrismaClient();
 const shouldReset = process.env.SEED_MODE === "reset";
@@ -747,12 +748,22 @@ async function main() {
         }
 
         const unitPrice = livePrice(product, listing.priceMultiplier);
+        const costUnitPrice = getSaleCostUnitPrice({
+          inventoryAverageUnitCost: unitCost(product),
+          productBasePrice: product.basePrice,
+        });
 
         return {
           product,
           listingId,
           quantity: item.quantity,
           unitPrice,
+          costUnitPrice,
+          lineProfit: calculateProfit({
+            sellingUnitPrice: unitPrice,
+            costUnitPrice,
+            quantity: item.quantity,
+          }),
         };
       });
 
@@ -779,7 +790,9 @@ async function main() {
             listingId: item.listingId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            costUnitPrice: item.costUnitPrice,
             lineTotal: item.unitPrice * item.quantity,
+            lineProfit: item.lineProfit,
             createdAt: subHours(new Date(), orderSeed.hoursAgo),
           },
         });
@@ -793,7 +806,7 @@ async function main() {
         data: {
           userId: seller.id,
           type: NotificationType.SALE,
-          message: `${buyer.displayName} bought ${summary} for $${(totalPrice / 100).toFixed(2)}.`,
+          message: `${buyer.displayName} bought ${summary}. Revenue $${(totalPrice / 100).toFixed(2)}. Profit $${(lineItems.reduce((sum, item) => sum + item.lineProfit, 0) / 100).toFixed(2)}.`,
           createdAt: subHours(new Date(), orderSeed.hoursAgo),
         },
       });
