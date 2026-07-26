@@ -16,3 +16,5 @@ prisma/prisma/dev.db
 tsconfig.tsbuildinfo
 
 .vercel
+.appdata
+.localappdata
