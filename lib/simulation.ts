@@ -17,7 +17,7 @@ import {
   isRestockCycleDue,
 } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
-import { INITIAL_BOTS } from "@/lib/catalog";
+import { INITIAL_BOTS, INITIAL_USERS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
 import { prisma } from "@/lib/prisma";
@@ -48,6 +48,10 @@ const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
 const BOT_WALLET_REFILL_FLOOR = 120_000;
+const NPC_SHOP_RESTOCK_TARGET = 8;
+const NPC_SHOP_RESTOCK_BATCH_SIZE = 4;
+const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 3;
+const NPC_SHOP_EMAILS = INITIAL_USERS.map((user) => user.email);
 
 type BotCandidateListing = {
   id: string;
@@ -276,6 +280,93 @@ function getBotAttemptProbability({
     BOT_MIN_PURCHASE_CHANCE,
     BOT_MAX_PURCHASE_CHANCE,
   );
+}
+
+async function restockNpcShopsFromSupplier(now: Date) {
+  const lowStockListings = await prisma.listing.findMany({
+    where: {
+      quantity: { lt: NPC_SHOP_RESTOCK_TARGET },
+      shop: {
+        status: "ACTIVE",
+        owner: { email: { in: NPC_SHOP_EMAILS } },
+      },
+    },
+    orderBy: { updatedAt: "asc" },
+    take: MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION,
+    select: { id: true },
+  });
+
+  let restocks = 0;
+  for (const candidate of lowStockListings) {
+    const restocked = await prisma.$transaction(async (tx) => {
+      const listing = await tx.listing.findUnique({
+        where: { id: candidate.id },
+        include: { shop: true, product: true },
+      });
+      if (!listing || listing.quantity >= NPC_SHOP_RESTOCK_TARGET) return false;
+
+      const supplier = await tx.marketProductState.findUnique({
+        where: { productId: listing.productId },
+      });
+      const owner = await tx.user.findUnique({
+        where: { id: listing.shop.ownerId },
+        select: { id: true, balance: true },
+      });
+      const inventory = await tx.inventory.findUnique({
+        where: { userId_productId: { userId: listing.shop.ownerId, productId: listing.productId } },
+      });
+
+      if (!supplier || !owner || !inventory || supplier.supplierStock <= 0) return false;
+
+      await tx.$queryRaw`SELECT "id" FROM "MarketProductState" WHERE "id" = ${supplier.id} FOR UPDATE`;
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${owner.id} FOR UPDATE`;
+
+      const quantity = Math.min(
+        NPC_SHOP_RESTOCK_BATCH_SIZE,
+        NPC_SHOP_RESTOCK_TARGET - listing.quantity,
+        supplier.supplierStock,
+      );
+      const totalCost = quantity * supplier.currentSupplierPrice;
+      if (quantity <= 0 || owner.balance < totalCost) return false;
+
+      await tx.marketProductState.update({
+        where: { id: supplier.id },
+        data: { supplierStock: { decrement: quantity } },
+      });
+      await tx.user.update({
+        where: { id: owner.id },
+        data: { balance: { decrement: totalCost } },
+      });
+      await tx.inventory.update({
+        where: { id: inventory.id },
+        data: {
+          quantity: { increment: quantity },
+          allocatedQuantity: { increment: quantity },
+          averageUnitCost: supplier.currentSupplierPrice,
+        },
+      });
+      await tx.listing.update({
+        where: { id: listing.id },
+        data: {
+          quantity: { increment: quantity },
+          active: true,
+          soldOutAt: null,
+        },
+      });
+      await recordBusinessExpense(tx, {
+        userId: owner.id,
+        category: BusinessLedgerEntryCategory.STOCK_PURCHASE,
+        amount: totalCost,
+        description: `NPC shop restock: ${listing.product.name}`,
+        data: { source: "npc_shop_restock", productId: listing.productId, quantity, restockedAt: now.toISOString() },
+      });
+
+      return true;
+    });
+    if (restocked) restocks += 1;
+  }
+
+  return restocks;
 }
 
 function getDynamicBotCooldownMs({
@@ -1390,6 +1481,7 @@ export async function runMarketSimulation(force = false, debug = false) {
   }
 
   await runAutoRestock(now);
+  await restockNpcShopsFromSupplier(now);
 
   let botWallet = await prisma.user.findUnique({
     where: { email: "bot-market@profitplanet.local" },

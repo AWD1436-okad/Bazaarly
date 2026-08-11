@@ -16,6 +16,19 @@ type MainLayoutProps = {
   children: React.ReactNode;
 };
 
+function formatNotificationTime(createdAt: Date) {
+  const elapsedMs = Math.max(0, Date.now() - createdAt.getTime());
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  if (hours < 48) return "Yesterday";
+
+  return createdAt.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 export default async function MainLayout({ children }: MainLayoutProps) {
   const user = await requireUser({ allowIncompleteSecurity: true });
 
@@ -49,7 +62,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
-      take: 4,
+      take: 20,
     }),
   ]);
   return (
@@ -67,7 +80,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
         unreadNotificationLabel={unreadNotifications.label}
         recentNotifications={recentNotifications.map((notification) => ({
           ...notification,
-          createdAtLabel: notification.createdAt.toLocaleString(),
+          createdAtLabel: formatNotificationTime(notification.createdAt),
         }))}
         cartItemCount={activeCart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0}
         playerMode="ADVANCED"

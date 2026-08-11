@@ -1342,20 +1342,31 @@ button:hover .app-icon,
 .notification-menu__list {
   display: grid;
   gap: 0.5rem;
+  max-height: min(68vh, 34rem);
+  overflow-y: auto;
+  padding-right: 0.2rem;
 }
 
-.notification-menu__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.notification-menu__actions .ghost-link {
-  border: 0;
-  padding: 0;
-  background: transparent;
+.notification-menu__close {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--surface-alt);
+  color: var(--text);
   cursor: pointer;
-  font: inherit;
+}
+
+.notification-menu__close:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.notification-menu__close svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .notification-menu__item {

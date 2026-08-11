@@ -12,7 +12,7 @@ import {
 } from "@/lib/player-mode";
 import { prisma } from "@/lib/prisma";
 
-export const CHALLENGE_CYCLE_MS = 5 * 60 * 1000;
+export const CHALLENGE_CYCLE_MS = 24 * 60 * 60 * 1000;
 
 export type ChallengeDifficulty = "Easy" | "Medium" | "Hard";
 
@@ -34,12 +34,14 @@ export type ChallengeDefinition = {
   difficulty: ChallengeDifficulty;
   target: number;
   rewardCents: number;
+  rewardXp?: number;
 };
 
 export type ChallengeView = ChallengeDefinition & {
   progress: number;
   progressLabel: string;
   rewardLabel: string;
+  rewardXp: number;
   completed: boolean;
   rewarded: boolean;
   ratio: number;
@@ -67,6 +69,16 @@ const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
   Hard: 15_000,
 };
 
+const REWARD_XP: Record<ChallengeDifficulty, number> = {
+  Easy: 5,
+  Medium: 10,
+  Hard: 20,
+};
+
+function getChallengeXpReward(challenge: Pick<ChallengeDefinition, "difficulty" | "rewardXp">) {
+  return challenge.rewardXp ?? REWARD_XP[challenge.difficulty];
+}
+
 const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
   {
     key: "beginner-sell-50-stock",
@@ -75,6 +87,7 @@ const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
     difficulty: "Easy",
     target: 5_000,
     rewardCents: 1_000,
+    rewardXp: 5,
   },
   {
     key: "beginner-list-5-products",
@@ -82,15 +95,17 @@ const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
     label: "Put 5 items in your shop",
     difficulty: "Medium",
     target: 5,
-    rewardCents: 1_000,
+    rewardCents: 1_500,
+    rewardXp: 10,
   },
   {
-    key: "beginner-sell-10-items",
+    key: "beginner-sell-50-items",
     type: "SELL_ITEMS",
-    label: "Sell 10 items",
+    label: "Sell 50 items",
     difficulty: "Hard",
-    target: 10,
-    rewardCents: 1_500,
+    target: 50,
+    rewardCents: 3_000,
+    rewardXp: 20,
   },
 ];
 
@@ -485,6 +500,7 @@ function getChallengeDefinitionFingerprint(challenges: ChallengeDefinition[]) {
         challenge.difficulty,
         challenge.target,
         challenge.rewardCents,
+        getChallengeXpReward(challenge),
       ].join(":"),
     )
     .join("|");
@@ -765,6 +781,7 @@ export async function getDashboardChallenges({
       progress,
       progressLabel: getProgressLabel(challenge, progress, currencyCode),
       rewardLabel: formatCurrency(challenge.rewardCents, currencyCode),
+      rewardXp: getChallengeXpReward(challenge),
       completed,
       rewarded: rewardedKeys.includes(challenge.key),
       ratio: challenge.target > 0 ? Math.min(1, progress / challenge.target) : 0,
@@ -785,6 +802,7 @@ export async function getDashboardChallenges({
       const freshNew = newlyCompleted.filter((challenge) => !freshRewardedKeys.includes(challenge.key));
       if (freshNew.length === 0) return;
       const freshRewardTotal = freshNew.reduce((sum, challenge) => sum + challenge.rewardCents, 0);
+      const freshXpReward = freshNew.reduce((sum, challenge) => sum + challenge.rewardXp, 0);
 
       await tx.user.update({
         where: { id: userId },
@@ -793,7 +811,7 @@ export async function getDashboardChallenges({
             increment: freshRewardTotal,
           },
           xp: {
-            increment: freshNew.length * 5,
+            increment: freshXpReward,
           },
         },
       });
@@ -807,7 +825,7 @@ export async function getDashboardChallenges({
         data: {
           userId,
           type: "SYSTEM",
-          message: `Challenge reward earned: ${formatCurrency(freshRewardTotal, currencyCode)} and ${freshNew.length * 5} XP.`,
+          message: `Challenge reward earned: ${formatCurrency(freshRewardTotal, currencyCode)} and ${freshXpReward} XP.`,
         },
       });
     });

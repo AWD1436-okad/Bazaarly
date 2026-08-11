@@ -80,7 +80,7 @@ export default async function ChallengesPage() {
                   {challenge.difficulty}
                 </span>
                 <span className={challenge.rewarded ? "tag challenge-row__rewarded" : "tag"}>
-                  {challenge.rewarded ? "Rewarded" : `Reward ${challenge.rewardLabel}`}
+                  {challenge.rewarded ? "Rewarded" : `Reward ${challenge.rewardLabel} + ${challenge.rewardXp} XP`}
                 </span>
               </div>
             </div>

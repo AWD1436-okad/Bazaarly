@@ -1,109 +1,21 @@
-import { SettingsActions } from "@/components/settings-actions";
-import { InstallAppCard } from "@/components/install-app-card";
-import {
-  MAX_DAILY_COST_CENTS,
-  PRO_DAILY_COST_CENTS,
-  SIMPLE_DAILY_COST_CENTS,
-  getAutoRestockRenewalCostCents,
-  getRestockCoverageLabel,
-  getRestockCycleLabel,
-  getNextRestockAt,
-  getPlanMeta,
-  normalizeRestockIntervalMinutes,
-} from "@/lib/auto-restock";
-import { APPEARANCE_PRESETS, normalizeAppearancePreset } from "@/lib/appearance";
+import { ShopSettings } from "@/components/shop-settings";
 import { requireUser } from "@/lib/auth";
-import { formatCurrency } from "@/lib/money";
-import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const currencyCode = await getActiveCurrencyCode(user.id);
-  const profile = getPriceProfileMetadata(currencyCode);
-  const subscription = await prisma.autoRestockSubscription.findUnique({
-    where: { userId: user.id },
-  });
-  const subscriptionPlanMeta = subscription ? getPlanMeta(subscription.plan) : null;
-  const nextRestockAt =
-    subscription?.status === "ACTIVE"
-      ? getNextRestockAt(subscription.plan, subscription)
-      : null;
 
   return (
     <div className="page-grid">
       <section className="page-header">
         <h1>Settings</h1>
       </section>
-
-      <section className="metrics-grid">
-        <article className="metric-card">
-          <span className="metric-card__eyebrow">Display currency</span>
-          <strong>{profile.currencyCode}</strong>
-          <p className="muted">{profile.label}</p>
-        </article>
-        <article className="metric-card">
-          <span className="metric-card__eyebrow">Store</span>
-          <strong>{user.shop?.name ?? "No shop yet"}</strong>
-          {!user.shop ? <p className="muted">Create a shop first</p> : null}
-        </article>
-      </section>
-
-      <InstallAppCard />
-
-      <SettingsActions
-        email={null}
-        username={user.username}
-        displayName={user.displayName}
+      <ShopSettings
         currentShopName={user.shop?.name ?? null}
-        canRenameStore={Boolean(user.shop)}
-        currentCurrencyCode={currencyCode}
-        currentAppearancePreset={normalizeAppearancePreset(user.appearancePreset)}
-        currentPlayerMode="ADVANCED"
-        playerModeOptions={[]}
-        appearancePresets={APPEARANCE_PRESETS}
-        priceProfiles={getSupportedPriceProfiles()}
-        maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
-        renameStoreCostLabel=""
-        autoRestockSubscription={
-          subscription
-            ? {
-                plan: subscription.plan,
-                status: subscription.status,
-                planName: subscriptionPlanMeta?.name ?? subscription.plan,
-                dailyCostCents: getAutoRestockRenewalCostCents(
-                  subscription.plan,
-                  subscription.fullAccessEnabled,
-                ),
-                dailyCostLabel: formatCurrency(
-                  getAutoRestockRenewalCostCents(subscription.plan, subscription.fullAccessEnabled),
-                  currencyCode,
-                ),
-                restockIntervalMinutes: normalizeRestockIntervalMinutes(
-                  subscription.plan,
-                  subscription.restockIntervalMinutes,
-                ),
-                nextChargeAt: subscription.nextChargeAt.toISOString(),
-                nextRestockAt: nextRestockAt?.toISOString() ?? null,
-                cycleLabel: getRestockCycleLabel(subscription.plan, subscription.restockIntervalMinutes),
-                coverageLabel: getRestockCoverageLabel(subscription.plan),
-                lastRestockAt: subscription.lastRestockAt?.toISOString() ?? null,
-                lastChargedAt: subscription.lastChargedAt?.toISOString() ?? null,
-                fullAccessEnabled: subscription.fullAccessEnabled,
-              }
-            : null
-        }
-        autoRestockPlanLabels={{
-          simple: `${formatCurrency(SIMPLE_DAILY_COST_CENTS, currencyCode)}/48h`,
-          pro: `${formatCurrency(PRO_DAILY_COST_CENTS, currencyCode)}/48h`,
-          max: `${formatCurrency(MAX_DAILY_COST_CENTS, currencyCode)}/48h`,
-        }}
-        fullAccessCostLabel="Free"
+        maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not set"}
       />
-
     </div>
   );
 }

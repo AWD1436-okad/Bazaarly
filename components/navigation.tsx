@@ -4,6 +4,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 import { APP_ICONS, AppIcon } from "@/components/app-icon";
 import { formatCurrency } from "@/lib/money";
@@ -75,10 +76,15 @@ export function Navigation({
     };
   }, []);
 
-  async function markAllNotificationsRead() {
+  async function openNotificationMenu() {
+    const shouldOpen = !notificationMenuOpen;
+    setNotificationMenuOpen(shouldOpen);
+
+    // Opening the panel is the acknowledgement action, so the badge does not get stuck.
+    if (!shouldOpen || unreadNotifications === 0) return;
+
     const response = await fetch("/notifications/read-all", { method: "POST" });
     if (response.ok || response.redirected) {
-      setNotificationMenuOpen(false);
       router.refresh();
     }
   }
@@ -109,7 +115,7 @@ export function Navigation({
             className="notification-pill"
             aria-expanded={notificationMenuOpen}
             aria-controls="notification-panel"
-            onClick={() => setNotificationMenuOpen((open) => !open)}
+            onClick={() => void openNotificationMenu()}
           >
             <AppIcon icon={APP_ICONS.bell} />
             Notifications
@@ -120,32 +126,28 @@ export function Navigation({
           {notificationMenuOpen ? <div id="notification-panel" className="notification-menu__panel" role="dialog" aria-label="Notifications">
             <div className="section-row">
               <strong>Latest updates</strong>
-              <div className="notification-menu__actions">
-                {unreadNotifications > 0 ? (
-                  <button type="button" className="ghost-link" onClick={() => void markAllNotificationsRead()}>
-                    Mark read
-                  </button>
-                ) : null}
-                <Link href="/notifications" className="ghost-link" onClick={() => setNotificationMenuOpen(false)}>
-                  See all
-                </Link>
-              </div>
+              <button
+                type="button"
+                className="notification-menu__close"
+                onClick={() => setNotificationMenuOpen(false)}
+                aria-label="Close notifications"
+              >
+                <X aria-hidden="true" />
+              </button>
             </div>
             {recentNotifications.length === 0 ? (
               <p className="muted">No updates yet.</p>
             ) : (
               <div className="notification-menu__list">
                 {recentNotifications.map((notification) => (
-                  <Link
+                  <div
                     key={notification.id}
-                    href="/notifications"
-                    onClick={() => setNotificationMenuOpen(false)}
                     className={notification.read ? "notification-menu__item" : "notification-menu__item notification-menu__item--unread"}
                   >
                     <span>{notification.type.replace("_", " ")}</span>
                     <strong>{notification.message}</strong>
                     <small>{notification.createdAtLabel}</small>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

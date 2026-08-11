@@ -102,6 +102,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
               <select name="sort" defaultValue={typeof params.sort === "string" ? params.sort : "relevance"}>
                 <option value="relevance">Best match</option>
                 <option value="price-asc">Price: low to high</option>
+                <option value="price-desc">Price: high to low</option>
               </select>
             </label>
             <button type="submit">Search</button>
