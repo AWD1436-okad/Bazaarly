@@ -500,6 +500,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     redirect(buildDashboardHref(params, { listingsPage: safeListingsPage }) as Route);
   }
 
+  if (params.manage === "1") {
+    redirect("/dashboard");
+  }
+
   if (params.manage !== "1") {
     return (
       <div className="page-grid dashboard-simple">
@@ -511,7 +515,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <h1>{user.shop.name}</h1>
             <p className="muted">Your shop dashboard</p>
           </div>
-          <Link href="/dashboard?manage=1" className="ghost-button">Manage stock</Link>
         </section>
 
         <section className="metrics-grid dashboard-simple__metrics">
@@ -535,10 +538,60 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             <span className="metric-card__eyebrow">Total profit</span>
             <strong>{formatCurrency(totalProfit, currencyCode)}</strong>
           </article>
-          <article className="metric-card">
-            <span className="metric-card__eyebrow">Level {progression.level}</span>
-            <strong>{progression.title}</strong>
-            <span className="metric-card__helper">{progression.xp} XP</span>
+        </section>
+
+        <section className="dashboard-simple__actions">
+          <article className="card dashboard-simple__list-card">
+            <div className="section-heading">
+              <div>
+                <h2>List an item</h2>
+                <p className="muted">Choose stock and set its sale price.</p>
+              </div>
+            </div>
+            {listingOptionRows.length > 0 ? (
+              <DashboardListingCreateForm
+                listingOptions={listingOptionRows.map((item) => ({
+                  ...item,
+                  displayMarketAverageLabel: formatCurrency(item.marketAveragePrice, currencyCode),
+                }))}
+                defaultListingPrice={defaultListingPrice}
+              />
+            ) : (
+              <div className="empty-state">
+                <p>Buy stock before you list an item.</p>
+                <Link href="/dashboard/supplier" className="ghost-button">Buy stock</Link>
+              </div>
+            )}
+          </article>
+
+          <article className="card dashboard-simple__stock-card">
+            <div className="section-heading">
+              <div>
+                <h2>Your stock</h2>
+                <p className="muted">Items ready to list.</p>
+              </div>
+              <Link href="/dashboard/supplier" className="ghost-button">Buy stock</Link>
+            </div>
+            {visibleInventory.length > 0 ? (
+              <div className="stock-list">
+                {visibleInventory.map((item) => (
+                  <div key={item.inventoryId} className="stock-list__item">
+                    <ProductVisual
+                      name={item.productName}
+                      category={item.productCategory}
+                      imageUrl={item.productImageUrl}
+                      size="compact"
+                    />
+                    <div>
+                      <strong>{item.productName}</strong>
+                      <span className="muted">{item.availableToList} ready to sell</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state"><p>No stock yet.</p></div>
+            )}
           </article>
         </section>
       </div>

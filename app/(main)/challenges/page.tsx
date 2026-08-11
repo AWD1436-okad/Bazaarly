@@ -6,14 +6,12 @@ import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { requireUser } from "@/lib/auth";
 import { getDashboardChallenges } from "@/lib/challenges";
-import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
 export default async function ChallengesPage() {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
-  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
 
   if (!user.shop) {
     redirect("/onboarding/shop");
@@ -33,24 +31,17 @@ export default async function ChallengesPage() {
     shopId: user.shop.id,
     currencyCode,
     activeListingCount,
-    playerMode: playerModeConfig.value,
+    playerMode: "ADVANCED",
   });
 
   const completedCount = challengeSet.challenges.filter((challenge) => challenge.completed).length;
-  const playSmarterText =
-    playerModeConfig.value === "LITTLE"
-      ? "Buy things, sell things, and try small tasks."
-      : playerModeConfig.value === "JUNIOR"
-        ? "Buy stock, sell items, and keep your shop moving without spending too much."
-        : playerModeConfig.value === "YOUNG"
-          ? "Sell items, buy stock carefully, and grow profit after costs."
-          : "Sell items, list stock, keep shelves active, and grow net profit after costs.";
+  const playSmarterText = "Sell items, list stock, keep shelves active, and grow profit after costs.";
 
   return (
     <div className="page-grid challenges-page">
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       <section className="page-header">
-        <h1>{playerModeConfig.value === "LITTLE" ? "Tasks" : "Challenges"}</h1>
+        <h1>Challenges</h1>
         <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
@@ -60,7 +51,7 @@ export default async function ChallengesPage() {
             <h2>Current set</h2>
             <p>
               <strong>{completedCount} of {challengeSet.challenges.length}</strong> done
-              {playerModeConfig.value === "LITTLE" ? "." : ` - ${challengeSet.playerModeLabel}, ${challengeSet.stage}.`}
+              {`. ${challengeSet.stage} challenges.`}
             </p>
           </div>
           <ChallengeCountdown
@@ -104,7 +95,7 @@ export default async function ChallengesPage() {
         <div className="section-row">
           <div>
             <h2>Play smarter</h2>
-            {playerModeConfig.value === "LITTLE" ? null : <p>{playSmarterText}</p>}
+            <p>{playSmarterText}</p>
           </div>
           <Link href="/dashboard" className="ghost-button">
             Back to dashboard

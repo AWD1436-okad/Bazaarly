@@ -14,7 +14,6 @@ import {
 import { APPEARANCE_PRESETS, normalizeAppearancePreset } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
-import { PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
@@ -42,11 +41,6 @@ export default async function SettingsPage() {
 
       <section className="metrics-grid">
         <article className="metric-card">
-          <span className="metric-card__eyebrow">Account</span>
-          <strong>{user.displayName}</strong>
-          <p className="muted">@{user.username}</p>
-        </article>
-        <article className="metric-card">
           <span className="metric-card__eyebrow">Display currency</span>
           <strong>{profile.currencyCode}</strong>
           <p className="muted">{profile.label}</p>
@@ -69,7 +63,7 @@ export default async function SettingsPage() {
         currentCurrencyCode={currencyCode}
         currentAppearancePreset={normalizeAppearancePreset(user.appearancePreset)}
         currentPlayerMode="ADVANCED"
-        playerModeOptions={PLAYER_MODE_OPTIONS}
+        playerModeOptions={[]}
         appearancePresets={APPEARANCE_PRESETS}
         priceProfiles={getSupportedPriceProfiles()}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}

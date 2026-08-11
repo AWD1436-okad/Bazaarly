@@ -809,7 +809,7 @@ export function SettingsActions({
             <p className="muted">Password, bank, shop, restocker, and delete tools are lower on this page.</p>
           </section>
         ) : null}
-        <section className="card settings-card settings-section">
+        <section className="card settings-card settings-section" hidden>
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">{currentPlayerMode === "LITTLE" ? "Player" : "Player"}</span>
             <h2>{currentPlayerMode === "LITTLE" ? "Me" : "Player details"}</h2>
@@ -888,7 +888,7 @@ export function SettingsActions({
           </div>
         </section>
 
-        <section className="card settings-card settings-section settings-card--grownup" hidden>
+        <section className="card settings-card settings-section settings-card--grownup">
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Shop</span>
             <h2>{currentPlayerMode === "LITTLE" ? "My Shop" : "Store profile"}</h2>
@@ -919,7 +919,7 @@ export function SettingsActions({
           </div>
         </section>
 
-        <section className="card settings-card settings-section settings-card--grownup">
+        <section className="card settings-card settings-section settings-card--grownup" hidden>
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Security</span>
             <h2>{currentPlayerMode === "LITTLE" ? "Safe Details" : "Bank and security"}</h2>
