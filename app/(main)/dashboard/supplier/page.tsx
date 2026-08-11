@@ -340,22 +340,24 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
             ) : null}
           </section>
 
-          <SupplierRestockNeededModal
-            currencyCode={currencyCode}
-            items={soldOutRestockItems.map((item) => ({
-              productId: item.productId,
-              name: item.name,
-              categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
-              unitLabel: item.unitLabel,
-              supplierStock: sanitizeStockCount(item.supplierStock),
-              supplierPriceCents: item.supplierPrice,
-              supplierPriceLabel: formatPriceWithUnit(
-                item.supplierPrice,
-                item.unitLabel,
-                currencyCode,
-              ),
-            }))}
-          />
+          <div id="restock-sold-out">
+            <SupplierRestockNeededModal
+              currencyCode={currencyCode}
+              items={soldOutRestockItems.map((item) => ({
+                productId: item.productId,
+                name: item.name,
+                categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
+                unitLabel: item.unitLabel,
+                supplierStock: sanitizeStockCount(item.supplierStock),
+                supplierPriceCents: item.supplierPrice,
+                supplierPriceLabel: formatPriceWithUnit(
+                  item.supplierPrice,
+                  item.unitLabel,
+                  currencyCode,
+                ),
+              }))}
+            />
+          </div>
 
           {filteredProducts.length === 0 ? (
             <div className="empty-state">

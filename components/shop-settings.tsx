@@ -1,15 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type ShopSettingsProps = {
   currentShopName: string | null;
   maskedBankNumber: string;
   renameCostLabel: string;
+  autoRestocker: {
+    planName: string;
+    plan: "SIMPLE" | "PRO" | "MAX";
+    costLabel: string;
+    nextCheckLabel: string;
+    fullAccessEnabled: boolean;
+  } | null;
+  planOptions: Array<{
+    plan: "SIMPLE" | "PRO" | "MAX";
+    name: string;
+    costLabel: string;
+  }>;
 };
 
-export function ShopSettings({ currentShopName, maskedBankNumber, renameCostLabel }: ShopSettingsProps) {
+export function ShopSettings({
+  currentShopName,
+  maskedBankNumber,
+  renameCostLabel,
+  autoRestocker,
+  planOptions,
+}: ShopSettingsProps) {
   const router = useRouter();
   const [shopName, setShopName] = useState(currentShopName ?? "");
   const [password, setPassword] = useState("");
@@ -20,6 +39,8 @@ export function ShopSettings({ currentShopName, maskedBankNumber, renameCostLabe
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [restockerOpen, setRestockerOpen] = useState(false);
+  const [restockerSubmitting, setRestockerSubmitting] = useState(false);
 
   async function renameShop() {
     setSubmitting(true);
@@ -67,6 +88,35 @@ export function ShopSettings({ currentShopName, maskedBankNumber, renameCostLabe
     }
   }
 
+  async function updateRestocker(action: "activate" | "cancel", plan?: "SIMPLE" | "PRO" | "MAX") {
+    setRestockerSubmitting(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("action", action);
+      if (plan) {
+        formData.set("plan", plan);
+        // Choosing a plan in this compact view intentionally replaces the old one.
+        formData.set("confirmReplace", "true");
+      }
+      const response = await fetch("/settings/auto-restock-subscription", { method: "POST", body: formData });
+      const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Could not update Auto Restocker.");
+      }
+
+      setMessage(payload.message ?? "Auto Restocker updated.");
+      setRestockerOpen(false);
+      router.refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not update Auto Restocker.");
+    } finally {
+      setRestockerSubmitting(false);
+    }
+  }
+
   return (
     <section className="settings-layout" aria-label="Shop settings">
       <article className="settings-section">
@@ -88,6 +138,63 @@ export function ShopSettings({ currentShopName, maskedBankNumber, renameCostLabe
       <article className="settings-section">
         <h2>Shop password</h2>
         <p className="muted">Used to sign in and confirm shop changes.</p>
+      </article>
+
+      <article className="settings-section settings-section--wide" aria-labelledby="restocker-title">
+        <div className="settings-section__header settings-section__header--inline">
+          <div>
+            <h2 id="restocker-title">Auto Restocker</h2>
+            <p className="muted">
+              {autoRestocker
+                ? `${autoRestocker.planName} plan. ${autoRestocker.nextCheckLabel}`
+                : "Choose a plan to buy stock again when it sells out."}
+            </p>
+          </div>
+          <button type="button" className="secondary-button" onClick={() => setRestockerOpen((open) => !open)}>
+            {restockerOpen ? "Close plans" : "Manage plan"}
+          </button>
+        </div>
+
+        {autoRestocker ? (
+          <div className="settings-restocker-status">
+            <strong>{autoRestocker.costLabel} every 48 hours</strong>
+            <span>{autoRestocker.fullAccessEnabled ? "Full Access is on" : "Ask before buying stock"}</span>
+          </div>
+        ) : null}
+
+        <div className="settings-section__actions">
+          <Link className="primary-button" href="/dashboard/supplier#restock-sold-out">
+            Restock sold-out items
+          </Link>
+        </div>
+
+        {restockerOpen ? (
+          <div className="restocker-plan-list">
+            {planOptions.map((option) => (
+              <button
+                key={option.plan}
+                type="button"
+                className={autoRestocker?.plan === option.plan ? "restocker-plan restocker-plan--active" : "restocker-plan"}
+                disabled={restockerSubmitting}
+                onClick={() => void updateRestocker("activate", option.plan)}
+              >
+                <strong>{option.name}</strong>
+                <span>{option.costLabel} every 48 hours</span>
+                <small>{autoRestocker?.plan === option.plan ? "Current plan" : "Choose plan"}</small>
+              </button>
+            ))}
+            {autoRestocker ? (
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={restockerSubmitting}
+                onClick={() => void updateRestocker("cancel")}
+              >
+                {restockerSubmitting ? "Saving..." : "Cancel Auto Restocker"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </article>
 
       {message ? <p className="form-success" role="status">{message}</p> : null}
