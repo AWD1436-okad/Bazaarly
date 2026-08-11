@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+type RestockerPlan = "SIMPLE" | "PRO" | "MAX";
 
 type ShopSettingsProps = {
   currentShopName: string | null;
@@ -10,15 +12,16 @@ type ShopSettingsProps = {
   renameCostLabel: string;
   autoRestocker: {
     planName: string;
-    plan: "SIMPLE" | "PRO" | "MAX";
+    plan: RestockerPlan;
     costLabel: string;
     nextCheckLabel: string;
-    fullAccessEnabled: boolean;
+    restockIntervalMinutes: number;
   } | null;
   planOptions: Array<{
-    plan: "SIMPLE" | "PRO" | "MAX";
+    plan: RestockerPlan;
     name: string;
     costLabel: string;
+    details: string;
   }>;
 };
 
@@ -32,7 +35,8 @@ export function ShopSettings({
   const router = useRouter();
   const [shopName, setShopName] = useState(currentShopName ?? "");
   const [password, setPassword] = useState("");
-  const [editing, setEditing] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameConfirmOpen, setRenameConfirmOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
   const [bankPassword, setBankPassword] = useState("");
   const [bankNumber, setBankNumber] = useState<string | null>(null);
@@ -41,6 +45,13 @@ export function ShopSettings({
   const [error, setError] = useState<string | null>(null);
   const [restockerOpen, setRestockerOpen] = useState(false);
   const [restockerSubmitting, setRestockerSubmitting] = useState(false);
+  const [maxInterval, setMaxInterval] = useState(autoRestocker?.plan === "MAX" ? autoRestocker.restockIntervalMinutes : 3);
+
+  function closeRename() {
+    setRenameOpen(false);
+    setRenameConfirmOpen(false);
+    setPassword("");
+  }
 
   async function renameShop() {
     setSubmitting(true);
@@ -58,8 +69,7 @@ export function ShopSettings({
       }
 
       setMessage(payload.message ?? "Shop renamed.");
-      setPassword("");
-      setEditing(false);
+      closeRename();
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not rename your shop.");
@@ -88,7 +98,7 @@ export function ShopSettings({
     }
   }
 
-  async function updateRestocker(action: "activate" | "cancel", plan?: "SIMPLE" | "PRO" | "MAX") {
+  async function updateRestocker(action: "activate" | "cancel" | "updateInterval", plan?: RestockerPlan) {
     setRestockerSubmitting(true);
     setMessage(null);
     setError(null);
@@ -98,8 +108,10 @@ export function ShopSettings({
       formData.set("action", action);
       if (plan) {
         formData.set("plan", plan);
-        // Choosing a plan in this compact view intentionally replaces the old one.
-        formData.set("confirmReplace", "true");
+        formData.set("restockIntervalMinutes", String(plan === "MAX" ? maxInterval : plan === "PRO" ? 5 : 10));
+        if (action === "activate") {
+          formData.set("confirmReplace", "true");
+        }
       }
       const response = await fetch("/settings/auto-restock-subscription", { method: "POST", body: formData });
       const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string };
@@ -119,35 +131,41 @@ export function ShopSettings({
 
   return (
     <section className="settings-layout" aria-label="Shop settings">
-      <article className="settings-section">
-        <h2>My shop</h2>
-        <button type="button" className="settings-shop-button" onClick={() => setEditing(true)} disabled={!currentShopName}>
-          <strong>{currentShopName ?? "Set up your shop first."}</strong>
-          <span>Change shop name</span>
+      <article className="settings-section settings-panel">
+        <div className="settings-section__header">
+          <h2>My shop</h2>
+          <p className="muted">{currentShopName ?? "Set up your shop first."}</p>
+        </div>
+        <button type="button" onClick={() => setRenameOpen(true)} disabled={!currentShopName}>
+          Change shop name
         </button>
       </article>
 
-      <article className="settings-section">
-        <h2>Bank number</h2>
-        <p className="muted">{bankNumber ?? maskedBankNumber}</p>
+      <article className="settings-section settings-panel">
+        <div className="settings-section__header">
+          <h2>Bank number</h2>
+          <p className="muted">{bankNumber ?? maskedBankNumber}</p>
+        </div>
         <button type="button" className="secondary-button" onClick={() => { setBankOpen(true); setBankNumber(null); }}>
           Show bank number
         </button>
       </article>
 
-      <article className="settings-section">
-        <h2>Shop password</h2>
-        <p className="muted">Used to sign in and confirm shop changes.</p>
+      <article className="settings-section settings-panel">
+        <div className="settings-section__header">
+          <h2>Shop password</h2>
+          <p className="muted">Use it to sign in and confirm shop changes.</p>
+        </div>
       </article>
 
-      <article className="settings-section settings-section--wide" aria-labelledby="restocker-title">
+      <article className="settings-section settings-panel settings-section--wide" aria-labelledby="restocker-title">
         <div className="settings-section__header settings-section__header--inline">
           <div>
             <h2 id="restocker-title">Auto Restocker</h2>
             <p className="muted">
               {autoRestocker
-                ? `${autoRestocker.planName} plan. ${autoRestocker.nextCheckLabel}`
-                : "Choose a plan to buy stock again when it sells out."}
+                ? `${autoRestocker.planName} checks every ${autoRestocker.restockIntervalMinutes} minutes. ${autoRestocker.nextCheckLabel}`
+                : "Automatically buys supplier stock for sold-out items."}
             </p>
           </div>
           <button type="button" className="secondary-button" onClick={() => setRestockerOpen((open) => !open)}>
@@ -157,39 +175,56 @@ export function ShopSettings({
 
         {autoRestocker ? (
           <div className="settings-restocker-status">
-            <strong>{autoRestocker.costLabel} every 48 hours</strong>
-            <span>{autoRestocker.fullAccessEnabled ? "Full Access is on" : "Ask before buying stock"}</span>
+            <strong>{autoRestocker.costLabel} every 24 hours</strong>
+            <span>Item costs are paid from your balance automatically.</span>
           </div>
         ) : null}
 
-        <div className="settings-section__actions">
-          <Link className="primary-button" href="/dashboard/supplier#restock-sold-out">
-            Restock sold-out items
-          </Link>
-        </div>
+        <Link className="cta-link-button" href="/dashboard/supplier#restock-sold-out">
+          Restock sold-out items now
+        </Link>
 
         {restockerOpen ? (
           <div className="restocker-plan-list">
             {planOptions.map((option) => (
-              <button
+              <div
                 key={option.plan}
-                type="button"
                 className={autoRestocker?.plan === option.plan ? "restocker-plan restocker-plan--active" : "restocker-plan"}
-                disabled={restockerSubmitting}
-                onClick={() => void updateRestocker("activate", option.plan)}
               >
                 <strong>{option.name}</strong>
-                <span>{option.costLabel} every 48 hours</span>
-                <small>{autoRestocker?.plan === option.plan ? "Current plan" : "Choose plan"}</small>
-              </button>
+                <span>{option.costLabel} every 24 hours</span>
+                <small>{option.details}</small>
+                {option.plan === "MAX" ? (
+                  <label className="restocker-plan__timer">
+                    Check every
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={maxInterval}
+                      onChange={(event) => setMaxInterval(Math.min(10, Math.max(1, Number(event.target.value) || 1)))}
+                      disabled={restockerSubmitting}
+                    />
+                    minutes
+                  </label>
+                ) : null}
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={restockerSubmitting}
+                  onClick={() => void updateRestocker("activate", option.plan)}
+                >
+                  {autoRestocker?.plan === option.plan ? "Current plan" : `Choose ${option.name}`}
+                </button>
+              </div>
             ))}
+            {autoRestocker?.plan === "MAX" ? (
+              <button type="button" className="ghost-button" disabled={restockerSubmitting} onClick={() => void updateRestocker("updateInterval", "MAX")}>
+                Save Max timer
+              </button>
+            ) : null}
             {autoRestocker ? (
-              <button
-                type="button"
-                className="ghost-button"
-                disabled={restockerSubmitting}
-                onClick={() => void updateRestocker("cancel")}
-              >
+              <button type="button" className="ghost-button" disabled={restockerSubmitting} onClick={() => void updateRestocker("cancel")}>
                 {restockerSubmitting ? "Saving..." : "Cancel Auto Restocker"}
               </button>
             ) : null}
@@ -200,18 +235,12 @@ export function ShopSettings({
       {message ? <p className="form-success" role="status">{message}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
 
-      {editing ? (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => !submitting && setEditing(false)}>
-          <section
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="rename-shop-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
+      {renameOpen ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => !submitting && closeRename()}>
+          <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="rename-shop-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modal-card__copy">
-              <h2 id="rename-shop-title">Rename your shop</h2>
-              <p>This costs {renameCostLabel}. Enter your shop password to confirm.</p>
+              <h2 id="rename-shop-title">Change shop name</h2>
+              <p>It costs {renameCostLabel}.</p>
             </div>
             <label className="modal-card__field">
               Shop name
@@ -222,16 +251,32 @@ export function ShopSettings({
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
             </label>
             <div className="modal-card__actions">
-              <button type="button" className="secondary-button" disabled={submitting} onClick={() => setEditing(false)}>
-                Cancel
-              </button>
-              <button type="button" disabled={submitting || !shopName.trim() || !password} onClick={() => void renameShop()}>
-                {submitting ? "Renaming..." : "Rename shop"}
+              <button type="button" className="secondary-button" disabled={submitting} onClick={closeRename}>Cancel</button>
+              <button type="button" disabled={!shopName.trim() || !password} onClick={() => { setRenameOpen(false); setRenameConfirmOpen(true); }}>
+                Continue
               </button>
             </div>
           </section>
         </div>
       ) : null}
+
+      {renameConfirmOpen ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => !submitting && closeRename()}>
+          <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-rename-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-card__copy">
+              <h2 id="confirm-rename-title">Are you sure?</h2>
+              <p>Change your shop name to <strong>{shopName.trim()}</strong> for {renameCostLabel}?</p>
+            </div>
+            <div className="modal-card__actions">
+              <button type="button" className="secondary-button" disabled={submitting} onClick={() => { setRenameConfirmOpen(false); setRenameOpen(true); }}>Go back</button>
+              <button type="button" disabled={submitting} onClick={() => void renameShop()}>
+                {submitting ? "Changing..." : "Yes, change name"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {bankOpen ? (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => !submitting && setBankOpen(false)}>
           <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="bank-number-title" onMouseDown={(event) => event.stopPropagation()}>

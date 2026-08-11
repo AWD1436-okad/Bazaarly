@@ -1,6 +1,5 @@
 import {
   AutoRestockPlan,
-  AutoRestockRequestStatus,
   AutoRestockSubscriptionStatus,
   BotPersonality,
   BusinessLedgerEntryCategory,
@@ -12,9 +11,11 @@ import {
 import { addHours, subMinutes } from "date-fns";
 
 import {
+  AUTO_RESTOCK_RENEWAL_HOURS,
   getAutoRestockRenewalCostCents,
   getPlanMeta,
   getRestockCoveragePercent,
+  getRestockCycleMs,
   isRestockCycleDue,
 } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
@@ -95,9 +96,8 @@ export type AutoRestockCycleResult = {
     | "no_sold_out_items"
     | "no_supplier_stock"
     | "insufficient_balance"
-    | "proposal_created"
-    | "full_access_completed"
-    | "full_access_waiting";
+    | "auto_purchase_completed"
+    | "auto_purchase_waiting";
   message: string;
   itemCount?: number;
   totalCostCents?: number;
@@ -908,94 +908,118 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       continue;
     }
 
-    const activePendingRequest = await prisma.autoRestockRequest.findFirst({
+    const retiredRequests = await prisma.autoRestockRequest.updateMany({
       where: {
         userId: user.id,
-        status: AutoRestockRequestStatus.PENDING,
+        status: "PENDING",
       },
-      select: { id: true },
+      data: {
+        status: "SKIPPED",
+        decidedAt: now,
+        failureReason: "Replaced by automatic Auto Restocker",
+      },
     });
-    if (activePendingRequest) {
-      results.push({
-        status: "pending_exists",
-        message: "Restock proposal is already waiting for confirmation.",
+    if (retiredRequests.count > 0) {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: NotificationType.SYSTEM,
+          message: "An old restock request was cleared. Your Restocker now buys eligible stock automatically.",
+          createdAt: now,
+        },
       });
-      continue;
     }
 
     const renewalCostCents = getAutoRestockRenewalCostCents(subscription.plan, subscription.fullAccessEnabled);
+    const renewalAnchor = subscription.lastChargedAt ?? subscription.startedAt ?? subscription.createdAt;
+    const expectedDailyRenewalAt = addHours(renewalAnchor, AUTO_RESTOCK_RENEWAL_HOURS);
+    let nextChargeAt = subscription.nextChargeAt;
 
-    if (subscription.nextChargeAt <= now) {
-      if (user.balance < renewalCostCents) {
-        await prisma.$transaction(async (tx) => {
+    // Existing 48-hour subscriptions move forward without an immediate catch-up charge.
+    if (nextChargeAt > expectedDailyRenewalAt) {
+      nextChargeAt = expectedDailyRenewalAt <= now ? addHours(now, AUTO_RESTOCK_RENEWAL_HOURS) : expectedDailyRenewalAt;
+      await prisma.autoRestockSubscription.updateMany({
+        where: { id: subscription.id, nextChargeAt: subscription.nextChargeAt },
+        data: { nextChargeAt, dailyCostCents: renewalCostCents },
+      });
+    }
+
+    if (nextChargeAt <= now) {
+      const renewalResult = await prisma.$transaction(async (tx) => {
+        // Claim the renewal first so concurrent simulation ticks cannot charge twice.
+        const renewalClaim = await tx.autoRestockSubscription.updateMany({
+          where: {
+            id: subscription.id,
+            status: AutoRestockSubscriptionStatus.ACTIVE,
+            nextChargeAt: { lte: now },
+          },
+          data: {
+            lastChargedAt: now,
+            nextChargeAt: addHours(now, AUTO_RESTOCK_RENEWAL_HOURS),
+            dailyCostCents: renewalCostCents,
+          },
+        });
+        if (renewalClaim.count !== 1) {
+          return "already_claimed" as const;
+        }
+
+        const balanceUpdate = await tx.user.updateMany({
+          where: { id: user.id, balance: { gte: renewalCostCents } },
+          data: { balance: { decrement: renewalCostCents } },
+        });
+        if (balanceUpdate.count !== 1) {
           await tx.autoRestockSubscription.update({
             where: { id: subscription.id },
-            data: {
-              status: AutoRestockSubscriptionStatus.CANCELLED,
-              dailyCostCents: renewalCostCents,
-            },
+            data: { status: AutoRestockSubscriptionStatus.CANCELLED },
           });
           await tx.notification.create({
             data: {
               userId: user.id,
               type: NotificationType.SYSTEM,
-              message: `Auto Restock cancelled: insufficient balance for 48-hour renewal (${formatCurrency(
+              message: `Auto Restock cancelled: insufficient balance for 24-hour renewal (${formatCurrency(
                 renewalCostCents,
                 user.currencyCode,
               )}).`,
               createdAt: now,
             },
           });
-        });
-        results.push({
-          status: "subscription_cancelled",
-          message: "Auto Restock subscription cancelled because renewal balance was too low.",
-        });
-        continue;
-      }
+          return "cancelled" as const;
+        }
 
-      await prisma.$transaction(async (tx) => {
-        await tx.user.update({
-          where: { id: user.id },
-          data: {
-            balance: {
-              decrement: renewalCostCents,
-            },
-          },
-        });
         await recordBusinessExpense(tx, {
           userId: user.id,
           category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
           amount: renewalCostCents,
-          description: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour fee`,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock 24-hour fee`,
           data: {
-            source: "auto_restock_48_hour_charge",
+            source: "auto_restock_24_hour_charge",
             subscriptionId: subscription.id,
             plan: subscription.plan,
             fullAccessEnabled: subscription.fullAccessEnabled,
           },
           createdAt: now,
         });
-        await tx.autoRestockSubscription.update({
-          where: { id: subscription.id },
-          data: {
-            lastChargedAt: now,
-            nextChargeAt: addHours(now, 48),
-            dailyCostCents: renewalCostCents,
-          },
-        });
         await tx.notification.create({
           data: {
             userId: user.id,
             type: NotificationType.SYSTEM,
-            message: `${getPlanMeta(subscription.plan).name} Auto Restock 48-hour renewal charged: ${formatCurrency(
+            message: `${getPlanMeta(subscription.plan).name} Auto Restock 24-hour renewal charged: ${formatCurrency(
               renewalCostCents,
               user.currencyCode,
-            )}. Full Access is free.`,
+            )}.`,
             createdAt: now,
           },
         });
+        return "charged" as const;
       });
+
+      if (renewalResult === "cancelled") {
+        results.push({
+          status: "subscription_cancelled",
+          message: "Auto Restock subscription cancelled because renewal balance was too low.",
+        });
+        continue;
+      }
     }
 
     if (!isRestockCycleDue(subscription.plan, subscription, now)) {
@@ -1006,12 +1030,19 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       continue;
     }
 
-    const markCycleChecked = async () => {
-      await prisma.autoRestockSubscription.update({
-        where: { id: subscription.id },
-        data: { lastRestockAt: now },
-      });
-    };
+    const cycleDueAt = new Date(now.getTime() - getRestockCycleMs(subscription.plan, subscription.restockIntervalMinutes));
+    const cycleClaim = await prisma.autoRestockSubscription.updateMany({
+      where: {
+        id: subscription.id,
+        status: AutoRestockSubscriptionStatus.ACTIVE,
+        OR: [{ lastRestockAt: null }, { lastRestockAt: { lte: cycleDueAt } }],
+      },
+      data: { lastRestockAt: now },
+    });
+    if (cycleClaim.count !== 1) {
+      results.push({ status: "not_due", message: "Next restock check is still counting down." });
+      continue;
+    }
 
     const soldOutListings = await prisma.listing.findMany({
       where: {
@@ -1040,7 +1071,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
     });
 
     if (soldOutListings.length === 0) {
-      await markCycleChecked();
       results.push({
         status: "no_sold_out_items",
         message: "No sold-out items found.",
@@ -1050,7 +1080,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
 
     const withStock = soldOutListings.filter((listing) => sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0) > 0);
     if (withStock.length === 0) {
-      await markCycleChecked();
       results.push({
         status: "no_supplier_stock",
         message: "Sold-out items were found, but supplier stock is unavailable.",
@@ -1101,7 +1130,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
     });
 
     if (requestItems.length === 0) {
-      await markCycleChecked();
       await prisma.notification.create({
         data: {
           userId: user.id,
@@ -1119,7 +1147,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
 
     const estimatedCost = requestItems.reduce((sum, item) => sum + item.lineTotal, 0);
     if (estimatedCost <= 0) {
-      await markCycleChecked();
       results.push({
         status: "insufficient_balance",
         message: "Restock check could not build a payable proposal.",
@@ -1127,30 +1154,11 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       continue;
     }
 
-    if (subscription.fullAccessEnabled) {
-      let fullAccessCompleted = false;
-      await prisma.$transaction(async (tx) => {
-        const pendingInsideTransaction = await tx.autoRestockRequest.findFirst({
-          where: {
-            userId: user.id,
-            status: AutoRestockRequestStatus.PENDING,
-          },
-          select: { id: true },
-        });
-
-        if (pendingInsideTransaction) {
-          return;
-        }
-
-        const freshUser = await tx.user.findUnique({
-          where: { id: user.id },
-          select: { balance: true },
-        });
-
-        if (!freshUser) {
-          return;
-        }
-
+    {
+      let autoPurchaseCompleted = false;
+      let insufficientBalance = false;
+      try {
+        await prisma.$transaction(async (tx) => {
         let payableTotal = 0;
         const resolved: Array<{
           listingId: string;
@@ -1198,6 +1206,16 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
 
           const unitPrice = Math.max(1, listing.product.marketState?.currentSupplierPrice ?? item.unitPrice);
           const lineTotal = unitPrice * quantity;
+
+          // Reserve supplier stock inside this transaction before charging the shop.
+          const stockReservation = await tx.marketProductState.updateMany({
+            where: { productId: listing.productId, supplierStock: { gte: quantity } },
+            data: { supplierStock: { decrement: quantity } },
+          });
+          if (stockReservation.count !== 1) {
+            continue;
+          }
+
           payableTotal += lineTotal;
           resolved.push({
             listingId: listing.id,
@@ -1210,48 +1228,24 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
         }
 
         if (resolved.length === 0) {
-          await tx.autoRestockSubscription.update({
-            where: { id: subscription.id },
-            data: { lastRestockAt: now },
-          });
           return;
         }
 
-        if (freshUser.balance < payableTotal) {
-          await tx.autoRestockSubscription.update({
-            where: { id: subscription.id },
-            data: { lastRestockAt: now },
-          });
-          await tx.notification.create({
-            data: {
-              userId: user.id,
-              type: NotificationType.SYSTEM,
-              message: `${getPlanMeta(subscription.plan).name} Restocker found eligible items but balance was too low for ${formatCurrency(
-                payableTotal,
-                user.currencyCode,
-              )}.`,
-              createdAt: now,
-            },
-          });
-          return;
-        }
-
-        await tx.user.update({
-          where: { id: user.id },
-          data: {
-            balance: {
-              decrement: payableTotal,
-            },
-          },
+        const balanceUpdate = await tx.user.updateMany({
+          where: { id: user.id, balance: { gte: payableTotal } },
+          data: { balance: { decrement: payableTotal } },
         });
+        if (balanceUpdate.count !== 1) {
+          throw new Error("AUTO_RESTOCK_INSUFFICIENT_BALANCE");
+        }
 
         await recordBusinessExpense(tx, {
           userId: user.id,
           category: BusinessLedgerEntryCategory.AUTO_RESTOCK_PURCHASE,
           amount: payableTotal,
-          description: `${getPlanMeta(subscription.plan).name} Auto Restock Full Access purchase`,
+          description: `${getPlanMeta(subscription.plan).name} Auto Restock automatic purchase`,
           data: {
-            source: "auto_restock_full_access",
+            source: "auto_restock_automatic_purchase",
             subscriptionId: subscription.id,
             plan: subscription.plan,
           },
@@ -1259,15 +1253,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
         });
 
         for (const item of resolved) {
-          await tx.marketProductState.update({
-            where: { productId: item.productId },
-            data: {
-              supplierStock: {
-                decrement: item.quantity,
-              },
-            },
-          });
-
           const inventory = await tx.inventory.upsert({
             where: {
               userId_productId: {
@@ -1321,11 +1306,6 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
           });
         }
 
-        await tx.autoRestockSubscription.update({
-          where: { id: subscription.id },
-          data: { lastRestockAt: now },
-        });
-
         const itemSummary =
           resolved.length === 1
             ? resolved[0].productName
@@ -1342,87 +1322,39 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
             createdAt: now,
           },
         });
-        fullAccessCompleted = true;
-      });
+          autoPurchaseCompleted = true;
+        });
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "AUTO_RESTOCK_INSUFFICIENT_BALANCE") {
+          throw error;
+        }
+        insufficientBalance = true;
+      }
+      if (insufficientBalance) {
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            type: NotificationType.SYSTEM,
+            message: `${getPlanMeta(subscription.plan).name} Restocker found eligible items, but your balance was too low to buy them.`,
+            createdAt: now,
+          },
+        });
+      }
       results.push({
-        status: fullAccessCompleted ? "full_access_completed" : "full_access_waiting",
-        message: fullAccessCompleted
+        status: autoPurchaseCompleted ? "auto_purchase_completed" : insufficientBalance ? "insufficient_balance" : "auto_purchase_waiting",
+        message: autoPurchaseCompleted
           ? `${getPlanMeta(subscription.plan).name} Restocker bought eligible items automatically.`
-          : "Full Access checked eligible items but could not complete a purchase.",
+          : insufficientBalance
+            ? "Restocker found items, but your balance was too low to buy them."
+            : "Restocker checked eligible items but supplier stock changed before it could buy.",
         itemCount: requestItems.length,
         totalCostCents: estimatedCost,
       });
       continue;
     }
-
-    let proposalCreated = false;
-    await prisma.$transaction(async (tx) => {
-      const pendingInsideTransaction = await tx.autoRestockRequest.findFirst({
-        where: {
-          userId: user.id,
-          status: AutoRestockRequestStatus.PENDING,
-        },
-        select: { id: true },
-      });
-
-      if (pendingInsideTransaction) {
-        return;
-      }
-
-      await tx.autoRestockRequest.create({
-        data: {
-          userId: user.id,
-          plan: subscription.plan,
-          status: AutoRestockRequestStatus.PENDING,
-          estimatedCostCents: estimatedCost,
-          itemCount: requestItems.length,
-          createdAt: now,
-          items: {
-            create: requestItems,
-          },
-        },
-      });
-
-      await tx.autoRestockSubscription.update({
-        where: { id: subscription.id },
-        data: {
-          lastRestockAt: now,
-        },
-      });
-
-      await tx.notification.create({
-        data: {
-          userId: user.id,
-          type: NotificationType.SYSTEM,
-          message: `${getPlanMeta(subscription.plan).name} Auto Restock prepared ${requestItems.length} item ${
-            requestItems.length === 1 ? "restock" : "restocks"
-          } for approval.`,
-          createdAt: now,
-        },
-      });
-      proposalCreated = true;
-    });
-    results.push({
-      status: proposalCreated ? "proposal_created" : "pending_exists",
-      message: proposalCreated
-        ? `${getPlanMeta(subscription.plan).name} Restocker prepared a proposal.`
-        : "Restock proposal is already waiting for confirmation.",
-      itemCount: requestItems.length,
-      totalCostCents: estimatedCost,
-    });
   }
 
   return results;
-}
-
-export async function prepareAutoRestockProposalForUser(userId: string) {
-  const results = await runAutoRestock(new Date(), userId);
-  return (
-    results[0] ?? {
-      status: "no_active_subscription",
-      message: "No active Auto Restocker subscription.",
-    }
-  );
 }
 
 export async function runMarketSimulation(force = false, debug = false) {

@@ -13,6 +13,7 @@ import {
   getAutoRestockRenewalCostCents,
   getPlanMeta,
   normalizeRestockIntervalMinutes,
+  AUTO_RESTOCK_RENEWAL_HOURS,
 } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
       userId: user.id,
       category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
       amount: planMeta.dailyCostCents,
-      description: `${planMeta.name} Auto Restock first 48-hour fee`,
+      description: `${planMeta.name} Auto Restock first 24-hour fee`,
       data: {
         source: "auto_restock_subscription",
         plan: requestedPlan,
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const nextChargeAt = addHours(now, 48);
+    const nextChargeAt = addHours(now, AUTO_RESTOCK_RENEWAL_HOURS);
     await tx.autoRestockSubscription.upsert({
       where: { userId: user.id },
       create: {
@@ -218,7 +219,7 @@ export async function POST(request: Request) {
             : `${planMeta.name} Auto Restock started. Charged ${formatCurrency(
                 upfrontCharge,
                 currencyCode,
-              )} for 48 hours.`,
+              )} for 24 hours.`,
       },
     });
 

@@ -28,6 +28,12 @@ export default async function SettingsPage() {
       plan,
       name: AUTO_RESTOCK_PLAN_META[plan].name,
       costLabel: formatCurrency(AUTO_RESTOCK_PLAN_META[plan].dailyCostCents, currencyCode),
+      details:
+        plan === "SIMPLE"
+          ? "Restocks 50% of sold-out items every 10 minutes."
+          : plan === "PRO"
+            ? "Restocks 75% of sold-out items every 5 minutes."
+            : "Restocks every sold-out item on your chosen timer.",
     }),
   );
   const nextRestockAt = subscription
@@ -53,7 +59,9 @@ export default async function SettingsPage() {
                   hour: "numeric",
                   minute: "2-digit",
                 }) ?? "soon"}`,
-                fullAccessEnabled: subscription.fullAccessEnabled,
+                restockIntervalMinutes:
+                  subscription.restockIntervalMinutes ??
+                  (subscription.plan === "SIMPLE" ? 10 : subscription.plan === "PRO" ? 5 : 3),
               }
             : null
         }

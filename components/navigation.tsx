@@ -102,10 +102,6 @@ export function Navigation({
       </div>
 
       <div className="topbar-status">
-        <Link href="/orders" className="balance-pill" aria-label="Open buyer and seller history">
-          <AppIcon icon={APP_ICONS.orders} tone="gradient" />
-          Orders
-        </Link>
         <div className="notification-menu" ref={notificationMenuRef}>
           <button
             type="button"

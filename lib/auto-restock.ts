@@ -7,9 +7,10 @@ export const MAX_DAILY_COST_CENTS = 150_000;
 export const FORMER_FULL_ACCESS_48H_COST_CENTS = 25_000;
 export const FULL_ACCESS_48H_COST_CENTS = 0;
 
-export const SIMPLE_RESTOCK_INTERVAL_MINUTES = 5;
+export const SIMPLE_RESTOCK_INTERVAL_MINUTES = 10;
 export const PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES = 5;
 export const MAX_DEFAULT_RESTOCK_INTERVAL_MINUTES = 3;
+export const AUTO_RESTOCK_RENEWAL_HOURS = 24;
 
 export const AUTO_RESTOCK_INTERVAL_LIMITS: Record<
   AutoRestockPlan,
@@ -27,14 +28,14 @@ export const AUTO_RESTOCK_INTERVAL_LIMITS: Record<
     customizable: false,
   },
   PRO: {
-    min: 2,
-    max: 10,
+    min: PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES,
+    max: PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES,
     defaultValue: PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES,
     customizable: true,
   },
   MAX: {
     min: 1,
-    max: 20,
+    max: 10,
     defaultValue: MAX_DEFAULT_RESTOCK_INTERVAL_MINUTES,
     customizable: true,
   },
@@ -55,7 +56,7 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     name: "Simple",
     dailyCostCents: SIMPLE_DAILY_COST_CENTS,
     setupFeeCents: SIMPLE_SETUP_FEE_CENTS,
-    cycleLabel: "Checks every 5 minutes",
+    cycleLabel: "Checks every 10 minutes",
     defaultQuantity: 1,
     coveragePercent: 0.5,
   },
@@ -63,7 +64,7 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     name: "Pro",
     dailyCostCents: PRO_DAILY_COST_CENTS,
     setupFeeCents: 0,
-    cycleLabel: "Checks on your custom interval",
+    cycleLabel: "Checks every 5 minutes",
     defaultQuantity: 2,
     coveragePercent: 0.75,
   },
@@ -71,7 +72,7 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     name: "Max",
     dailyCostCents: MAX_DAILY_COST_CENTS,
     setupFeeCents: 0,
-    cycleLabel: "Checks on your custom interval",
+    cycleLabel: "Checks on your chosen interval",
     defaultQuantity: 3,
     coveragePercent: 1,
   },

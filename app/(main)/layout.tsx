@@ -1,6 +1,5 @@
 import { LiveUpdatesWatcher } from "@/components/live-updates-watcher";
 import { Navigation } from "@/components/navigation";
-import { AutoRestockApprovalGate } from "@/components/auto-restock-approval-gate";
 import { SecuritySetupLock } from "@/components/security-setup-lock";
 import { normalizeAppearancePreset } from "@/lib/appearance";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
@@ -72,7 +71,6 @@ export default async function MainLayout({ children }: MainLayoutProps) {
       data-player-mode="advanced"
     >
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
-      <AutoRestockApprovalGate />
       <Navigation
         currencyCode={currencyCode}
         unreadNotifications={unreadNotifications.unreadCount}
