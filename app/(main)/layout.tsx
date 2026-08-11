@@ -74,7 +74,6 @@ export default async function MainLayout({ children }: MainLayoutProps) {
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
       <AutoRestockApprovalGate />
       <Navigation
-        balance={user.balance}
         currencyCode={currencyCode}
         unreadNotifications={unreadNotifications.unreadCount}
         unreadNotificationLabel={unreadNotifications.label}

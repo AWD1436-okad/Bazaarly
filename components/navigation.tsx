@@ -4,14 +4,12 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
 
 import { APP_ICONS, AppIcon } from "@/components/app-icon";
-import { formatCurrency } from "@/lib/money";
+import { CartDrawer } from "@/components/cart-drawer";
 import { getPlayerModeConfig, type PlayerMode } from "@/lib/player-mode";
 
 type NavigationProps = {
-  balance: number;
   unreadNotifications: number;
   unreadNotificationLabel?: string | null;
   recentNotifications?: Array<{
@@ -29,7 +27,6 @@ type NavigationProps = {
 };
 
 export function Navigation({
-  balance,
   unreadNotifications,
   unreadNotificationLabel,
   recentNotifications = [],
@@ -43,6 +40,7 @@ export function Navigation({
   const router = useRouter();
   const notificationMenuRef = useRef<HTMLDivElement>(null);
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const showSearch = pathname?.startsWith("/shop/");
   const modeConfig = getPlayerModeConfig("ADVANCED");
   const navItems = [
@@ -50,10 +48,9 @@ export function Navigation({
     { href: "/marketplace", label: modeConfig.navLabels.marketplace, icon: APP_ICONS.store },
     { href: "/dashboard/supplier", label: modeConfig.navLabels.supplier, icon: APP_ICONS.supplier },
     { href: "/challenges", label: modeConfig.navLabels.challenges, icon: APP_ICONS.challenges },
-    { href: "/orders", label: modeConfig.navLabels.orders, icon: APP_ICONS.orders },
     { href: "/cart", label: modeConfig.navLabels.cart, icon: APP_ICONS.cart, badge: cartItemCount },
     { href: "/settings", label: modeConfig.navLabels.settings, icon: APP_ICONS.settings },
-  ] as const;
+  ];
 
   useEffect(() => {
     function closeNotificationMenu(event: MouseEvent) {
@@ -105,10 +102,10 @@ export function Navigation({
       </div>
 
       <div className="topbar-status">
-        <span className="balance-pill">
-          <AppIcon icon={APP_ICONS.wallet} tone="gradient" />
-          {formatCurrency(balance, currencyCode)}
-        </span>
+        <Link href="/orders" className="balance-pill" aria-label="Open buyer and seller history">
+          <AppIcon icon={APP_ICONS.orders} tone="gradient" />
+          Orders
+        </Link>
         <div className="notification-menu" ref={notificationMenuRef}>
           <button
             type="button"
@@ -132,7 +129,7 @@ export function Navigation({
                 onClick={() => setNotificationMenuOpen(false)}
                 aria-label="Close notifications"
               >
-                <X aria-hidden="true" />
+                <span aria-hidden="true">×</span>
               </button>
             </div>
             {recentNotifications.length === 0 ? (
@@ -175,7 +172,13 @@ export function Navigation({
       ) : null}
 
       <nav className="topbar-links">
-        {navItems.map((item) => (
+        {navItems.map((item) => item.href === "/cart" ? (
+          <button key={item.href} type="button" className="topbar-link" onClick={() => setCartDrawerOpen(true)}>
+            <AppIcon icon={item.icon} />
+            {item.label}
+            {item.badge != null && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
+          </button>
+        ) : (
           <Link
             key={item.href}
             href={item.href as Route}
@@ -183,13 +186,19 @@ export function Navigation({
           >
             <AppIcon icon={item.icon} />
             {item.label}
-            {"badge" in item && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
+            {item.badge != null && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
           </Link>
         ))}
       </nav>
     </header>
     <nav className="mobile-bottom-nav" aria-label="Main mobile navigation">
-      {[navItems[0], navItems[1], navItems[2], navItems[5], navItems[6]].map((item) => (
+      {[navItems[0], navItems[1], navItems[2], navItems[4], navItems[5]].map((item) => item.href === "/cart" ? (
+        <button key={item.href} type="button" className="mobile-bottom-nav__link" onClick={() => setCartDrawerOpen(true)}>
+          <AppIcon icon={item.icon} />
+          <span>{item.label}</span>
+          {item.badge != null && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
+        </button>
+      ) : (
         <Link
           key={item.href}
           href={item.href as Route}
@@ -197,10 +206,11 @@ export function Navigation({
         >
           <AppIcon icon={item.icon} />
           <span>{item.label}</span>
-          {"badge" in item && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
+          {item.badge != null && item.badge > 0 ? <strong className="nav-item-badge">{item.badge}</strong> : null}
         </Link>
       ))}
     </nav>
+    <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
     </>
   );
 }

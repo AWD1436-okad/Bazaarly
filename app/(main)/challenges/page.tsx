@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ChallengeCountdown } from "@/components/challenge-countdown";
-import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { requireUser } from "@/lib/auth";
 import { getDashboardChallenges } from "@/lib/challenges";
@@ -42,7 +41,6 @@ export default async function ChallengesPage() {
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       <section className="page-header">
         <h1>Challenges</h1>
-        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       <section className="card challenge-hero-card">
@@ -76,7 +74,7 @@ export default async function ChallengesPage() {
                 </span>
               </div>
               <div className="challenge-row__badges">
-                <span className={`tag challenge-difficulty challenge-difficulty--${challenge.difficulty.toLowerCase()}`}>
+                <span className={`tag challenge-difficulty challenge-difficulty--${challenge.difficulty.toLowerCase().replace(/\s+/g, "-")}`}>
                   {challenge.difficulty}
                 </span>
                 <span className={challenge.rewarded ? "tag challenge-row__rewarded" : "tag"}>

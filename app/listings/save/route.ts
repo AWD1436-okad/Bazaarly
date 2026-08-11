@@ -11,6 +11,14 @@ import { sanitizeStockCount } from "@/lib/stock";
 
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
+const MAX_LISTING_PRICE_MULTIPLIER = 4;
+
+function assertReasonableListingPrice(priceCents: number, basePriceCents: number) {
+  const maximumPrice = Math.max(basePriceCents * MAX_LISTING_PRICE_MULTIPLIER, 500);
+  if (priceCents > maximumPrice) {
+    throw new Error("That price is far above the usual price for this item.");
+  }
+}
 
 function isAsyncRequest(request: Request) {
   return request.headers.get("x-profit-planet-async") === "1";
@@ -95,6 +103,7 @@ export async function POST(request: Request) {
         if (!listing) {
           throw new Error("Listing not found");
         }
+        assertReasonableListingPrice(priceCents, listing.product.basePrice);
 
         await tx.listing.update({
           where: { id: listing.id },
@@ -134,6 +143,7 @@ export async function POST(request: Request) {
       if (!inventory) {
         throw new Error("Inventory item not found");
       }
+      assertReasonableListingPrice(priceCents, inventory.product.basePrice);
 
       const listing = await tx.listing.findUnique({
         where: {

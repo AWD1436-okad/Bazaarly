@@ -14,7 +14,9 @@ import { prisma } from "@/lib/prisma";
 
 export const CHALLENGE_CYCLE_MS = 24 * 60 * 60 * 1000;
 
-export type ChallengeDifficulty = "Easy" | "Medium" | "Hard";
+export type ChallengeDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Extra Hard";
+type ChallengeLibrary = Record<"Easy" | "Medium" | "Hard", ChallengeDefinition[]> &
+  Partial<Record<ChallengeDifficulty, ChallengeDefinition[]>>;
 
 export type ChallengeDefinition = {
   key: string;
@@ -64,15 +66,19 @@ type ChallengeStats = {
 };
 
 const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
-  Easy: 5_000,
-  Medium: 10_000,
-  Hard: 15_000,
+  "Very Easy": 1_000,
+  Easy: 2_000,
+  Medium: 5_000,
+  Hard: 7_500,
+  "Extra Hard": 10_000,
 };
 
 const REWARD_XP: Record<ChallengeDifficulty, number> = {
-  Easy: 5,
-  Medium: 10,
-  Hard: 20,
+  "Very Easy": 10,
+  Easy: 20,
+  Medium: 50,
+  Hard: 75,
+  "Extra Hard": 100,
 };
 
 function getChallengeXpReward(challenge: Pick<ChallengeDefinition, "difficulty" | "rewardXp">) {
@@ -81,13 +87,22 @@ function getChallengeXpReward(challenge: Pick<ChallengeDefinition, "difficulty" 
 
 const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
   {
+    key: "beginner-list-1-product",
+    type: "LIST_PRODUCTS",
+    label: "Put 1 item in your shop",
+    difficulty: "Very Easy",
+    target: 1,
+    rewardCents: 1_000,
+    rewardXp: 10,
+  },
+  {
     key: "beginner-sell-50-stock",
     type: "EARN_REVENUE",
     label: "Sell stock target",
     difficulty: "Easy",
     target: 5_000,
-    rewardCents: 1_000,
-    rewardXp: 5,
+    rewardCents: 2_000,
+    rewardXp: 20,
   },
   {
     key: "beginner-list-5-products",
@@ -95,8 +110,8 @@ const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
     label: "Put 5 items in your shop",
     difficulty: "Medium",
     target: 5,
-    rewardCents: 1_500,
-    rewardXp: 10,
+    rewardCents: 5_000,
+    rewardXp: 50,
   },
   {
     key: "beginner-sell-50-items",
@@ -104,12 +119,24 @@ const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
     label: "Sell 50 items",
     difficulty: "Hard",
     target: 50,
-    rewardCents: 3_000,
-    rewardXp: 20,
+    rewardCents: 7_500,
+    rewardXp: 75,
+  },
+  {
+    key: "beginner-sell-100-items",
+    type: "SELL_ITEMS",
+    label: "Sell 100 items",
+    difficulty: "Extra Hard",
+    target: 100,
+    rewardCents: 10_000,
+    rewardXp: 100,
   },
 ];
 
-const ADVANCED_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+const ADVANCED_CHALLENGE_LIBRARY: ChallengeLibrary = {
+  "Very Easy": [
+    { key: "list-1-product", type: "LIST_PRODUCTS", label: "List 1 product", difficulty: "Very Easy", target: 1, rewardCents: REWARD_CENTS["Very Easy"] },
+  ],
   Easy: [
     {
       key: "sell-5-items",
@@ -236,11 +263,11 @@ const ADVANCED_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinitio
   ],
   Hard: [
     {
-      key: "sell-30-items",
+      key: "sell-50-items",
       type: "SELL_ITEMS",
-      label: "Sell 30 items",
+      label: "Sell 50 items",
       difficulty: "Hard",
-      target: 30,
+      target: 50,
       rewardCents: REWARD_CENTS.Hard,
     },
     {
@@ -284,9 +311,13 @@ const ADVANCED_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinitio
       rewardCents: REWARD_CENTS.Hard,
     },
   ],
+  "Extra Hard": [
+    { key: "sell-100-items", type: "SELL_ITEMS", label: "Sell 100 items", difficulty: "Extra Hard", target: 100, rewardCents: REWARD_CENTS["Extra Hard"] },
+    { key: "earn-3000-profit", type: "EARN_PROFIT", label: "Earn profit target", difficulty: "Extra Hard", target: 300_000, rewardCents: REWARD_CENTS["Extra Hard"] },
+  ],
 };
 
-const JUNIOR_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+const JUNIOR_CHALLENGE_LIBRARY: ChallengeLibrary = {
   Easy: [
     { key: "junior-sell-5-items", type: "SELL_ITEMS", label: "Sell 5 items", difficulty: "Easy", target: 5, rewardCents: REWARD_CENTS.Easy },
     { key: "junior-buy-150-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy stock target", difficulty: "Easy", target: 15_000, rewardCents: REWARD_CENTS.Easy },
@@ -306,7 +337,7 @@ const JUNIOR_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[
   ],
 };
 
-const YOUNG_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+const YOUNG_CHALLENGE_LIBRARY: ChallengeLibrary = {
   Easy: [
     { key: "young-sell-8-items", type: "SELL_ITEMS", label: "Sell 8 items", difficulty: "Easy", target: 8, rewardCents: REWARD_CENTS.Easy },
     { key: "young-buy-150-stock", type: "BUY_SUPPLIER_STOCK", label: "Buy stock target", difficulty: "Easy", target: 15_000, rewardCents: REWARD_CENTS.Easy },
@@ -326,7 +357,7 @@ const YOUNG_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]
   ],
 };
 
-const LITTLE_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
+const LITTLE_CHALLENGE_LIBRARY: ChallengeLibrary = {
   Easy: [
     { key: "little-sell-2-things", type: "SELL_ITEMS", label: "Sell 2 things", difficulty: "Easy", target: 2, rewardCents: REWARD_CENTS.Easy },
     { key: "little-buy-1-item", type: "ADD_CART_ITEMS", label: "Pick 1 thing to buy", difficulty: "Easy", target: 1, rewardCents: REWARD_CENTS.Easy },
@@ -352,7 +383,7 @@ function getChallengeLibrary(playerMode: PlayerMode) {
   return ADVANCED_CHALLENGE_LIBRARY;
 }
 
-const DIFFICULTY_ORDER: ChallengeDifficulty[] = ["Easy", "Easy", "Medium", "Medium", "Hard"];
+const DIFFICULTY_ORDER: ChallengeDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Extra Hard"];
 
 const STAGE_SCALE: Record<ChallengeStage, { count: number; money: number }> = {
   Beginner: { count: 1, money: 1 },
@@ -447,7 +478,7 @@ function generateChallenges(userId: string, cycleStartAt: Date, stage: Challenge
   const usedBaseKeys = new Set<string>();
   const challengeLibrary = getChallengeLibrary(playerMode);
   return DIFFICULTY_ORDER.map((difficulty, slot) => {
-    const options = challengeLibrary[difficulty];
+    const options = challengeLibrary[difficulty] ?? challengeLibrary.Hard;
     const startIndex = getSeedIndex(`${userId}:${cycleKey}:${playerMode}:${difficulty}:${slot}`, options.length);
     let selected = options[startIndex];
 

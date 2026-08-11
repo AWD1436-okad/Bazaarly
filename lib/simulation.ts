@@ -4,6 +4,7 @@ import {
   AutoRestockSubscriptionStatus,
   BotPersonality,
   BusinessLedgerEntryCategory,
+  BusinessLedgerEntryType,
   MarketTimePhase,
   NotificationType,
   ProductCategory,
@@ -52,6 +53,8 @@ const NPC_SHOP_RESTOCK_TARGET = 8;
 const NPC_SHOP_RESTOCK_BATCH_SIZE = 4;
 const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 3;
 const NPC_SHOP_EMAILS = INITIAL_USERS.map((user) => user.email);
+const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
+const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop stock reset for shared supplier rollout";
 
 type BotCandidateListing = {
   id: string;
@@ -367,6 +370,61 @@ async function restockNpcShopsFromSupplier(now: Date) {
   }
 
   return restocks;
+}
+
+async function normalizeNpcShopPrices() {
+  const listings = await prisma.listing.findMany({
+    where: { shop: { owner: { email: { in: NPC_SHOP_EMAILS } } } },
+    select: { id: true, price: true, product: { select: { basePrice: true, marketState: { select: { marketAveragePrice: true } } } } },
+  });
+
+  await Promise.all(
+    listings.flatMap((listing) => {
+      const referencePrice = Math.max(listing.product.basePrice, listing.product.marketState?.marketAveragePrice ?? 0);
+      const maximumPrice = Math.round(referencePrice * MAX_NPC_LISTING_PRICE_MULTIPLIER);
+      return listing.price > maximumPrice
+        ? [prisma.listing.update({ where: { id: listing.id }, data: { price: maximumPrice } })]
+        : [];
+    }),
+  );
+}
+
+async function resetLegacyNpcShopStockIfNeeded() {
+  const npcOwners = await prisma.user.findMany({
+    where: { email: { in: NPC_SHOP_EMAILS } },
+    select: { id: true },
+  });
+  if (npcOwners.length === 0) return false;
+
+  const ownerIds = npcOwners.map((owner) => owner.id);
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "WorldState" WHERE "id" = 'global' FOR UPDATE`;
+    const existingReset = await tx.businessLedgerEntry.findFirst({
+      where: { description: NPC_SHOP_STOCK_RESET_MARKER },
+      select: { id: true },
+    });
+    if (existingReset) return false;
+
+    await tx.listing.updateMany({
+      where: { shop: { ownerId: { in: ownerIds } } },
+      data: { quantity: 0, active: false, soldOutAt: new Date() },
+    });
+    await tx.inventory.updateMany({
+      where: { userId: { in: ownerIds } },
+      data: { quantity: 0, allocatedQuantity: 0 },
+    });
+    await tx.businessLedgerEntry.createMany({
+      data: ownerIds.map((userId) => ({
+        userId,
+        type: BusinessLedgerEntryType.EXPENSE,
+        category: BusinessLedgerEntryCategory.OTHER_EXPENSE,
+        amount: 0,
+        description: NPC_SHOP_STOCK_RESET_MARKER,
+        data: { source: "npc_shared_supplier_rollout" },
+      })),
+    });
+    return true;
+  });
 }
 
 function getDynamicBotCooldownMs({
@@ -1377,6 +1435,9 @@ export async function runMarketSimulation(force = false, debug = false) {
   const elapsedSinceLastSimulationMs = worldState.lastSimulatedAt
     ? now.getTime() - worldState.lastSimulatedAt.getTime()
     : DEFAULT_SIMULATION_ELAPSED_MS;
+  const shouldRestockSupplierToday =
+    !worldState.lastSimulatedAt ||
+    worldState.lastSimulatedAt.toDateString() !== now.toDateString();
   await runSoldOutListingCleanup(now);
 
   const marketReadinessScore = clamp(
@@ -1475,13 +1536,16 @@ export async function runMarketSimulation(force = false, debug = false) {
         currentSupplierPrice: nextSupplierPrice,
         marketAveragePrice: marketAveragePrice || regionalProfile?.marketAveragePrice || regionalBasePrice,
         trendLabel: getTrendLabel(nextDemand),
-        supplierStock: clamp(state.supplierStock + 4, 0, 50),
+        // The supplier starts each new day with a fair, fixed shared supply.
+        supplierStock: shouldRestockSupplierToday ? 50 : clamp(state.supplierStock, 0, 50),
       },
     });
   }
 
   await runAutoRestock(now);
+  await resetLegacyNpcShopStockIfNeeded();
   await restockNpcShopsFromSupplier(now);
+  await normalizeNpcShopPrices();
 
   let botWallet = await prisma.user.findUnique({
     where: { email: "bot-market@profitplanet.local" },

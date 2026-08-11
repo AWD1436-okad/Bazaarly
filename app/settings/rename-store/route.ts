@@ -13,7 +13,7 @@ import { slugify } from "@/lib/utils";
 export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
-const RENAME_COST_CENTS = 20_000;
+const RENAME_COST_CENTS = 5_000;
 const MIN_SHOP_NAME_LENGTH = 2;
 const MAX_SHOP_NAME_LENGTH = 48;
 

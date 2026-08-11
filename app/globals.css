@@ -1364,9 +1364,100 @@ button:hover .app-icon,
   color: var(--primary);
 }
 
-.notification-menu__close svg {
-  width: 1rem;
-  height: 1rem;
+.notification-menu__close span {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.cart-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, #000 48%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.cart-drawer {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  width: min(28rem, 100%);
+  height: 100%;
+  padding: 1.1rem;
+  border-left: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: -18px 0 45px var(--control-shadow);
+}
+
+.cart-drawer h2 {
+  margin: 0;
+}
+
+.cart-drawer__items {
+  display: grid;
+  gap: 0.55rem;
+  overflow-y: auto;
+}
+
+.cart-drawer__item,
+.cart-drawer__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settings-shop-button {
+  display: grid;
+  width: 100%;
+  gap: 0.2rem;
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface-alt);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-shop-button:hover:not(:disabled) {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.settings-shop-button span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.settings-bank-number {
+  display: block;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--badge-bg);
+  color: var(--primary-text);
+  letter-spacing: 0.08em;
+}
+
+.cart-drawer__item {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface-alt);
+}
+
+.cart-drawer__footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.topbar-link,
+.mobile-bottom-nav__link {
+  font: inherit;
 }
 
 .notification-menu__item {
@@ -1784,9 +1875,59 @@ button:hover .app-icon,
 
 .marketplace-filter-layout {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: start;
+}
+
+.category-disclosure {
+  position: relative;
+  min-width: 10rem;
+}
+
+.category-disclosure > summary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface-alt);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.category-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.category-disclosure > summary::after {
+  content: "+";
+  margin-left: 0.45rem;
+  color: var(--primary);
+}
+
+.category-disclosure[open] > summary::after {
+  content: "-";
+}
+
+.category-disclosure__content {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 20;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(65vh, 34rem);
+  overflow-y: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface-elevated);
+  box-shadow: 0 20px 42px var(--control-shadow);
 }
 
 .marketplace-filters {

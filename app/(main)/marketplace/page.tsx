@@ -76,14 +76,6 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
       <section className="card marketplace-filters-card">
         <div className="marketplace-filter-layout">
-          <aside className="category-sidebar">
-            <CategoryFilterList
-              categories={CATEGORY_OPTIONS}
-              selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
-              buildHref={(category) => buildMarketplaceHref(params, category)}
-            />
-          </aside>
-
           <form action="/marketplace" className="marketplace-filters">
             {selectedCategory !== "ALL" ? (
               <input type="hidden" name="category" value={selectedCategory} />
@@ -107,6 +99,16 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
             </label>
             <button type="submit">Search</button>
           </form>
+          <details className="category-disclosure">
+            <summary>Show categories</summary>
+            <div className="category-disclosure__content">
+              <CategoryFilterList
+                categories={CATEGORY_OPTIONS}
+                selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
+                buildHref={(category) => buildMarketplaceHref(params, category)}
+              />
+            </div>
+          </details>
         </div>
       </section>
 

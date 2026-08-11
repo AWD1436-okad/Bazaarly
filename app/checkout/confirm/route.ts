@@ -74,6 +74,8 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/cart?error=Your%20cart%20is%20empty", request.url), 303);
   }
 
+  let supplierCheckoutCompleted = false;
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Cart" WHERE "id" = ${activeCart.id} FOR UPDATE`;
@@ -481,6 +483,7 @@ export async function POST(request: Request) {
             )}.`,
           },
         });
+        supplierCheckoutCompleted = true;
       }
 
       await tx.cart.update({
@@ -501,7 +504,10 @@ export async function POST(request: Request) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/supplier");
   revalidatePath("/notifications");
-  return NextResponse.redirect(new URL("/orders?checkout=1", request.url), 303);
+  return NextResponse.redirect(
+    new URL(supplierCheckoutCompleted ? "/dashboard?stockAdded=1" : "/orders?checkout=1", request.url),
+    303,
+  );
 }
 
 async function restockBuyerInventory(
