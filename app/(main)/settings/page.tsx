@@ -14,7 +14,7 @@ import {
 import { APPEARANCE_PRESETS, normalizeAppearancePreset } from "@/lib/appearance";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
-import { getPlayerModeConfig, PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
+import { PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 import { getActiveCurrencyCode, getPriceProfileMetadata, getSupportedPriceProfiles } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
@@ -25,7 +25,6 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
   const profile = getPriceProfileMetadata(currencyCode);
-  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
   const subscription = await prisma.autoRestockSubscription.findUnique({
     where: { userId: user.id },
   });
@@ -48,11 +47,6 @@ export default async function SettingsPage() {
           <p className="muted">@{user.username}</p>
         </article>
         <article className="metric-card">
-          <span className="metric-card__eyebrow">Balance</span>
-          <strong>{formatCurrency(user.balance, currencyCode)}</strong>
-          <p className="muted">Store rename cost: {formatCurrency(20000, currencyCode)}</p>
-        </article>
-        <article className="metric-card">
           <span className="metric-card__eyebrow">Display currency</span>
           <strong>{profile.currencyCode}</strong>
           <p className="muted">{profile.label}</p>
@@ -62,28 +56,24 @@ export default async function SettingsPage() {
           <strong>{user.shop?.name ?? "No shop yet"}</strong>
           {!user.shop ? <p className="muted">Create a shop first</p> : null}
         </article>
-        <article className="metric-card">
-          <span className="metric-card__eyebrow">Player mode</span>
-          <strong>{playerModeConfig.shortLabel}</strong>
-        </article>
       </section>
 
       <InstallAppCard />
 
       <SettingsActions
-        email={user.email ?? null}
+        email={null}
         username={user.username}
         displayName={user.displayName}
         currentShopName={user.shop?.name ?? null}
         canRenameStore={Boolean(user.shop)}
         currentCurrencyCode={currencyCode}
         currentAppearancePreset={normalizeAppearancePreset(user.appearancePreset)}
-        currentPlayerMode={playerModeConfig.value}
+        currentPlayerMode="ADVANCED"
         playerModeOptions={PLAYER_MODE_OPTIONS}
         appearancePresets={APPEARANCE_PRESETS}
         priceProfiles={getSupportedPriceProfiles()}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not recoverable"}
-        renameStoreCostLabel={formatCurrency(20000, currencyCode)}
+        renameStoreCostLabel=""
         autoRestockSubscription={
           subscription
             ? {

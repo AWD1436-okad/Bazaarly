@@ -1,11 +1,10 @@
 import { CategoryFilterList } from "@/components/category-filter-list";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
-import { DailyFeatureCard } from "@/components/daily-feature-card";
 import { ListingCard } from "@/components/listing-card";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { requireUser } from "@/lib/auth";
-import { CATEGORY_OPTIONS, getCategoryFilterLabel, getDailyFeaturedProduct } from "@/lib/catalog";
+import { CATEGORY_OPTIONS, getCategoryFilterLabel } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
 import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -38,9 +37,8 @@ function buildMarketplaceHref(
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
-  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
+  const playerModeConfig = getPlayerModeConfig("ADVANCED");
   const params = (await searchParams) ?? {};
-  const featuredProduct = getDailyFeaturedProduct();
   const selectedCategory =
     typeof params.category === "string" && params.category !== "ALL" ? params.category : "ALL";
   const hasActiveMarketplaceSearch =
@@ -76,42 +74,15 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         .join(" ")}
     >
       <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
-      {!hasActiveMarketplaceSearch ? (
-        <section className="marketplace-showcase">
-          <div className="marketplace-showcase__header">
-            <h1>{playerModeConfig.value === "LITTLE" ? "Pick Something" : "Daily Featured Item"}</h1>
-          </div>
-
-          {marketplace.activeEvent ? (
-            <StatusBanner
-              tone="warning"
-              title={marketplace.activeEvent.name}
-              body={marketplace.activeEvent.description}
-            />
-          ) : null}
-
-          <DailyFeatureCard
-            product={featuredProduct}
-            displayPrice={featuredProduct.basePrice}
-            displayUnitLabel={featuredProduct.unitLabel}
-            currencyCode={currencyCode}
-            href={`/marketplace?q=${encodeURIComponent(featuredProduct.name)}&category=${featuredProduct.category}`}
-            ctaLabel={playerModeConfig.value === "LITTLE" ? "See" : "See Offer"}
-          />
-        </section>
-      ) : null}
-
       <section className="card marketplace-filters-card">
         <div className="marketplace-filter-layout">
-          {playerModeConfig.value === "LITTLE" ? null : (
-            <aside className="category-sidebar">
-              <CategoryFilterList
-                categories={CATEGORY_OPTIONS}
-                selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
-                buildHref={(category) => buildMarketplaceHref(params, category)}
-              />
-            </aside>
-          )}
+          <aside className="category-sidebar">
+            <CategoryFilterList
+              categories={CATEGORY_OPTIONS}
+              selectedCategory={selectedCategory === "ALL" ? null : selectedCategory}
+              buildHref={(category) => buildMarketplaceHref(params, category)}
+            />
+          </aside>
 
           <form action="/marketplace" className="marketplace-filters">
             {selectedCategory !== "ALL" ? (
@@ -122,44 +93,18 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
               <input
                 name="q"
                 type="search"
-                placeholder={playerModeConfig.value === "LITTLE" ? "Find things" : "Search products or shops"}
+                placeholder="Search products or shops"
                 defaultValue={typeof params.q === "string" ? params.q : ""}
               />
             </label>
-            {playerModeConfig.value === "LITTLE" || playerModeConfig.value === "JUNIOR" ? null : (
-              <>
-                <label>
-                  Minimum rating
-                  <select
-                    name="minRating"
-                    defaultValue={typeof params.minRating === "string" ? params.minRating : ""}
-                  >
-                    <option value="">Any</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                    <option value="4.5">4.5+</option>
-                  </select>
-                </label>
-                <label>
-                  Min price
-                  <input name="minPrice" type="number" step="0.01" defaultValue={typeof params.minPrice === "string" ? params.minPrice : ""} />
-                </label>
-                <label>
-                  Max price
-                  <input name="maxPrice" type="number" step="0.01" defaultValue={typeof params.maxPrice === "string" ? params.maxPrice : ""} />
-                </label>
-              </>
-            )}
-            {playerModeConfig.value === "LITTLE" ? null : (
-              <label>
-                In stock only
-                <select name="stock" defaultValue={typeof params.stock === "string" ? params.stock : ""}>
-                  <option value="">Any</option>
-                  <option value="in">In stock</option>
-                </select>
-              </label>
-            )}
-            <button type="submit">{playerModeConfig.value === "LITTLE" ? "Find" : "Apply filters"}</button>
+            <label>
+              Sort
+              <select name="sort" defaultValue={typeof params.sort === "string" ? params.sort : "relevance"}>
+                <option value="relevance">Best match</option>
+                <option value="price-asc">Price: low to high</option>
+              </select>
+            </label>
+            <button type="submit">Search</button>
           </form>
         </div>
       </section>
@@ -167,7 +112,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       <section className="page-header marketplace-results-header">
         <h2>{selectedCategoryLabel}</h2>
         <span className="tag">
-          {marketplace.listings.length} {playerModeConfig.value === "LITTLE" ? "things" : "matching listings"}
+          {marketplace.listings.length} matching listings
           {hasQuery
             ? ` for "${queryText}"`
             : ""}
@@ -186,9 +131,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       {marketplace.listings.length === 0 ? (
         <div className="empty-state">
           <p>No listings found.</p>
-          {playerModeConfig.value === "LITTLE" ? null : (
-            <p className="muted">Try fewer words or clear filters.</p>
-          )}
+          <p className="muted">Try fewer words or choose another category.</p>
         </div>
       ) : (
         <>

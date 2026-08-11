@@ -107,7 +107,7 @@ async function upsertCatalogProducts() {
         demandScore: product.demandScore,
         popularityScore: product.popularityScore,
         trendLabel: product.trendLabel,
-        supplierStock: 450,
+        supplierStock: 50,
         marketAveragePrice: audProfile.marketAveragePrice,
       },
     });

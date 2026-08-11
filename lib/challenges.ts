@@ -24,6 +24,7 @@ export type ChallengeDefinition = {
     | "LIST_PRODUCTS"
     | "RESTOCK_SOLD_OUT"
     | "EARN_PROFIT"
+    | "EARN_REVENUE"
     | "SELL_CATEGORIES"
     | "BUY_SUPPLIER_STOCK"
     | "CART_VALUE"
@@ -52,6 +53,7 @@ type ChallengeStats = {
   listedProducts: number;
   restockedItems: number;
   profitEarned: number;
+  salesRevenue: number;
   soldCategories: number;
   supplierStockBoughtValue: number;
   cartValue: number;
@@ -64,6 +66,33 @@ const REWARD_CENTS: Record<ChallengeDifficulty, number> = {
   Medium: 10_000,
   Hard: 15_000,
 };
+
+const BEGINNER_CHALLENGES: ChallengeDefinition[] = [
+  {
+    key: "beginner-sell-50-stock",
+    type: "EARN_REVENUE",
+    label: "Sell stock target",
+    difficulty: "Easy",
+    target: 5_000,
+    rewardCents: 1_000,
+  },
+  {
+    key: "beginner-list-5-products",
+    type: "LIST_PRODUCTS",
+    label: "Put 5 items in your shop",
+    difficulty: "Medium",
+    target: 5,
+    rewardCents: 1_000,
+  },
+  {
+    key: "beginner-sell-10-items",
+    type: "SELL_ITEMS",
+    label: "Sell 10 items",
+    difficulty: "Hard",
+    target: 10,
+    rewardCents: 1_500,
+  },
+];
 
 const ADVANCED_CHALLENGE_LIBRARY: Record<ChallengeDifficulty, ChallengeDefinition[]> = {
   Easy: [
@@ -392,6 +421,13 @@ function getSeedIndex(seed: string, modulo: number) {
 }
 
 function generateChallenges(userId: string, cycleStartAt: Date, stage: ChallengeStage, playerMode: PlayerMode) {
+  if (stage === "Beginner") {
+    return BEGINNER_CHALLENGES.map((challenge) => ({
+      ...challenge,
+      key: `${challenge.key}:${cycleStartAt.toISOString()}`,
+    }));
+  }
+
   const cycleKey = cycleStartAt.toISOString();
   const usedBaseKeys = new Set<string>();
   const challengeLibrary = getChallengeLibrary(playerMode);
@@ -466,6 +502,8 @@ function getChallengeProgress(challenge: ChallengeDefinition, stats: ChallengeSt
       return stats.restockedItems;
     case "EARN_PROFIT":
       return stats.profitEarned;
+    case "EARN_REVENUE":
+      return stats.salesRevenue;
     case "SELL_CATEGORIES":
       return stats.soldCategories;
     case "BUY_SUPPLIER_STOCK":
@@ -482,6 +520,7 @@ function getChallengeProgress(challenge: ChallengeDefinition, stats: ChallengeSt
 function getProgressLabel(challenge: ChallengeDefinition, progress: number, currencyCode: string) {
   if (
     challenge.type === "EARN_PROFIT" ||
+    challenge.type === "EARN_REVENUE" ||
     challenge.type === "CART_VALUE" ||
     challenge.type === "BUY_SUPPLIER_STOCK"
   ) {
@@ -500,6 +539,10 @@ function getChallengeLabel(challenge: ChallengeDefinition, currencyCode: string,
       playerMode,
       formatCurrency(challenge.target, currencyCode),
     );
+  }
+
+  if (challenge.type === "EARN_REVENUE") {
+    return `Sell ${formatCurrency(challenge.target, currencyCode)} of stock`;
   }
 
   if (challenge.type === "CART_VALUE") {
@@ -610,7 +653,7 @@ export async function getDashboardChallenges({
           },
         },
       },
-      _sum: { quantity: true },
+      _sum: { quantity: true, lineTotal: true },
     }),
     prisma.cartItem.aggregate({
       where: {
@@ -698,6 +741,7 @@ export async function getDashboardChallenges({
     activeCart?.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0) ?? 0;
   const stats: ChallengeStats = {
     soldItems: soldUnitsSummary._sum.quantity ?? 0,
+    salesRevenue: soldUnitsSummary._sum.lineTotal ?? 0,
     cartItemsAdded: cartItemsSummary._sum.quantity ?? 0,
     listedProducts: listedProductsCount,
     restockedItems: supplierStockItems.reduce((sum, item) => sum + item.quantity, 0),
@@ -748,6 +792,9 @@ export async function getDashboardChallenges({
           balance: {
             increment: freshRewardTotal,
           },
+          xp: {
+            increment: freshNew.length * 5,
+          },
         },
       });
       await tx.challengeSet.update({
@@ -760,7 +807,7 @@ export async function getDashboardChallenges({
         data: {
           userId,
           type: "SYSTEM",
-          message: `Challenge reward earned: ${formatCurrency(freshRewardTotal, currencyCode)}.`,
+          message: `Challenge reward earned: ${formatCurrency(freshRewardTotal, currencyCode)} and ${freshNew.length * 5} XP.`,
         },
       });
     });

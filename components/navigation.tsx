@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { APP_ICONS, AppIcon } from "@/components/app-icon";
-import { BrandLogo } from "@/components/brand-logo";
 import { formatCurrency } from "@/lib/money";
 import { getPlayerModeConfig, type PlayerMode } from "@/lib/player-mode";
 
@@ -36,11 +35,11 @@ export function Navigation({
   currentSearch,
   currentSort,
   currencyCode = "AUD",
-  playerMode = "ADVANCED",
+  playerMode: _playerMode = "ADVANCED",
 }: NavigationProps) {
   const pathname = usePathname();
   const showSearch = pathname?.startsWith("/shop/");
-  const modeConfig = getPlayerModeConfig(playerMode);
+  const modeConfig = getPlayerModeConfig("ADVANCED");
   const navItems = [
     { href: "/dashboard", label: modeConfig.navLabels.dashboard, icon: APP_ICONS.dashboard },
     { href: "/marketplace", label: modeConfig.navLabels.marketplace, icon: APP_ICONS.store },
@@ -56,13 +55,12 @@ export function Navigation({
     <header className={showSearch ? "topbar" : "topbar topbar--no-search"}>
       <div className="brand-area">
         <Link href="/marketplace" className="brand-link">
-          <BrandLogo />
           <span>
             <strong className="brand-wordmark">
               <span className="brand-wordmark__trade">Profit</span>
               <span className="brand-wordmark__x">Planet</span>
             </strong>
-          <small>{modeConfig.shortLabel} mode</small>
+          <small>Business trading game</small>
           </span>
         </Link>
       </div>

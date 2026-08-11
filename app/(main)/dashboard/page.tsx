@@ -452,7 +452,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       : "2.50";
   const todayProfit = todayProfitSummary.netProfitCents;
   const totalProfit = totalProfitSummary.netProfitCents;
-  const progression = getProgression(totalProfit, user.shop.totalSales, activeListingCount);
+  const progression = getProgression((user as { xp?: number | null }).xp ?? 0);
   const hasInventory = Boolean(inventoryPresence);
   const starterMissions = getStarterMissions({
     hasInventory,
@@ -483,12 +483,66 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const completedChallenges = challengeSet.challenges.filter((challenge) => challenge.completed).length;
   const previewChallenges = challengeSet.challenges.slice(0, 2);
 
+  const purchasedItems = await prisma.orderLineItem.aggregate({
+    where: {
+      order: {
+        buyerId: user.id,
+      },
+    },
+    _sum: { quantity: true },
+  });
+
   if (safeInventoryPage !== inventoryPage) {
     redirect(buildDashboardHref(params, { inventoryPage: safeInventoryPage }) as Route);
   }
 
   if (safeListingsPage !== listingsPage) {
     redirect(buildDashboardHref(params, { listingsPage: safeListingsPage }) as Route);
+  }
+
+  if (params.manage !== "1") {
+    return (
+      <div className="page-grid dashboard-simple">
+        <SimulationHeartbeat intervalMs={70000} initialDelayMs={12000} />
+        {welcome ? <StatusBanner tone="success" title="Your shop is ready" body="Your starter stock is ready to trade." /> : null}
+        {error ? <StatusBanner tone="error" title="Action needs attention" body={error} /> : null}
+        <section className="page-header">
+          <div>
+            <h1>{user.shop.name}</h1>
+            <p className="muted">Your shop dashboard</p>
+          </div>
+          <Link href="/dashboard?manage=1" className="ghost-button">Manage stock</Link>
+        </section>
+
+        <section className="metrics-grid dashboard-simple__metrics">
+          <article className="metric-card">
+            <span className="metric-card__eyebrow">Sales made</span>
+            <strong>{user.shop.totalSales}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-card__eyebrow">Items bought</span>
+            <strong>{purchasedItems._sum.quantity ?? 0}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-card__eyebrow">Money</span>
+            <strong>{formatCurrency(user.balance, currencyCode)}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-card__eyebrow">Today profit</span>
+            <strong>{formatCurrency(todayProfit, currencyCode)}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-card__eyebrow">Total profit</span>
+            <strong>{formatCurrency(totalProfit, currencyCode)}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-card__eyebrow">Level {progression.level}</span>
+            <strong>{progression.title}</strong>
+            <span className="metric-card__helper">{progression.xp} XP</span>
+          </article>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -594,9 +648,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       </section>
 
       <section className="card progression-card">
-        <div className="progression-card__planet" aria-hidden="true">
-          PP
-        </div>
         <div className="progression-card__copy">
           <span className="tag">Level {progression.level}</span>
           <h2>{progression.title}</h2>
@@ -1106,9 +1157,8 @@ function getWinProgress(totalProfit: number, activeListings: number, level: numb
   return Math.max(3, Math.round(profitScore + listingScore + levelScore));
 }
 
-function getProgression(totalProfit: number, totalSales: number, activeListings: number) {
-  const safeProfitXp = Math.max(0, Math.floor(totalProfit / 1000));
-  const xp = safeProfitXp + totalSales * 8 + activeListings * 10;
+function getProgression(totalXp: number) {
+  const xp = Math.max(0, Math.floor(totalXp));
   let currentIndex = 0;
   for (let index = 0; index < PLAYER_LEVELS.length; index += 1) {
     if (xp >= PLAYER_LEVELS[index].xp) {

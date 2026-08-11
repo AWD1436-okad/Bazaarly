@@ -133,6 +133,7 @@ model User {
   playerMode             PlayerMode?
   playerModeConfirmed    Boolean        @default(false)
   balance                Int            @default(0)
+  xp                     Int            @default(0)
   deletedAt              DateTime?
   lastActiveAt           DateTime       @default(now())
   inactiveWarning25At    DateTime?
@@ -262,7 +263,7 @@ model MarketProductState {
   demandScore          Float     @default(1)
   popularityScore      Float     @default(1)
   trendLabel           String    @default("Stable")
-  supplierStock        Int       @default(500)
+  supplierStock        Int       @default(50)
   marketAveragePrice   Int       @default(0)
   updatedAt            DateTime  @updatedAt
   product              Product   @relation(fields: [productId], references: [id], onDelete: Cascade)

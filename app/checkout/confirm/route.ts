@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { recordBusinessExpense } from "@/lib/business-ledger";
 import { formatCurrency } from "@/lib/money";
-import { encryptBankNumber, verifyBankNumber, verifyCheckoutPin } from "@/lib/pin";
+import { encryptBankNumber, verifyBankNumber } from "@/lib/pin";
 import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
@@ -34,24 +34,20 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const currencyCode = await getActiveCurrencyCode(user.id);
-  const checkoutPin = String(formData.get("checkoutPin") ?? "").trim();
   const bankNumber = String(formData.get("bankNumber") ?? "").trim();
 
   const authUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
-      checkoutPinHash: true,
       bankNumberHash: true,
       bankNumberEncrypted: true,
     },
   });
 
   if (
-    !authUser ||
-    !verifyCheckoutPin(checkoutPin, authUser.checkoutPinHash) ||
-    !verifyBankNumber(bankNumber, authUser.bankNumberHash)
+    !authUser || !verifyBankNumber(bankNumber, authUser.bankNumberHash)
   ) {
-    return redirectWithError(request, "Check your bank number or PIN and try again");
+    return redirectWithError(request, "Check your bank number and try again");
   }
 
   if (!authUser.bankNumberEncrypted) {
@@ -287,6 +283,9 @@ export async function POST(request: Request) {
         data: {
           balance: {
             decrement: totalPrice,
+          },
+          xp: {
+            increment: cart.items.reduce((sum, item) => sum + item.quantity, 0),
           },
         },
       });

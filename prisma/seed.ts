@@ -435,9 +435,9 @@ async function main() {
         popularityScore: product.popularityScore,
         trendLabel: product.trendLabel,
         supplierStock: shouldSeedDemoWorld
-          ? 450
+          ? 50
           : {
-              increment: 40,
+              set: 50,
             },
         marketAveragePrice: audProfile.marketAveragePrice,
       },
@@ -447,7 +447,7 @@ async function main() {
         demandScore: product.demandScore,
         popularityScore: product.popularityScore,
         trendLabel: product.trendLabel,
-        supplierStock: 450,
+        supplierStock: 50,
         marketAveragePrice: audProfile.marketAveragePrice,
       },
     });

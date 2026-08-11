@@ -722,4 +722,32 @@ export const INITIAL_BOTS = [
     preferenceCategory: ProductCategory.CLOTHING,
     activityLevel: 63,
   },
+  {
+    displayName: "Pantry Priya",
+    type: BotPersonality.BUDGET,
+    budget: 7100,
+    preferenceCategory: ProductCategory.PANTRY_AND_COOKING,
+    activityLevel: 71,
+  },
+  {
+    displayName: "Tech Theo",
+    type: BotPersonality.QUALITY,
+    budget: 18800,
+    preferenceCategory: ProductCategory.ELECTRONICS,
+    activityLevel: 67,
+  },
+  {
+    displayName: "Home Hana",
+    type: BotPersonality.LOYAL,
+    budget: 9400,
+    preferenceCategory: ProductCategory.HOME_AND_STORAGE,
+    activityLevel: 70,
+  },
+  {
+    displayName: "Snack Noor",
+    type: BotPersonality.RANDOM,
+    budget: 5600,
+    preferenceCategory: ProductCategory.SNACKS_AND_SWEETS,
+    activityLevel: 72,
+  },
 ] as const;

@@ -1,5 +1,4 @@
 import type { Route } from "next";
-import { BusinessLedgerEntryCategory, type Prisma } from "@prisma/client";
 import Link from "next/link";
 import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { ProductVisual } from "@/components/product-visual";
@@ -53,61 +52,6 @@ function buildOrdersHref({
   return query ? `/orders?${query}` : "/orders";
 }
 
-type ReceiptLine = {
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-};
-
-function getReceiptLines(data: Prisma.JsonValue | null, description: string, amount: number): ReceiptLine[] {
-  if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.items)) {
-    return data.items
-      .map((item) => {
-        if (!item || typeof item !== "object" || Array.isArray(item)) return null;
-        const productName = typeof item.productName === "string" ? item.productName : "Stock item";
-        const quantity = typeof item.quantity === "number" ? item.quantity : 1;
-        const unitPrice = typeof item.unitPrice === "number" ? item.unitPrice : Math.round(amount / Math.max(quantity, 1));
-        const lineTotal = typeof item.lineTotal === "number" ? item.lineTotal : unitPrice * quantity;
-        return { productName, quantity, unitPrice, lineTotal };
-      })
-      .filter((item): item is ReceiptLine => Boolean(item));
-  }
-
-  const summary = description.replace(/^Supplier stock purchase:\s*/i, "").replace(/^Marketplace stock purchase from .*?:\s*/i, "");
-  if (!summary || summary === description) {
-    return [{ productName: description, quantity: 1, unitPrice: amount, lineTotal: amount }];
-  }
-
-  return summary.split(",").map((part) => {
-    const trimmed = part.trim();
-    const match = trimmed.match(/^(\d+)x\s+(.+)$/i);
-    const quantity = match ? Number(match[1]) : 1;
-    return {
-      productName: match ? match[2] : trimmed,
-      quantity,
-      unitPrice: Math.round(amount / Math.max(quantity, 1)),
-      lineTotal: amount,
-    };
-  });
-}
-
-function getReceiptBalance(data: Prisma.JsonValue | null, key: "balanceBefore" | "balanceAfter") {
-  if (data && typeof data === "object" && !Array.isArray(data) && typeof data[key] === "number") {
-    return data[key];
-  }
-
-  return null;
-}
-
-function getReceiptTitle(data: Prisma.JsonValue | null) {
-  if (data && typeof data === "object" && !Array.isArray(data) && data.source === "marketplace_checkout") {
-    return "Marketplace stock checkout";
-  }
-
-  return "Supplier checkout";
-}
-
 export default async function OrdersPage({ searchParams }: OrdersProps) {
   const user = await requireUser();
   const currencyCode = await getActiveCurrencyCode(user.id);
@@ -116,7 +60,7 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
   const buyerPage = parsePositivePage(params.buyerPage);
   const sellerPage = parsePositivePage(params.sellerPage);
 
-  const [buyerOrders, sellerOrders, stockPurchases] = await Promise.all([
+  const [buyerOrders, sellerOrders] = await Promise.all([
     prisma.order.findMany({
       where: { buyerId: user.id },
       select: {
@@ -188,21 +132,6 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
       orderBy: { createdAt: "desc" },
       skip: (sellerPage - 1) * ORDER_HISTORY_PAGE_SIZE,
       take: ORDER_HISTORY_PAGE_SIZE + 1,
-    }),
-    prisma.businessLedgerEntry.findMany({
-      where: {
-        userId: user.id,
-        category: BusinessLedgerEntryCategory.STOCK_PURCHASE,
-      },
-      select: {
-        id: true,
-        amount: true,
-        description: true,
-        data: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: ORDER_HISTORY_PAGE_SIZE,
     }),
   ]);
   const visibleBuyerOrders = buyerOrders.slice(0, ORDER_HISTORY_PAGE_SIZE);
@@ -306,54 +235,6 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
                 </div>
               )}
             </>
-          )}
-        </article>
-
-        <article className="card">
-          <div className="card-header">
-            <div className="card-header__copy">
-              <h2>Stock receipts</h2>
-            </div>
-          </div>
-          {stockPurchases.length === 0 ? (
-            <div className="empty-state">No stock purchases yet.</div>
-          ) : (
-            <div className="table-list">
-              {stockPurchases.map((purchase) => {
-                const receiptLines = getReceiptLines(purchase.data, purchase.description, purchase.amount);
-                const balanceBefore = getReceiptBalance(purchase.data, "balanceBefore");
-                const balanceAfter = getReceiptBalance(purchase.data, "balanceAfter");
-
-                return (
-                  <div key={purchase.id} className="order-row order-row--receipt">
-                    <div className="receipt-row__header">
-                      <div>
-                        <strong>{getReceiptTitle(purchase.data)}</strong>
-                        <span className="muted">{purchase.createdAt.toLocaleString()}</span>
-                      </div>
-                      <strong>{formatCurrency(purchase.amount, currencyCode)}</strong>
-                    </div>
-                    <div className="receipt-line-list">
-                      {receiptLines.map((line, index) => (
-                        <div key={`${purchase.id}-${line.productName}-${index}`} className="receipt-line">
-                          <span>{line.quantity}x {line.productName}</span>
-                          <strong>{formatCurrency(line.lineTotal, currencyCode)}</strong>
-                        </div>
-                      ))}
-                    </div>
-                    {balanceBefore !== null && balanceAfter !== null ? (
-                      <div className="receipt-balance">
-                        <span>Balance before: {formatCurrency(balanceBefore, currencyCode)}</span>
-                        <strong>After: {formatCurrency(balanceAfter, currencyCode)}</strong>
-                      </div>
-                    ) : null}
-                    <Link href="/dashboard" className="ghost-button small">
-                      List this stock
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
           )}
         </article>
 

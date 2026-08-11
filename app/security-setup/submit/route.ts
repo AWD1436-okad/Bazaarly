@@ -4,12 +4,9 @@ import { NextResponse } from "next/server";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import {
   getBankNumberLookupHash,
-  getCheckoutPinLookupHash,
   hashBankNumber,
-  hashCheckoutPin,
   encryptBankNumber,
   validateBankNumber,
-  validateCheckoutPin,
 } from "@/lib/pin";
 import { prisma } from "@/lib/prisma";
 
@@ -49,20 +46,9 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const pin = String(formData.get("pin") ?? "").trim();
-  const confirmPin = String(formData.get("confirmPin") ?? "").trim();
   const bankNumber = String(formData.get("bankNumber") ?? "").trim();
   const confirmBankNumber = String(formData.get("confirmBankNumber") ?? "").trim();
-  const pinResult = validateCheckoutPin(pin);
   const bankNumberResult = validateBankNumber(bankNumber);
-
-  if (!pinResult.success) {
-    return redirectWithError(request, pinResult.error);
-  }
-
-  if (pinResult.pin !== confirmPin) {
-    return redirectWithError(request, "PINs do not match");
-  }
 
   if (!bankNumberResult.success) {
     return redirectWithError(request, bankNumberResult.error);
@@ -72,7 +58,6 @@ export async function POST(request: Request) {
     return redirectWithError(request, "Bank numbers do not match");
   }
 
-  const checkoutPinLookupHash = getCheckoutPinLookupHash(pinResult.pin);
   const bankNumberLookupHash = getBankNumberLookupHash(bankNumberResult.bankNumber);
   const existingBankNumberOwner = await prisma.user.findFirst({
     where: {
@@ -90,8 +75,6 @@ export async function POST(request: Request) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        checkoutPinHash: hashCheckoutPin(pinResult.pin),
-        checkoutPinLookupHash,
         bankNumberHash: hashBankNumber(bankNumberResult.bankNumber),
         bankNumberLookupHash,
         bankNumberEncrypted: encryptBankNumber(bankNumberResult.bankNumber),

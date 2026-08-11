@@ -888,7 +888,7 @@ export function SettingsActions({
           </div>
         </section>
 
-        <section className="card settings-card settings-section settings-card--grownup">
+        <section className="card settings-card settings-section settings-card--grownup" hidden>
           <div className="settings-section__header">
             <span className="settings-section__eyebrow">Shop</span>
             <h2>{currentPlayerMode === "LITTLE" ? "My Shop" : "Store profile"}</h2>
@@ -945,7 +945,7 @@ export function SettingsActions({
                 View Bank Number
               </button>
             </div>
-            <div className="settings-row">
+            <div className="settings-row" hidden>
               <div>
                 <strong>Bank PIN</strong>
                 <p className="muted">Protected</p>
@@ -1035,7 +1035,7 @@ export function SettingsActions({
           </div>
         </section>
 
-        <section className="card settings-card settings-section settings-section--wide">
+        <section className="card settings-card settings-section settings-section--wide" hidden>
           <div className="settings-section__header settings-section__header--inline">
             <div>
               <span className="settings-section__eyebrow">{currentPlayerMode === "LITTLE" ? "My Mode" : "Player Mode"}</span>

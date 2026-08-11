@@ -1384,7 +1384,7 @@ export async function runMarketSimulation(force = false, debug = false) {
         currentSupplierPrice: nextSupplierPrice,
         marketAveragePrice: marketAveragePrice || regionalProfile?.marketAveragePrice || regionalBasePrice,
         trendLabel: getTrendLabel(nextDemand),
-        supplierStock: clamp(state.supplierStock + 8, 120, 700),
+        supplierStock: clamp(state.supplierStock + 4, 0, 50),
       },
     });
   }

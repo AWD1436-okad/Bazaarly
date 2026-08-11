@@ -1,4 +1,3 @@
-import { BrandLogo } from "@/components/brand-logo";
 import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { SecuritySetupResultPanel } from "@/components/security-setup-result-panel";
 import type { Route } from "next";
@@ -18,13 +17,9 @@ export function SecuritySetupLock({
     <section className="auth-card auth-card--single">
       <div className="stack">
         <div>
-          <div className="brand-lockup">
-            <BrandLogo size={64} />
-            <span className="tag">Profit Planet</span>
-          </div>
-          <h1>Security setup required</h1>
+          <h1>Set up your trading number</h1>
           <p className="muted">
-            Set your checkout PIN and bank number before entering Profit Planet.
+            Pick a six-digit in-game bank number. This is only for Profit Planet, not a real bank account.
           </p>
         </div>
 
@@ -41,38 +36,18 @@ export function SecuritySetupLock({
           <SecuritySetupResultPanel bankNumber={completedBankNumber} continueHref={continueHref} />
         ) : (
           <div className="card">
-            <h2>PIN and bank number</h2>
+            <h2>In-game bank number</h2>
             <p className="muted">
-              These details are required for secure checkout and must be unique.
+              You will use this number to confirm purchases. Keep it somewhere safe.
             </p>
             <form action="/security-setup/submit" method="post" className="stack-sm">
-              <label>
-                New PIN
-                <HoldToShowInput
-                  name="pin"
-                  inputMode="numeric"
-                  pattern="[0-9]{4,8}"
-                  placeholder="4-8 digits"
-                  required
-                />
-              </label>
-              <label>
-                Confirm PIN
-                <HoldToShowInput
-                  name="confirmPin"
-                  inputMode="numeric"
-                  pattern="[0-9]{4,8}"
-                  placeholder="Repeat PIN"
-                  required
-                />
-              </label>
               <label>
                 Bank number
                 <HoldToShowInput
                   name="bankNumber"
                   inputMode="numeric"
-                  pattern="[0-9]{6,12}"
-                  placeholder="6-12 digits"
+                  pattern="[0-9]{6}"
+                  placeholder="6 digits"
                   required
                 />
               </label>
@@ -81,12 +56,12 @@ export function SecuritySetupLock({
                 <HoldToShowInput
                   name="confirmBankNumber"
                   inputMode="numeric"
-                  pattern="[0-9]{6,12}"
+                  pattern="[0-9]{6}"
                   placeholder="Repeat bank number"
                   required
                 />
               </label>
-              <button type="submit">Save security details and unlock app</button>
+              <button type="submit">Save bank number</button>
             </form>
           </div>
         )}

@@ -122,15 +122,8 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
 
         <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
           <label>
-            Checkout PIN
-            <HoldToShowInput name="checkoutPin" inputMode="numeric" required autoComplete="off" />
-          </label>
-          <Link href={"/forgot-pin" as never} className="ghost-link">
-            Forgot PIN?
-          </Link>
-          <label>
-            Bank number
-            <HoldToShowInput name="bankNumber" inputMode="numeric" required autoComplete="off" />
+            In-game bank number
+            <HoldToShowInput name="bankNumber" inputMode="numeric" pattern="[0-9]{6}" required autoComplete="off" />
           </label>
           <button type="submit" className="checkout-main-submit" disabled={hasUnavailableItems}>
             {hasUnavailableItems

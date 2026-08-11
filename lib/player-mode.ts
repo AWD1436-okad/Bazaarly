@@ -179,8 +179,8 @@ export const PLAYER_MODE_CONFIGS: Record<PlayerMode, PlayerModeConfig> = {
 export const PLAYER_MODE_OPTIONS = PLAYER_MODE_VALUES.map((value) => PLAYER_MODE_CONFIGS[value]);
 
 export function normalizePlayerMode(value: unknown): PlayerMode {
-  if (value === "TEEN") return "ADVANCED";
-  return PLAYER_MODE_VALUES.includes(value as PlayerMode) ? (value as PlayerMode) : "ADVANCED";
+  void value;
+  return "ADVANCED";
 }
 
 export function getPlayerModeConfig(value: unknown) {

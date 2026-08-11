@@ -70,16 +70,14 @@ export async function getSessionUser() {
 }
 
 type RequireUserOptions = {
-  allowMissingPin?: boolean;
   allowIncompleteSecurity?: boolean;
 };
 
 export function hasCompletedSecuritySetup(user: {
-  checkoutPinHash?: string | null;
   bankNumberHash?: string | null;
   securitySetupCompleted?: boolean | null;
 }) {
-  return Boolean(user.securitySetupCompleted && user.checkoutPinHash && user.bankNumberHash);
+  return Boolean(user.securitySetupCompleted && user.bankNumberHash);
 }
 
 export async function requireUser(options: RequireUserOptions = {}) {
@@ -90,7 +88,6 @@ export async function requireUser(options: RequireUserOptions = {}) {
   }
 
   if (
-    !options.allowMissingPin &&
     !options.allowIncompleteSecurity &&
     !hasCompletedSecuritySetup(user)
   ) {

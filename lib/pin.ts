@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { hashPassword, verifyPassword } from "@/lib/password";
 
 const PIN_PATTERN = /^\d{4,8}$/;
-const BANK_NUMBER_PATTERN = /^\d{6,12}$/;
+const BANK_NUMBER_PATTERN = /^\d{6}$/;
 
 function getPinPepper() {
   return process.env.CHECKOUT_PIN_PEPPER ?? process.env.SESSION_COOKIE_NAME ?? "tradex-pin";
@@ -37,7 +37,7 @@ export function validateBankNumber(bankNumber: string) {
   if (!BANK_NUMBER_PATTERN.test(normalizedBankNumber)) {
     return {
       success: false as const,
-      error: "Use a 6-12 digit bank number",
+      error: "Use a 6-digit bank number",
     };
   }
 

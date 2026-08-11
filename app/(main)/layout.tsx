@@ -1,13 +1,11 @@
 import { LiveUpdatesWatcher } from "@/components/live-updates-watcher";
 import { Navigation } from "@/components/navigation";
 import { AutoRestockApprovalGate } from "@/components/auto-restock-approval-gate";
-import { PlayerModeRequired } from "@/components/player-mode-required";
 import { SecuritySetupLock } from "@/components/security-setup-lock";
 import { normalizeAppearancePreset } from "@/lib/appearance";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
-import { getPlayerModeConfig, PLAYER_MODE_OPTIONS } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
@@ -54,23 +52,11 @@ export default async function MainLayout({ children }: MainLayoutProps) {
       take: 4,
     }),
   ]);
-  const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
-  const playerModeConfirmed = Boolean((user as { playerModeConfirmed?: boolean | null }).playerModeConfirmed);
-
-  if (!playerModeConfirmed) {
-    return (
-      <PlayerModeRequired
-        currentPlayerMode={playerModeConfig.value}
-        playerModeOptions={PLAYER_MODE_OPTIONS}
-      />
-    );
-  }
-
   return (
     <main
       className="app-shell"
       data-theme={normalizeAppearancePreset(user.appearancePreset)}
-      data-player-mode={playerModeConfig.value.toLowerCase()}
+      data-player-mode="advanced"
     >
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
       <AutoRestockApprovalGate />
@@ -84,7 +70,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
           createdAtLabel: notification.createdAt.toLocaleString(),
         }))}
         cartItemCount={activeCart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0}
-        playerMode={playerModeConfig.value}
+        playerMode="ADVANCED"
       />
       {children}
     </main>

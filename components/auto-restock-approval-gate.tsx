@@ -38,7 +38,6 @@ export function AutoRestockApprovalGate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<"summary" | "secure">("summary");
-  const [checkoutPin, setCheckoutPin] = useState("");
   const [bankNumber, setBankNumber] = useState("");
   const [busyAction, setBusyAction] = useState<null | "skip" | "approve">(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -70,7 +69,6 @@ export function AutoRestockApprovalGate() {
         setPending(nextPending);
         if (!nextPending) {
           setStage("summary");
-          setCheckoutPin("");
           setBankNumber("");
           setError(null);
           if (
@@ -119,7 +117,6 @@ export function AutoRestockApprovalGate() {
       formData.set("requestId", pending.id);
       formData.set("action", action);
       if (action === "approve") {
-        formData.set("checkoutPin", checkoutPin);
         formData.set("bankNumber", bankNumber);
       }
 
@@ -137,7 +134,6 @@ export function AutoRestockApprovalGate() {
       );
       setPending(null);
       setStage("summary");
-      setCheckoutPin("");
       setBankNumber("");
       router.refresh();
       window.setTimeout(() => setSuccessMessage(null), 4500);
@@ -246,7 +242,7 @@ export function AutoRestockApprovalGate() {
           <>
             <div className="modal-card__copy">
               <h3>Confirm Restock</h3>
-              <p>Enter your bank number and checkout PIN before Auto Restock can buy anything.</p>
+              <p>Enter your in-game bank number before Auto Restock can buy anything.</p>
             </div>
             <div className="card">
               <p className="muted">
@@ -260,20 +256,10 @@ export function AutoRestockApprovalGate() {
               </p>
             </div>
             <label className="modal-card__field">
-              Bank number
+              In-game bank number
               <HoldToShowInput
                 value={bankNumber}
                 onChange={(event) => setBankNumber(event.target.value)}
-                inputMode="numeric"
-                disabled={loading}
-                autoComplete="off"
-              />
-            </label>
-            <label className="modal-card__field">
-              Checkout PIN
-              <HoldToShowInput
-                value={checkoutPin}
-                onChange={(event) => setCheckoutPin(event.target.value)}
                 inputMode="numeric"
                 disabled={loading}
                 autoComplete="off"
@@ -294,8 +280,7 @@ export function AutoRestockApprovalGate() {
                 type="button"
                 disabled={
                   loading ||
-                  bankNumber.trim().length === 0 ||
-                  checkoutPin.trim().length === 0
+                  bankNumber.trim().length !== 6
                 }
                 onClick={() => void submitDecision("approve")}
               >
