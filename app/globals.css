@@ -1314,13 +1314,11 @@ button:hover .app-icon,
   position: relative;
 }
 
-.notification-menu summary {
-  list-style: none;
+.notification-menu > .notification-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
   cursor: pointer;
-}
-
-.notification-menu summary::-webkit-details-marker {
-  display: none;
 }
 
 .notification-menu__panel {
@@ -1344,6 +1342,20 @@ button:hover .app-icon,
 .notification-menu__list {
   display: grid;
   gap: 0.5rem;
+}
+
+.notification-menu__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.notification-menu__actions .ghost-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
 }
 
 .notification-menu__item {

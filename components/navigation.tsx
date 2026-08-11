@@ -2,7 +2,8 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { APP_ICONS, AppIcon } from "@/components/app-icon";
 import { formatCurrency } from "@/lib/money";
@@ -38,6 +39,9 @@ export function Navigation({
   playerMode: _playerMode = "ADVANCED",
 }: NavigationProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const notificationMenuRef = useRef<HTMLDivElement>(null);
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
   const showSearch = pathname?.startsWith("/shop/");
   const modeConfig = getPlayerModeConfig("ADVANCED");
   const navItems = [
@@ -49,6 +53,35 @@ export function Navigation({
     { href: "/cart", label: modeConfig.navLabels.cart, icon: APP_ICONS.cart, badge: cartItemCount },
     { href: "/settings", label: modeConfig.navLabels.settings, icon: APP_ICONS.settings },
   ] as const;
+
+  useEffect(() => {
+    function closeNotificationMenu(event: MouseEvent) {
+      if (!notificationMenuRef.current?.contains(event.target as Node)) {
+        setNotificationMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setNotificationMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeNotificationMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeNotificationMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
+
+  async function markAllNotificationsRead() {
+    const response = await fetch("/notifications/read-all", { method: "POST" });
+    if (response.ok || response.redirected) {
+      setNotificationMenuOpen(false);
+      router.refresh();
+    }
+  }
 
   return (
     <>
@@ -70,20 +103,33 @@ export function Navigation({
           <AppIcon icon={APP_ICONS.wallet} tone="gradient" />
           {formatCurrency(balance, currencyCode)}
         </span>
-        <details className="notification-menu">
-          <summary className="notification-pill">
+        <div className="notification-menu" ref={notificationMenuRef}>
+          <button
+            type="button"
+            className="notification-pill"
+            aria-expanded={notificationMenuOpen}
+            aria-controls="notification-panel"
+            onClick={() => setNotificationMenuOpen((open) => !open)}
+          >
             <AppIcon icon={APP_ICONS.bell} />
             Notifications
             {unreadNotifications > 0 ? (
               <strong>{unreadNotificationLabel ?? unreadNotifications}</strong>
             ) : null}
-          </summary>
-          <div className="notification-menu__panel">
+          </button>
+          {notificationMenuOpen ? <div id="notification-panel" className="notification-menu__panel" role="dialog" aria-label="Notifications">
             <div className="section-row">
               <strong>Latest updates</strong>
-              <Link href="/notifications" className="ghost-link">
-                See all
-              </Link>
+              <div className="notification-menu__actions">
+                {unreadNotifications > 0 ? (
+                  <button type="button" className="ghost-link" onClick={() => void markAllNotificationsRead()}>
+                    Mark read
+                  </button>
+                ) : null}
+                <Link href="/notifications" className="ghost-link" onClick={() => setNotificationMenuOpen(false)}>
+                  See all
+                </Link>
+              </div>
             </div>
             {recentNotifications.length === 0 ? (
               <p className="muted">No updates yet.</p>
@@ -93,6 +139,7 @@ export function Navigation({
                   <Link
                     key={notification.id}
                     href="/notifications"
+                    onClick={() => setNotificationMenuOpen(false)}
                     className={notification.read ? "notification-menu__item" : "notification-menu__item notification-menu__item--unread"}
                   >
                     <span>{notification.type.replace("_", " ")}</span>
@@ -102,8 +149,8 @@ export function Navigation({
                 ))}
               </div>
             )}
-          </div>
-        </details>
+          </div> : null}
+        </div>
       </div>
 
       {showSearch ? (

@@ -27,5 +27,6 @@ export async function POST(request: Request) {
   });
 
   revalidatePath("/notifications");
+  revalidatePath("/", "layout");
   return NextResponse.redirect(new URL("/notifications", request.url), 303);
 }
