@@ -50,12 +50,14 @@ const DEFAULT_SIMULATION_ELAPSED_MS = 60 * 1000;
 const SEEDED_LOYALTY_GRACE_MS = 2 * 60 * 1000;
 const BOT_WALLET_TARGET_BALANCE = 500_000;
 const BOT_WALLET_REFILL_FLOOR = 120_000;
-const NPC_SHOP_RESTOCK_TARGET = 8;
-const NPC_SHOP_RESTOCK_BATCH_SIZE = 4;
+// NPC shops use the same supplier pool as players. Keeping their shelf target
+// small makes their stock visible and prevents the market from looking seeded.
+const NPC_SHOP_RESTOCK_TARGET = 6;
+const NPC_SHOP_RESTOCK_BATCH_SIZE = 3;
 const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 3;
 const NPC_SHOP_EMAILS = INITIAL_USERS.map((user) => user.email);
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop stock reset for shared supplier rollout";
+const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop stock reset for shared supplier rollout v2";
 
 type BotCandidateListing = {
   id: string;
@@ -1474,8 +1476,8 @@ export async function runMarketSimulation(force = false, debug = false) {
     });
   }
 
-  await runAutoRestock(now);
   await resetLegacyNpcShopStockIfNeeded();
+  await runAutoRestock(now);
   await restockNpcShopsFromSupplier(now);
   await normalizeNpcShopPrices();
 
