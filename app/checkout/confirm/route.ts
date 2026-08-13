@@ -552,15 +552,20 @@ async function restockBuyerInventory(
       })
     : null;
   const shouldRestockBuyerListing = Boolean(buyerListing);
-  const nextBuyerQuantity = (buyerInventory?.quantity ?? 0) + quantity;
+  const currentInventoryQuantity = sanitizeStockCount(buyerInventory?.quantity ?? 0);
+  const currentAllocatedQuantity = Math.min(
+    currentInventoryQuantity,
+    sanitizeStockCount(buyerInventory?.allocatedQuantity ?? 0),
+  );
+  const nextBuyerQuantity = currentInventoryQuantity + quantity;
   const buyerCostTotal =
-    (buyerInventory?.averageUnitCost ?? 0) * (buyerInventory?.quantity ?? 0) + unitPrice * quantity;
+    (buyerInventory?.averageUnitCost ?? 0) * currentInventoryQuantity + unitPrice * quantity;
   const nextBuyerAverageCost =
     nextBuyerQuantity > 0 ? Math.round(buyerCostTotal / nextBuyerQuantity) : unitPrice;
   const nextAllocatedQuantity =
     shouldRestockBuyerListing
-      ? sanitizeStockCount((buyerInventory?.allocatedQuantity ?? 0) + quantity)
-      : sanitizeStockCount(buyerInventory?.allocatedQuantity ?? 0);
+      ? currentAllocatedQuantity + quantity
+      : currentAllocatedQuantity;
   const safeAllocatedQuantity = Math.min(nextAllocatedQuantity, nextBuyerQuantity);
 
   if (buyerInventory) {
@@ -587,15 +592,16 @@ async function restockBuyerInventory(
   }
 
   if (shouldRestockBuyerListing && buyerListing) {
-    await tx.listing.update({
+    const listingUpdate = await tx.listing.updateMany({
       where: { id: buyerListing.id },
       data: {
-        quantity: {
-          increment: quantity,
-        },
+        quantity: { increment: quantity },
         active: true,
         soldOutAt: null,
       },
     });
+    if (listingUpdate.count !== 1) {
+      throw new Error("Could not restore your listing after purchase");
+    }
   }
 }

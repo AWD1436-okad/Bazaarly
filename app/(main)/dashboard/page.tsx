@@ -97,6 +97,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const params = (await searchParams) ?? {};
   const welcome = params.welcome === "1";
+  const stockAdded = params.stockAdded === "1";
   const listingSuccess = params.listingSuccess === "1";
   const bulkListed = params.bulkListed === "1";
   const bulkListedCreated = Number(params.bulkListedCreated ?? "0") || 0;
@@ -619,6 +620,14 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
           tone="success"
           title="Your shop is now live."
           body="Customers can now discover and buy your items in the marketplace."
+        />
+      ) : null}
+
+      {stockAdded ? (
+        <StatusBanner
+          tone="success"
+          title="Stock added to your shop."
+          body="Check Inventory for everything you own. If you already listed this item, its listed stock was increased too."
         />
       ) : null}
 
