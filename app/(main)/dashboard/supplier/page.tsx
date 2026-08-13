@@ -1,7 +1,6 @@
 import { ProductCategory } from "@prisma/client";
 
 import { CategoryFilterList } from "@/components/category-filter-list";
-import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { ProductVisual } from "@/components/product-visual";
 import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
@@ -282,7 +281,6 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                   {searchQuery ? ` for "${searchQuery}"` : ""}
                 </span>
               )}
-              <CurrencyDisplayNote currencyCode={currencyCode} />
             </div>
             {selectedCategory && playerModeConfig.showAdvancedControls ? (
               <SupplierCategoryBulkAdd categoryValue={selectedCategory.value} />
@@ -317,8 +315,6 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
                       {formatPriceWithUnit(item.supplierPrice, item.unitLabel, currencyCode)}
                     </strong>
                   </div>
-
-                  <p className="supplier-card__description">{item.description}</p>
 
                   <div className="supplier-card__meta">
                     <span className="muted">Sold as</span>

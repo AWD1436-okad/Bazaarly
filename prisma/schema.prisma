@@ -543,5 +543,6 @@ model WorldState {
   currentPhase    MarketTimePhase  @default(MORNING)
   currencyCode    String           @default("AUD")
   lastSimulatedAt DateTime?
+  supplierStockRestockedAt DateTime?
   updatedAt       DateTime         @updatedAt
 }

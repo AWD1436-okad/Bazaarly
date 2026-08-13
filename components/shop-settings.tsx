@@ -7,6 +7,8 @@ type RestockerPlan = "SIMPLE" | "PRO" | "MAX";
 
 type ShopSettingsProps = {
   currentShopName: string | null;
+  currencyCode: string;
+  currencyOptions: Array<{ code: string; label: string }>;
   maskedBankNumber: string;
   renameCostLabel: string;
   autoRestocker: {
@@ -26,6 +28,8 @@ type ShopSettingsProps = {
 
 export function ShopSettings({
   currentShopName,
+  currencyCode,
+  currencyOptions,
   maskedBankNumber,
   renameCostLabel,
   autoRestocker,
@@ -44,6 +48,8 @@ export function ShopSettings({
   const [error, setError] = useState<string | null>(null);
   const [restockerOpen, setRestockerOpen] = useState(false);
   const [restockerSubmitting, setRestockerSubmitting] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState(currencyCode);
+  const [currencySubmitting, setCurrencySubmitting] = useState(false);
   const [maxInterval, setMaxInterval] = useState(autoRestocker?.plan === "MAX" ? autoRestocker.restockIntervalMinutes : 3);
 
   function closeRename() {
@@ -129,6 +135,28 @@ export function ShopSettings({
     }
   }
 
+  async function updateCurrency() {
+    setCurrencySubmitting(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("currencyCode", selectedCurrency);
+      const response = await fetch("/settings/price-region", { method: "POST", body: formData });
+      const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Could not change currency.");
+      }
+      setMessage(payload.message ?? "Currency changed.");
+      router.refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not change currency.");
+    } finally {
+      setCurrencySubmitting(false);
+    }
+  }
+
   return (
     <section className="settings-layout" aria-label="Shop settings">
       <article className="settings-section settings-panel">
@@ -139,6 +167,35 @@ export function ShopSettings({
         <button type="button" onClick={() => setRenameOpen(true)} disabled={!currentShopName}>
           Change shop name
         </button>
+      </article>
+
+      <article className="settings-section settings-panel">
+        <div className="settings-section__header">
+          <h2>Currency</h2>
+          <p className="muted">Choose how money is displayed.</p>
+        </div>
+        <div className="settings-currency-control">
+          <label>
+            Display currency
+            <select
+              value={selectedCurrency}
+              disabled={currencySubmitting}
+              onChange={(event) => setSelectedCurrency(event.target.value)}
+            >
+              {currencyOptions.map((option) => (
+                <option key={option.code} value={option.code}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={currencySubmitting || selectedCurrency === currencyCode}
+            onClick={() => void updateCurrency()}
+          >
+            {currencySubmitting ? "Saving..." : "Save currency"}
+          </button>
+        </div>
       </article>
 
       <article className="settings-section settings-panel">

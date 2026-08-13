@@ -1,6 +1,5 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { ProductVisual } from "@/components/product-visual";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/money";
@@ -145,7 +144,6 @@ export default async function OrdersPage({ searchParams }: OrdersProps) {
     <div className="page-grid">
       <section className="page-header">
         <h1>Order history</h1>
-        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {checkout ? (

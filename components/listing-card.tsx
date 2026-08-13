@@ -72,8 +72,6 @@ export function ListingCard({
         </div>
       </div>
 
-      <p className="supplier-card__description listing-card__description">{listing.product.description}</p>
-
       <div className="supplier-card__meta listing-card__meta-grid">
         <span className="muted">Sold as</span>
         <strong>{unitLabel}</strong>

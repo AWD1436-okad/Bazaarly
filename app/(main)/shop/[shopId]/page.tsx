@@ -42,7 +42,6 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             {shop.categoryFocus ? getCategoryLabel(shop.categoryFocus) : "General Shop"}
           </span>
           <h1>{shop.name}</h1>
-          <p>{shop.description}</p>
           <div className="section-row">
             <span>Owner: {shop.owner.displayName}</span>
             <span>Rating: {shop.rating.toFixed(1)}</span>

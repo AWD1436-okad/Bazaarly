@@ -1459,8 +1459,8 @@ export async function runMarketSimulation(force = false, debug = false) {
     ? now.getTime() - worldState.lastSimulatedAt.getTime()
     : DEFAULT_SIMULATION_ELAPSED_MS;
   const shouldRestockSupplierToday =
-    !worldState.lastSimulatedAt ||
-    worldState.lastSimulatedAt.toDateString() !== now.toDateString();
+    !worldState.supplierStockRestockedAt ||
+    now.getTime() - worldState.supplierStockRestockedAt.getTime() >= 24 * 60 * 60 * 1000;
   await runSoldOutListingCleanup(now);
 
   const marketReadinessScore = clamp(
@@ -1559,7 +1559,7 @@ export async function runMarketSimulation(force = false, debug = false) {
         currentSupplierPrice: nextSupplierPrice,
         marketAveragePrice: marketAveragePrice || regionalProfile?.marketAveragePrice || regionalBasePrice,
         trendLabel: getTrendLabel(nextDemand),
-        // The supplier starts each new day with a fair, fixed shared supply.
+        // The supplier resets once every 24 hours to a fair, fixed shared supply.
         supplierStock: shouldRestockSupplierToday ? 50 : clamp(state.supplierStock, 0, 50),
       },
     });
@@ -2146,6 +2146,7 @@ export async function runMarketSimulation(force = false, debug = false) {
     data: {
       currentPhase: phase,
       lastSimulatedAt: now,
+      ...(shouldRestockSupplierToday ? { supplierStockRestockedAt: now } : {}),
       currentDay: worldState.currentDay + (phase === MarketTimePhase.MORNING ? 1 : 0),
     },
   });

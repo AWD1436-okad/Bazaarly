@@ -2,7 +2,7 @@ import { ShopSettings } from "@/components/shop-settings";
 import { requireUser } from "@/lib/auth";
 import { AUTO_RESTOCK_PLAN_META, getNextRestockAt } from "@/lib/auto-restock";
 import { formatCurrency } from "@/lib/money";
-import { getActiveCurrencyCode } from "@/lib/price-profiles";
+import { getActiveCurrencyCode, getSupportedPriceProfiles } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -47,6 +47,11 @@ export default async function SettingsPage() {
       </section>
       <ShopSettings
         currentShopName={user.shop?.name ?? null}
+        currencyCode={currencyCode}
+        currencyOptions={getSupportedPriceProfiles().map((profile) => ({
+          code: profile.code,
+          label: `${profile.code} - ${profile.name}`,
+        }))}
         maskedBankNumber={user.bankNumberLast4 ? `****${user.bankNumberLast4}` : "Not set"}
         renameCostLabel={formatCurrency(5_000, currencyCode)}
         autoRestocker={

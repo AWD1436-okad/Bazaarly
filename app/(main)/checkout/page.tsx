@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
-import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { ProductVisual } from "@/components/product-visual";
 import { RemoveRestockerPlanButton } from "@/components/remove-restocker-plan-button";
@@ -80,7 +79,6 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     <div className="page-grid checkout-page">
       <section className="page-header">
         <h1>Secure checkout</h1>
-        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {error ? (

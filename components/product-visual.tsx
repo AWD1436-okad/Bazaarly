@@ -28,7 +28,7 @@ export function ProductVisual({
           alt=""
           fill
           sizes={size === "hero" ? "180px" : size === "card" ? "120px" : "56px"}
-          className="product-visual__image product-visual__image--photo"
+          className="product-visual__image"
           unoptimized
         />
       ) : category ? (

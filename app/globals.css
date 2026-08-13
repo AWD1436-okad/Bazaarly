@@ -555,53 +555,35 @@ textarea {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  overflow: hidden;
-  isolation: isolate;
-  border: 1px solid color-mix(in srgb, var(--border) 78%, var(--accent) 22%);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.18), transparent 32%),
-    radial-gradient(circle at 82% 84%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 52%),
-    linear-gradient(145deg, color-mix(in srgb, var(--surface-elevated) 90%, #ffffff 10%), var(--surface-alt));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -14px 28px color-mix(in srgb, var(--control-shadow) 30%, transparent),
-    0 12px 26px color-mix(in srgb, var(--control-shadow) 62%, transparent);
+  overflow: visible;
 }
 
 .product-visual--compact {
   width: 66px;
   height: 66px;
-  border-radius: 16px;
 }
 
 .product-visual--card {
   width: 104px;
   height: 104px;
-  border-radius: 20px;
 }
 
 .product-visual--hero {
   width: min(160px, 42vw);
   height: min(160px, 42vw);
   justify-self: start;
-  border-radius: 28px;
 }
 
 .product-visual__image {
   box-sizing: border-box;
-  inset: 12% !important;
-  width: 76% !important;
-  height: 76% !important;
-  max-width: 76%;
-  max-height: 76%;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   object-position: center;
   padding: 0;
-}
-
-.product-visual__image--photo {
-  filter: drop-shadow(0 9px 15px rgba(12, 20, 16, 0.28));
 }
 
 .dashboard-simple__actions {
@@ -659,22 +641,14 @@ textarea {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 74%;
-  height: 74%;
-  border-radius: 18px;
-  color: var(--category-icon-fg, var(--primary-strong));
-  background:
-    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.88), transparent 38%),
-    var(--category-icon-bg, linear-gradient(145deg, color-mix(in srgb, var(--primary) 18%, var(--surface) 82%), var(--accent-soft)));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 10px 20px var(--category-icon-glow, color-mix(in srgb, var(--control-shadow) 70%, transparent));
+  width: 100%;
+  height: 100%;
+  color: var(--primary-strong);
 }
 
 .category-svg-icon--sm {
   width: 1.52rem;
   height: 1.52rem;
-  border-radius: 12px;
 }
 
 .category-svg-icon--md {
@@ -685,32 +659,30 @@ textarea {
 .category-svg-icon--lg {
   width: 7.25rem;
   height: 7.25rem;
-  border-radius: 26px;
 }
 
 .product-visual > .category-svg-icon--sm,
 .product-visual__fallback > .category-svg-icon--sm {
-  width: 74%;
-  height: 74%;
+  width: 100%;
+  height: 100%;
 }
 
 .category-svg-icon svg {
-  width: 58%;
-  height: 58%;
+  width: 100%;
+  height: 100%;
   stroke: currentColor;
   filter: drop-shadow(0 3px 5px rgba(4, 12, 10, 0.16));
 }
 
 .category-svg-icon__image {
   box-sizing: border-box;
-  inset: 5% !important;
-  width: 90% !important;
-  height: 90% !important;
-  max-width: 90%;
-  max-height: 90%;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   object-position: center;
-  border-radius: inherit;
 }
 
 .product-visual__fallback {
@@ -1911,19 +1883,26 @@ button:hover .app-icon,
   height: 2rem;
   display: inline-grid;
   place-items: center;
-  border-radius: 999px;
-  overflow: hidden;
+  overflow: visible;
   line-height: 1;
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  background: transparent;
   color: var(--primary);
-  box-shadow: 0 8px 18px var(--control-shadow);
 }
 
 .category-filter-link__icon--all {
-  background:
-    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.92), transparent 42%),
-    var(--primary-gradient);
-  color: var(--primary-text);
+  color: var(--primary);
+}
+
+.settings-currency-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.settings-currency-control label {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .category-filter-link--all {

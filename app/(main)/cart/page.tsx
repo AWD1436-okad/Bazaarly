@@ -1,6 +1,5 @@
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { ClearCartButton } from "@/components/clear-cart-button";
-import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { ProductVisual } from "@/components/product-visual";
 import { RemoveRestockerPlanButton } from "@/components/remove-restocker-plan-button";
 import { getPlanMeta } from "@/lib/auto-restock";
@@ -64,7 +63,6 @@ export default async function CartPage({ searchParams }: CartProps) {
     <div className="page-grid cart-page">
       <section className="page-header">
         <h1>Your cart</h1>
-        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       {added ? (

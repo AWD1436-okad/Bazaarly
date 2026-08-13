@@ -46,7 +46,7 @@ export const MUSLIM_CLOTHING_APPAREL = "Muslim Clothing & Apparel";
 export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> = {
   [ProductCategory.FRUIT_AND_VEGETABLES]: {
     label: "Fruit & Vegetables",
-    iconSrc: "/category-icons/fruit-vegetables.png",
+    iconSrc: "/category-icons/flat/fruit-vegetables.png",
     prefix: "fruitveg",
     demandScore: 1.08,
     popularityScore: 1.07,
@@ -58,7 +58,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.BAKERY_AND_GRAINS]: {
     label: "Bakery & Grains",
-    iconSrc: "/category-icons/bakery-grains.png",
+    iconSrc: "/category-icons/flat/bakery-grains.png",
     prefix: "bakerygrains",
     demandScore: 1.04,
     popularityScore: 1.03,
@@ -70,7 +70,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.PANTRY_AND_COOKING]: {
     label: "Pantry & Cooking",
-    iconSrc: "/category-icons/pantry-cooking.png",
+    iconSrc: "/category-icons/flat/pantry-cooking.png",
     prefix: "pantrycook",
     demandScore: 1.02,
     popularityScore: 1.01,
@@ -81,7 +81,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.DRINKS]: {
     label: "Drinks",
-    iconSrc: "/category-icons/drinks.png",
+    iconSrc: "/category-icons/flat/drinks.png",
     prefix: "drinks",
     demandScore: 1.07,
     popularityScore: 1.06,
@@ -93,7 +93,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.MEAT_DAIRY_AND_PROTEIN]: {
     label: "Meat, Dairy & Protein",
-    iconSrc: "/category-icons/meat-dairy-protein.png",
+    iconSrc: "/category-icons/flat/meat-dairy-protein.png",
     prefix: "protein",
     demandScore: 1.05,
     popularityScore: 1.04,
@@ -105,7 +105,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.SNACKS_AND_SWEETS]: {
     label: "Snacks & Sweets",
-    iconSrc: "/category-icons/snacks-sweets.png",
+    iconSrc: "/category-icons/flat/snacks-sweets.png",
     prefix: "snacks",
     demandScore: 1.04,
     popularityScore: 1.06,
@@ -116,7 +116,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.KITCHEN_AND_COOKWARE]: {
     label: "Kitchen & Cookware",
-    iconSrc: "/category-icons/kitchen-cookware.png",
+    iconSrc: "/category-icons/flat/kitchen-cookware.png",
     prefix: "kitchen",
     demandScore: 0.98,
     popularityScore: 1,
@@ -127,7 +127,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.CLEANING_AND_PERSONAL_CARE]: {
     label: "Cleaning & Personal Care",
-    iconSrc: "/category-icons/cleaning-personal-care.png",
+    iconSrc: "/category-icons/flat/cleaning-personal-care.png",
     prefix: "care",
     demandScore: 1.01,
     popularityScore: 1.01,
@@ -138,7 +138,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.CLOTHING]: {
     label: "Clothing & Apparel",
-    iconSrc: "/category-icons/clothing-apparel.png",
+    iconSrc: "/category-icons/flat/clothing-apparel.png",
     prefix: "clothing",
     demandScore: 0.98,
     popularityScore: 1,
@@ -149,7 +149,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.MUSLIM_CLOTHING_AND_APPAREL]: {
     label: "Muslim Clothing & Apparel",
-    iconSrc: "/category-icons/muslim-clothing-apparel.png",
+    iconSrc: "/category-icons/flat/muslim-clothing-apparel.png",
     prefix: "muslimclothing",
     demandScore: 1,
     popularityScore: 1.02,
@@ -160,7 +160,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.HOME_AND_STORAGE]: {
     label: "Home & Storage",
-    iconSrc: "/category-icons/home-storage.png",
+    iconSrc: "/category-icons/flat/home-storage.png",
     prefix: "home",
     demandScore: 0.97,
     popularityScore: 0.99,
@@ -171,7 +171,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.ELECTRONICS]: {
     label: "Electronics",
-    iconSrc: "/category-icons/electronics.png",
+    iconSrc: "/category-icons/flat/electronics.png",
     prefix: "electronics",
     demandScore: 0.94,
     popularityScore: 1.02,
@@ -182,7 +182,7 @@ export const CATEGORY_DEFINITIONS: Record<ProductCategory, CategoryDefinition> =
   },
   [ProductCategory.SCHOOL_AND_MISC]: {
     label: "School & Misc",
-    iconSrc: "/category-icons/school-misc.png",
+    iconSrc: "/category-icons/flat/school-misc.png",
     prefix: "schoolmisc",
     demandScore: 0.99,
     popularityScore: 1,

@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { BulkListingVisibilityControls } from "@/components/bulk-listing-visibility-controls";
 import { BulkSoldOutCleanup } from "@/components/bulk-sold-out-cleanup";
 import { ChallengeCountdown } from "@/components/challenge-countdown";
-import { CurrencyDisplayNote } from "@/components/currency-display-note";
 import { DashboardListingCreateForm } from "@/components/dashboard-listing-create-form";
 import { DashboardListingManageForm } from "@/components/dashboard-listing-manage-form";
 import { InstallAppCard } from "@/components/install-app-card";
@@ -654,7 +653,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
       <section className="page-header">
         <h1>{user.shop.name}</h1>
-        <CurrencyDisplayNote currencyCode={currencyCode} />
       </section>
 
       <section className="card player-mode-home-card">

@@ -37,7 +37,6 @@ export function DailyFeatureCard({
             A different product is highlighted each day.
           </p>
           <h3>{product.name}</h3>
-          <p>{product.description}</p>
         </div>
         <div className="featured-item-card__details">
           <div className="featured-item-card__detail">
