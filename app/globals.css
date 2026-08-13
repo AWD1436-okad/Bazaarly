@@ -1148,20 +1148,6 @@ button:hover .app-icon,
   }
 }
 
-.currency-chip {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 2rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.35rem 0.72rem;
-  background: var(--soft-panel);
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
 .category-chip {
   color: var(--badge-text);
   background:
@@ -2114,16 +2100,6 @@ button:hover .app-icon,
   overflow-wrap: anywhere;
 }
 
-.supplier-card__description {
-  display: -webkit-box;
-  min-height: 3.05rem;
-  overflow: hidden;
-  color: var(--muted);
-  line-height: 1.45;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
 .supplier-card__meta {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2415,12 +2391,6 @@ button:hover .app-icon,
   margin: 0;
   font-size: 1.05rem;
   overflow-wrap: anywhere;
-}
-
-.listing-card__description {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.45;
 }
 
 .listing-card__subline,
@@ -4383,10 +4353,6 @@ button:hover .app-icon,
 
   .supplier-card {
     padding: 0.9rem;
-  }
-
-  .supplier-card__description {
-    min-height: auto;
   }
 
   .supplier-card__header,
