@@ -56,11 +56,12 @@ const BOT_WALLET_REFILL_FLOOR = 120_000;
 const NPC_SHOP_RESTOCK_TARGET = 6;
 const NPC_SHOP_RESTOCK_BATCH_SIZE = 3;
 const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 12;
+const ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX = "@bazaarly.local";
 const LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX = "@tradex.local";
 const SYSTEM_SHOP_EMAIL_SUFFIX = "@profitplanet.local";
 const BOT_WALLET_EMAIL = "bot-market@profitplanet.local";
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "All legacy and current bot shops reset for shared supplier v6";
+const NPC_SHOP_STOCK_RESET_MARKER = "All original, legacy, and current bot shops reset for shared supplier v7";
 
 type BotCandidateListing = {
   id: string;
@@ -301,6 +302,7 @@ async function restockNpcShopsFromSupplier(
         status: "ACTIVE",
         owner: {
           OR: [
+            { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
             { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
             { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
           ],
@@ -392,6 +394,7 @@ async function normalizeNpcShopPrices() {
       shop: {
         owner: {
           OR: [
+            { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
             { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
             { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
           ],
@@ -427,6 +430,7 @@ export async function resetNpcShopStockForSharedSupplier() {
   const npcOwners = await prisma.user.findMany({
     where: {
       OR: [
+        { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
         { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
         { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
       ],
@@ -481,6 +485,7 @@ export async function prepareNpcShopsForSharedSupplier(now: Date) {
         status: "ACTIVE",
         owner: {
           OR: [
+            { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
             { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
             { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
           ],
@@ -2167,6 +2172,7 @@ export async function runMarketSimulation(force = false, debug = false) {
               where: {
                 owner: {
                   OR: [
+                    { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
                     { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
                     { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
                   ],
@@ -2186,6 +2192,7 @@ export async function runMarketSimulation(force = false, debug = false) {
                     shop: {
                       owner: {
                         OR: [
+                          { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
                           { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
                           { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
                         ],
