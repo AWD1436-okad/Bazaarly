@@ -55,10 +55,11 @@ const BOT_WALLET_REFILL_FLOOR = 120_000;
 const NPC_SHOP_RESTOCK_TARGET = 6;
 const NPC_SHOP_RESTOCK_BATCH_SIZE = 3;
 const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 12;
+const LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX = "@tradex.local";
 const SYSTEM_SHOP_EMAIL_SUFFIX = "@profitplanet.local";
 const BOT_WALLET_EMAIL = "bot-market@profitplanet.local";
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "All system bot shops reset for shared supplier v5";
+const NPC_SHOP_STOCK_RESET_MARKER = "All legacy and current bot shops reset for shared supplier v6";
 
 type BotCandidateListing = {
   id: string;
@@ -288,22 +289,26 @@ function getBotAttemptProbability({
   );
 }
 
-async function restockNpcShopsFromSupplier(now: Date) {
+async function restockNpcShopsFromSupplier(
+  now: Date,
+  maxRestocks = MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION,
+) {
   const lowStockListings = await prisma.listing.findMany({
     where: {
       quantity: { lt: NPC_SHOP_RESTOCK_TARGET },
       shop: {
         status: "ACTIVE",
         owner: {
-          email: {
-            endsWith: SYSTEM_SHOP_EMAIL_SUFFIX,
-            not: BOT_WALLET_EMAIL,
-          },
+          OR: [
+            { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+            { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+          ],
+          NOT: { email: BOT_WALLET_EMAIL },
         },
       },
     },
     orderBy: { updatedAt: "asc" },
-    take: MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION,
+    take: maxRestocks,
     select: { id: true },
   });
 
@@ -385,10 +390,11 @@ async function normalizeNpcShopPrices() {
     where: {
       shop: {
         owner: {
-          email: {
-            endsWith: SYSTEM_SHOP_EMAIL_SUFFIX,
-            not: BOT_WALLET_EMAIL,
-          },
+          OR: [
+            { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+            { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+          ],
+          NOT: { email: BOT_WALLET_EMAIL },
         },
       },
     },
@@ -419,10 +425,11 @@ export async function resetNpcShopStockForSharedSupplier() {
 
   const npcOwners = await prisma.user.findMany({
     where: {
-      email: {
-        endsWith: SYSTEM_SHOP_EMAIL_SUFFIX,
-        not: BOT_WALLET_EMAIL,
-      },
+      OR: [
+        { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+        { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+      ],
+      NOT: { email: BOT_WALLET_EMAIL },
     },
     select: { id: true },
   });
@@ -465,7 +472,24 @@ export async function resetNpcShopStockForSharedSupplier() {
  */
 export async function prepareNpcShopsForSharedSupplier(now: Date) {
   const reset = await resetNpcShopStockForSharedSupplier();
-  return reset ? restockNpcShopsFromSupplier(now) : 0;
+  if (!reset) return 0;
+
+  const botListingCount = await prisma.listing.count({
+    where: {
+      shop: {
+        status: "ACTIVE",
+        owner: {
+          OR: [
+            { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+            { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+          ],
+          NOT: { email: BOT_WALLET_EMAIL },
+        },
+      },
+    },
+  });
+
+  return restockNpcShopsFromSupplier(now, Math.max(botListingCount, 1));
 }
 
 function getDynamicBotCooldownMs({
