@@ -21,6 +21,7 @@ import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 import { getSearchTokenVariants, normalizeSearchText, tokenizeSearchText } from "@/lib/search-utils";
+import { reconcileNpcShopStockFromSupplier } from "@/lib/simulation";
 import { sanitizeStockCount } from "@/lib/stock";
 
 type SupplierPageProps = {
@@ -147,6 +148,8 @@ function getFuzzyScore(product: SupplierProduct, rawQuery: string) {
 
 export default async function SupplierPage({ searchParams }: SupplierPageProps) {
   const user = await requireUser();
+  // Bring forward old demo bot stock before showing the shared supplier pool.
+  await reconcileNpcShopStockFromSupplier();
   const currencyCode = await getActiveCurrencyCode(user.id);
   const playerModeConfig = getPlayerModeConfig((user as { playerMode?: unknown }).playerMode);
   const params = (await searchParams) ?? {};

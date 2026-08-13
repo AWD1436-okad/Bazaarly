@@ -391,7 +391,18 @@ async function normalizeNpcShopPrices() {
   );
 }
 
-async function resetLegacyNpcShopStockIfNeeded() {
+/**
+ * Clears the old demo-only NPC inventory once. NPC shops then restock through
+ * `restockNpcShopsFromSupplier`, which reserves the same supplier stock shown
+ * to players before it adds stock to an NPC listing.
+ */
+export async function reconcileNpcShopStockFromSupplier() {
+  await prisma.worldState.upsert({
+    where: { id: "global" },
+    update: {},
+    create: { id: "global" },
+  });
+
   const npcOwners = await prisma.user.findMany({
     where: { email: { in: NPC_SHOP_EMAILS } },
     select: { id: true },
@@ -1476,7 +1487,7 @@ export async function runMarketSimulation(force = false, debug = false) {
     });
   }
 
-  await resetLegacyNpcShopStockIfNeeded();
+  await reconcileNpcShopStockFromSupplier();
   await runAutoRestock(now);
   await restockNpcShopsFromSupplier(now);
   await normalizeNpcShopPrices();
