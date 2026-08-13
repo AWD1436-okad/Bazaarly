@@ -29,20 +29,15 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const username = readFormString(formData, "username").toLowerCase();
   const password = readFormString(formData, "password");
-  const confirmation = readFormString(formData, "confirmation");
-
-  if (username !== user.username.toLowerCase()) {
-    return NextResponse.json({ ok: false, error: "Username does not match" }, { status: 403 });
-  }
+  const finalConfirmation = readFormString(formData, "finalConfirmation");
 
   if (!password || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json({ ok: false, error: "Incorrect password" }, { status: 403 });
   }
 
-  if (confirmation !== "DELETE") {
-    return NextResponse.json({ ok: false, error: "Type DELETE to confirm" }, { status: 400 });
+  if (finalConfirmation !== "DELETE_ACCOUNT") {
+    return NextResponse.json({ ok: false, error: "Final account deletion confirmation is required" }, { status: 400 });
   }
 
   await prisma.$transaction(async (tx) => {

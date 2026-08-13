@@ -1891,6 +1891,22 @@ button:hover .app-icon,
   gap: 0.35rem;
 }
 
+.settings-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.danger-button {
+  background: var(--danger);
+  color: var(--primary-text);
+  border-color: color-mix(in srgb, var(--danger) 80%, #000000 20%);
+}
+
+.danger-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 82%, #000000 18%);
+}
+
 .category-filter-link--all {
   margin-top: 0.1rem;
 }

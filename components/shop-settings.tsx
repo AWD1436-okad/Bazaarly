@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type RestockerPlan = "SIMPLE" | "PRO" | "MAX";
+type AccountAction = "logout" | "delete";
+type AccountStep = "confirm" | "password" | "final";
 
 type ShopSettingsProps = {
   currentShopName: string | null;
@@ -51,6 +53,10 @@ export function ShopSettings({
   const [selectedCurrency, setSelectedCurrency] = useState(currencyCode);
   const [currencySubmitting, setCurrencySubmitting] = useState(false);
   const [maxInterval, setMaxInterval] = useState(autoRestocker?.plan === "MAX" ? autoRestocker.restockIntervalMinutes : 3);
+  const [accountAction, setAccountAction] = useState<AccountAction | null>(null);
+  const [accountStep, setAccountStep] = useState<AccountStep>("confirm");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountSubmitting, setAccountSubmitting] = useState(false);
 
   function closeRename() {
     setRenameOpen(false);
@@ -154,6 +160,70 @@ export function ShopSettings({
       setError(reason instanceof Error ? reason.message : "Could not change currency.");
     } finally {
       setCurrencySubmitting(false);
+    }
+  }
+
+  function openAccountAction(action: AccountAction) {
+    setError(null);
+    setMessage(null);
+    setAccountPassword("");
+    setAccountAction(action);
+    setAccountStep(action === "delete" ? "confirm" : "password");
+  }
+
+  function closeAccountAction() {
+    if (accountSubmitting) return;
+    setAccountAction(null);
+    setAccountPassword("");
+    setAccountStep("confirm");
+  }
+
+  async function verifyAccountPassword() {
+    if (!accountPassword) return;
+
+    setAccountSubmitting(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("password", accountPassword);
+      const response = await fetch("/settings/verify-password", { method: "POST", body: formData });
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Incorrect password");
+      }
+      setAccountStep("final");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Incorrect password");
+    } finally {
+      setAccountSubmitting(false);
+    }
+  }
+
+  async function confirmAccountAction() {
+    if (!accountAction || !accountPassword) return;
+
+    setAccountSubmitting(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("password", accountPassword);
+      if (accountAction === "delete") {
+        formData.set("finalConfirmation", "DELETE_ACCOUNT");
+      }
+      const response = await fetch(
+        accountAction === "delete" ? "/settings/delete-account" : "/auth/logout",
+        { method: "POST", body: formData },
+      );
+      const payload = (await response.json()) as { ok?: boolean; redirectTo?: string; error?: string };
+      if (!response.ok || !payload.ok || !payload.redirectTo) {
+        throw new Error(payload.error ?? "That action could not be completed.");
+      }
+      window.location.assign(payload.redirectTo);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "That action could not be completed.");
+      setAccountStep("password");
+    } finally {
+      setAccountSubmitting(false);
     }
   }
 
@@ -285,6 +355,17 @@ export function ShopSettings({
         ) : null}
       </article>
 
+      <article className="settings-section settings-panel settings-section--wide settings-section--account" aria-labelledby="account-title">
+        <div className="settings-section__header">
+          <h2 id="account-title">Account</h2>
+          <p className="muted">Log out when you are finished. Deleting your account cannot be undone.</p>
+        </div>
+        <div className="settings-account-actions">
+          <button type="button" className="secondary-button" onClick={() => openAccountAction("logout")}>Log out</button>
+          <button type="button" className="danger-button" onClick={() => openAccountAction("delete")}>Delete account</button>
+        </div>
+      </article>
+
       {message ? <p className="form-success" role="status">{message}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
 
@@ -346,6 +427,52 @@ export function ShopSettings({
             <div className="modal-card__actions">
               <button type="button" className="secondary-button" disabled={submitting} onClick={() => setBankOpen(false)}>Done</button>
               {!bankNumber ? <button type="button" disabled={submitting || !bankPassword} onClick={() => void revealBankNumber()}>{submitting ? "Showing..." : "Show bank number"}</button> : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {accountAction ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={closeAccountAction}>
+          <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="account-action-title" onMouseDown={(event) => event.stopPropagation()}>
+            {accountAction === "delete" && accountStep === "confirm" ? (
+              <div className="modal-card__copy">
+                <h2 id="account-action-title">Delete your account?</h2>
+                <p>Your shop will be closed and you will be logged out.</p>
+              </div>
+            ) : accountAction === "delete" && accountStep === "final" ? (
+              <div className="modal-card__copy">
+                <h2 id="account-action-title">Are you really sure?</h2>
+                <p>This permanently closes your Profit Planet account.</p>
+              </div>
+            ) : accountAction === "logout" && accountStep === "final" ? (
+              <div className="modal-card__copy">
+                <h2 id="account-action-title">Log out?</h2>
+                <p>You will need your shop password to sign in again.</p>
+              </div>
+            ) : (
+              <>
+                <div className="modal-card__copy">
+                  <h2 id="account-action-title">Enter your shop password</h2>
+                  <p>{accountAction === "delete" ? "Confirm your password before deleting your account." : "Confirm your password before logging out."}</p>
+                </div>
+                <label className="modal-card__field">
+                  Shop password
+                  <input type="password" value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} autoComplete="current-password" autoFocus />
+                </label>
+              </>
+            )}
+            <div className="modal-card__actions">
+              <button type="button" className="secondary-button" disabled={accountSubmitting} onClick={closeAccountAction}>Cancel</button>
+              {accountStep === "confirm" ? (
+                <button type="button" className={accountAction === "delete" ? "danger-button" : undefined} onClick={() => setAccountStep("password")}>Yes, continue</button>
+              ) : accountStep === "password" ? (
+                <button type="button" disabled={!accountPassword || accountSubmitting} onClick={() => void verifyAccountPassword()}>{accountSubmitting ? "Checking..." : "Continue"}</button>
+              ) : (
+                <button type="button" className={accountAction === "delete" ? "danger-button" : undefined} disabled={accountSubmitting} onClick={() => void confirmAccountAction()}>
+                  {accountSubmitting ? "Working..." : accountAction === "delete" ? "Yes, delete account" : "Yes, log out"}
+                </button>
+              )}
             </div>
           </section>
         </div>
