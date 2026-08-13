@@ -1539,9 +1539,9 @@ export async function runMarketSimulation(force = false, debug = false) {
     });
   }
 
-  await prepareNpcShopsForSharedSupplier(now);
+  const initialNpcSupplierPurchases = await prepareNpcShopsForSharedSupplier(now);
   await runAutoRestock(now);
-  await restockNpcShopsFromSupplier(now);
+  const recurringNpcSupplierPurchases = await restockNpcShopsFromSupplier(now);
   await normalizeNpcShopPrices();
 
   let botWallet = await prisma.user.findUnique({
@@ -2148,6 +2148,42 @@ export async function runMarketSimulation(force = false, debug = false) {
               ),
             candidateShopCount: candidateShopIds.size,
             attemptedBots: selectedBotPlans.length,
+            npcSupplierPurchases:
+              initialNpcSupplierPurchases + recurringNpcSupplierPurchases,
+            systemShops: await prisma.shop.findMany({
+              where: {
+                owner: {
+                  OR: [
+                    { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                    { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+                  ],
+                  NOT: { email: BOT_WALLET_EMAIL },
+                },
+              },
+              orderBy: { name: "asc" },
+              select: { name: true },
+            }),
+            dishwashingLiquid: await prisma.product.findFirst({
+              where: { name: "Dishwashing Liquid" },
+              select: {
+                marketState: { select: { supplierStock: true } },
+                listings: {
+                  where: {
+                    quantity: { gt: 0 },
+                    shop: {
+                      owner: {
+                        OR: [
+                          { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                          { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+                        ],
+                        NOT: { email: BOT_WALLET_EMAIL },
+                      },
+                    },
+                  },
+                  select: { quantity: true, shop: { select: { name: true } } },
+                },
+              },
+            }),
             snapshots: debugSnapshots,
           },
         }
