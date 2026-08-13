@@ -24,7 +24,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "syd1";
 
 function parsePlan(raw: string): AutoRestockPlan | null {
-  if (raw === "SIMPLE" || raw === "PRO" || raw === "MAX") {
+  if (raw === "STARTER" || raw === "ESSENTIAL" || raw === "PLUS" || raw === "PRO" || raw === "ULTIMATE") {
     return raw;
   }
   return null;
@@ -69,48 +69,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, message: "Subscription cancelled" });
   }
 
-  if (action === "updateInterval") {
-    if (!requestedPlan) {
-      return NextResponse.json({ ok: false, error: "Invalid restocker plan" }, { status: 400 });
-    }
-
-    const rawInterval = Number(formData.get("restockIntervalMinutes"));
-    const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan, rawInterval);
-    const subscription = await prisma.autoRestockSubscription.findFirst({
-      where: {
-        userId: user.id,
-        plan: requestedPlan,
-        status: AutoRestockSubscriptionStatus.ACTIVE,
-      },
-      select: { id: true, plan: true },
-    });
-
-    if (!subscription) {
-      return NextResponse.json({ ok: false, error: "No active matching restocker plan" }, { status: 400 });
-    }
-
-    await prisma.autoRestockSubscription.update({
-      where: { id: subscription.id },
-      data: { restockIntervalMinutes },
-    });
-
-    revalidatePath("/settings");
-    revalidatePath("/dashboard");
-    return NextResponse.json({
-      ok: true,
-      message: `${getPlanMeta(requestedPlan).name} Restocker now checks every ${restockIntervalMinutes} minutes`,
-      restockIntervalMinutes,
-    });
-  }
-
   if (action === "addToCart") {
     if (!requestedPlan) {
       return NextResponse.json({ ok: false, error: "Choose a Restocker plan" }, { status: 400 });
     }
 
     const planMeta = getPlanMeta(requestedPlan);
-    const rawInterval = Number(formData.get("restockIntervalMinutes"));
-    const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan, rawInterval);
+    const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan);
     const cart =
       (await prisma.cart.findFirst({
         where: { userId: user.id, status: "ACTIVE" },
@@ -156,8 +121,7 @@ export async function POST(request: Request) {
   }
 
   const planMeta = getPlanMeta(requestedPlan);
-  const rawInterval = Number(formData.get("restockIntervalMinutes"));
-  const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan, rawInterval);
+  const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan);
 
   const result = await prisma.$transaction(async (tx) => {
     const freshUser = await tx.user.findUnique({
@@ -215,19 +179,6 @@ export async function POST(request: Request) {
       },
     });
 
-    if (setupFee > 0) {
-      await recordBusinessExpense(tx, {
-        userId: user.id,
-        category: BusinessLedgerEntryCategory.FEATURE_FEE,
-        amount: setupFee,
-        description: "Simple Auto Restock setup fee",
-        data: {
-          source: "auto_restock_subscription_setup",
-          plan: requestedPlan,
-        },
-      });
-    }
-
     const nextChargeAt = addHours(now, AUTO_RESTOCK_RENEWAL_HOURS);
     await tx.autoRestockSubscription.upsert({
       where: { userId: user.id },
@@ -258,16 +209,10 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         type: NotificationType.SYSTEM,
-        message:
-          setupFee > 0
-            ? `Simple Auto Restock started. Charged ${formatCurrency(
-                upfrontCharge,
-                currencyCode,
-              )} (includes ${formatCurrency(setupFee, currencyCode)} setup fee).`
-            : `${planMeta.name} Auto Restock started. Charged ${formatCurrency(
-                upfrontCharge,
-                currencyCode,
-              )} for 24 hours.`,
+        message: `${planMeta.name} Auto Restock started. Charged ${formatCurrency(
+          upfrontCharge,
+          currencyCode,
+        )} for 24 hours.`,
       },
     });
 

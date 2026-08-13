@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type RestockerPlan = "SIMPLE" | "PRO" | "MAX";
+type RestockerPlan = "STARTER" | "ESSENTIAL" | "PLUS" | "PRO" | "ULTIMATE";
 type AccountAction = "logout" | "delete";
 type AccountStep = "confirm" | "password" | "final";
 
@@ -18,13 +18,15 @@ type ShopSettingsProps = {
     plan: RestockerPlan;
     costLabel: string;
     nextCheckLabel: string;
-    restockIntervalMinutes: number;
+    triggerLabel: string;
+    restockLabel: string;
   } | null;
   planOptions: Array<{
     plan: RestockerPlan;
     name: string;
     costLabel: string;
-    details: string;
+    triggerLabel: string;
+    restockLabel: string;
   }>;
 };
 
@@ -52,7 +54,6 @@ export function ShopSettings({
   const [restockerSubmitting, setRestockerSubmitting] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState(currencyCode);
   const [currencySubmitting, setCurrencySubmitting] = useState(false);
-  const [maxInterval, setMaxInterval] = useState(autoRestocker?.plan === "MAX" ? autoRestocker.restockIntervalMinutes : 3);
   const [accountAction, setAccountAction] = useState<AccountAction | null>(null);
   const [accountStep, setAccountStep] = useState<AccountStep>("confirm");
   const [accountPassword, setAccountPassword] = useState("");
@@ -109,7 +110,7 @@ export function ShopSettings({
     }
   }
 
-  async function updateRestocker(action: "addToCart" | "cancel" | "updateInterval", plan?: RestockerPlan) {
+  async function updateRestocker(action: "addToCart" | "cancel", plan?: RestockerPlan) {
     setRestockerSubmitting(true);
     setMessage(null);
     setError(null);
@@ -119,7 +120,6 @@ export function ShopSettings({
       formData.set("action", action);
       if (plan) {
         formData.set("plan", plan);
-        formData.set("restockIntervalMinutes", String(plan === "MAX" ? maxInterval : plan === "PRO" ? 5 : 10));
       }
       const response = await fetch("/settings/auto-restock-subscription", { method: "POST", body: formData });
       const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string };
@@ -291,8 +291,8 @@ export function ShopSettings({
             <h2 id="restocker-title">Auto Restocker</h2>
             <p className="muted">
               {autoRestocker
-                ? `${autoRestocker.planName} checks every ${autoRestocker.restockIntervalMinutes} minutes. ${autoRestocker.nextCheckLabel}`
-                : "Automatically buys supplier stock for sold-out items."}
+                ? `${autoRestocker.triggerLabel}. ${autoRestocker.nextCheckLabel}`
+                : "Buys supplier stock automatically when items run low."}
             </p>
           </div>
           <button type="button" className="secondary-button" onClick={() => setRestockerOpen((open) => !open)}>
@@ -303,7 +303,7 @@ export function ShopSettings({
         {autoRestocker ? (
           <div className="settings-restocker-status">
             <strong>{autoRestocker.costLabel} every 24 hours</strong>
-            <span>Item costs are paid from your balance automatically.</span>
+            <span>{autoRestocker.restockLabel}. Item costs are paid from your balance.</span>
           </div>
         ) : null}
 
@@ -316,21 +316,7 @@ export function ShopSettings({
               >
                 <strong>{option.name}</strong>
                 <span>{option.costLabel} every 24 hours</span>
-                <small>{option.details}</small>
-                {option.plan === "MAX" ? (
-                  <label className="restocker-plan__timer">
-                    Check every
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={maxInterval}
-                      onChange={(event) => setMaxInterval(Math.min(10, Math.max(1, Number(event.target.value) || 1)))}
-                      disabled={restockerSubmitting}
-                    />
-                    minutes
-                  </label>
-                ) : null}
+                <small>{option.triggerLabel}. {option.restockLabel}.</small>
                 <button
                   type="button"
                   className="secondary-button"
@@ -341,11 +327,6 @@ export function ShopSettings({
                 </button>
               </div>
             ))}
-            {autoRestocker?.plan === "MAX" ? (
-              <button type="button" className="ghost-button" disabled={restockerSubmitting} onClick={() => void updateRestocker("updateInterval", "MAX")}>
-                Save Max timer
-              </button>
-            ) : null}
             {autoRestocker ? (
               <button type="button" className="ghost-button" disabled={restockerSubmitting} onClick={() => void updateRestocker("cancel")}>
                 {restockerSubmitting ? "Saving..." : "Cancel Auto Restocker"}

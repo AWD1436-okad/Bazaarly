@@ -16,7 +16,14 @@ const REFUND_SOURCE = "full_access_is_free_refund_2026_05";
 function getPlanFromData(data: Prisma.JsonValue | null): AutoRestockPlan | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const plan = (data as { plan?: unknown }).plan;
-  return plan === "SIMPLE" || plan === "PRO" || plan === "MAX" ? plan : null;
+  if (plan === "STARTER" || plan === "ESSENTIAL" || plan === "PLUS" || plan === "PRO" || plan === "ULTIMATE") {
+    return plan;
+  }
+
+  // Historical ledger entries retain the old names after the enum migration.
+  if (plan === "SIMPLE") return AutoRestockPlan.PLUS;
+  if (plan === "MAX") return AutoRestockPlan.ULTIMATE;
+  return null;
 }
 
 function wasFullAccessCharge(data: Prisma.JsonValue | null, description: string) {

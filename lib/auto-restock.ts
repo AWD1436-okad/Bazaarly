@@ -1,15 +1,15 @@
 import { AutoRestockPlan } from "@prisma/client";
 
-export const SIMPLE_DAILY_COST_CENTS = 50_000;
-export const SIMPLE_SETUP_FEE_CENTS = 0;
-export const PRO_DAILY_COST_CENTS = 75_000;
-export const MAX_DAILY_COST_CENTS = 150_000;
+export const STARTER_DAILY_COST_CENTS = 7_500;
+export const ESSENTIAL_DAILY_COST_CENTS = 20_000;
+export const PLUS_DAILY_COST_CENTS = 50_000;
+export const PRO_DAILY_COST_CENTS = 80_000;
+export const ULTIMATE_DAILY_COST_CENTS = 150_000;
 export const FORMER_FULL_ACCESS_48H_COST_CENTS = 25_000;
 export const FULL_ACCESS_48H_COST_CENTS = 0;
 
-export const SIMPLE_RESTOCK_INTERVAL_MINUTES = 10;
-export const PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES = 5;
-export const MAX_DEFAULT_RESTOCK_INTERVAL_MINUTES = 3;
+// Plans are charged every 24 hours; this is the internal cadence for checking low stock.
+export const AUTO_RESTOCK_CHECK_INTERVAL_MINUTES = 10;
 export const AUTO_RESTOCK_RENEWAL_HOURS = 24;
 
 export const AUTO_RESTOCK_INTERVAL_LIMITS: Record<
@@ -21,23 +21,35 @@ export const AUTO_RESTOCK_INTERVAL_LIMITS: Record<
     customizable: boolean;
   }
 > = {
-  SIMPLE: {
-    min: SIMPLE_RESTOCK_INTERVAL_MINUTES,
-    max: SIMPLE_RESTOCK_INTERVAL_MINUTES,
-    defaultValue: SIMPLE_RESTOCK_INTERVAL_MINUTES,
+  STARTER: {
+    min: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    max: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    defaultValue: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    customizable: false,
+  },
+  ESSENTIAL: {
+    min: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    max: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    defaultValue: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    customizable: false,
+  },
+  PLUS: {
+    min: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    max: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    defaultValue: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
     customizable: false,
   },
   PRO: {
-    min: PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES,
-    max: PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES,
-    defaultValue: PRO_DEFAULT_RESTOCK_INTERVAL_MINUTES,
-    customizable: true,
+    min: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    max: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    defaultValue: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    customizable: false,
   },
-  MAX: {
-    min: 1,
-    max: 10,
-    defaultValue: MAX_DEFAULT_RESTOCK_INTERVAL_MINUTES,
-    customizable: true,
+  ULTIMATE: {
+    min: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    max: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    defaultValue: AUTO_RESTOCK_CHECK_INTERVAL_MINUTES,
+    customizable: false,
   },
 };
 
@@ -50,31 +62,53 @@ export const AUTO_RESTOCK_PLAN_META: Record<
     cycleLabel: string;
     defaultQuantity: number;
     coveragePercent: number;
+    triggerQuantity: number;
   }
 > = {
-  SIMPLE: {
-    name: "Simple",
-    dailyCostCents: SIMPLE_DAILY_COST_CENTS,
-    setupFeeCents: SIMPLE_SETUP_FEE_CENTS,
-    cycleLabel: "Checks every 10 minutes",
+  STARTER: {
+    name: "Starter",
+    dailyCostCents: STARTER_DAILY_COST_CENTS,
+    setupFeeCents: 0,
+    cycleLabel: "Checks stock every 10 minutes",
     defaultQuantity: 1,
+    coveragePercent: 0.1,
+    triggerQuantity: 0,
+  },
+  ESSENTIAL: {
+    name: "Essential",
+    dailyCostCents: ESSENTIAL_DAILY_COST_CENTS,
+    setupFeeCents: 0,
+    cycleLabel: "Checks stock every 10 minutes",
+    defaultQuantity: 1,
+    coveragePercent: 0.25,
+    triggerQuantity: 2,
+  },
+  PLUS: {
+    name: "Plus",
+    dailyCostCents: PLUS_DAILY_COST_CENTS,
+    setupFeeCents: 0,
+    cycleLabel: "Checks stock every 10 minutes",
+    defaultQuantity: 2,
     coveragePercent: 0.5,
+    triggerQuantity: 5,
   },
   PRO: {
     name: "Pro",
     dailyCostCents: PRO_DAILY_COST_CENTS,
     setupFeeCents: 0,
-    cycleLabel: "Checks every 5 minutes",
-    defaultQuantity: 2,
-    coveragePercent: 0.75,
-  },
-  MAX: {
-    name: "Max",
-    dailyCostCents: MAX_DAILY_COST_CENTS,
-    setupFeeCents: 0,
-    cycleLabel: "Checks on your chosen interval",
+    cycleLabel: "Checks stock every 10 minutes",
     defaultQuantity: 3,
+    coveragePercent: 0.75,
+    triggerQuantity: 8,
+  },
+  ULTIMATE: {
+    name: "Ultimate",
+    dailyCostCents: ULTIMATE_DAILY_COST_CENTS,
+    setupFeeCents: 0,
+    cycleLabel: "Checks stock every 10 minutes",
+    defaultQuantity: 4,
     coveragePercent: 1,
+    triggerQuantity: 10,
   },
 };
 
@@ -109,7 +143,16 @@ export function getRestockCoveragePercent(plan: AutoRestockPlan) {
 }
 
 export function getRestockCoverageLabel(plan: AutoRestockPlan) {
-  return `${Math.round(getRestockCoveragePercent(plan) * 100)}% coverage`;
+  return `${Math.round(getRestockCoveragePercent(plan) * 100)}% per 24 hours`;
+}
+
+export function getRestockTriggerQuantity(plan: AutoRestockPlan) {
+  return getPlanMeta(plan).triggerQuantity;
+}
+
+export function getRestockTriggerLabel(plan: AutoRestockPlan) {
+  const trigger = getRestockTriggerQuantity(plan);
+  return trigger === 0 ? "When sold out" : `When ${trigger} or fewer are left`;
 }
 
 export function getRestockCycleLabel(plan: AutoRestockPlan, intervalMinutes?: number | null) {

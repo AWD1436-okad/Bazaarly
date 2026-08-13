@@ -16,6 +16,7 @@ import {
   getPlanMeta,
   getRestockCoveragePercent,
   getRestockCycleMs,
+  getRestockTriggerQuantity,
   isRestockCycleDue,
 } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
@@ -1135,15 +1136,19 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
       continue;
     }
 
-    const soldOutListings = await prisma.listing.findMany({
+    const triggerQuantity = getRestockTriggerQuantity(subscription.plan);
+    const dailyRestockDueAt = addHours(now, -AUTO_RESTOCK_RENEWAL_HOURS);
+    const lowStockListings = await prisma.listing.findMany({
       where: {
         shopId: user.shop.id,
-        quantity: { lte: 0 },
+        quantity: { lte: triggerQuantity },
         isPaused: false,
+        OR: [{ lastAutoRestockedAt: null }, { lastAutoRestockedAt: { lte: dailyRestockDueAt } }],
       },
       select: {
         id: true,
         productId: true,
+        quantity: true,
         product: {
           select: {
             name: true,
@@ -1158,22 +1163,22 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
         },
       },
       orderBy: { updatedAt: "asc" },
-      take: subscription.plan === AutoRestockPlan.MAX ? 160 : 120,
+      take: subscription.plan === AutoRestockPlan.ULTIMATE ? 160 : 120,
     });
 
-    if (soldOutListings.length === 0) {
+    if (lowStockListings.length === 0) {
       results.push({
         status: "no_sold_out_items",
-        message: "No sold-out items found.",
+        message: "No low-stock items found.",
       });
       continue;
     }
 
-    const withStock = soldOutListings.filter((listing) => sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0) > 0);
+    const withStock = lowStockListings.filter((listing) => sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0) > 0);
     if (withStock.length === 0) {
       results.push({
         status: "no_supplier_stock",
-        message: "Sold-out items were found, but supplier stock is unavailable.",
+        message: "Low-stock items were found, but supplier stock is unavailable.",
       });
       continue;
     }
@@ -1194,11 +1199,15 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
         const supplierStock = sanitizeStockCount(listing.product.marketState?.supplierStock ?? 0);
         if (supplierStock <= 0) return null;
         const baseQty =
-          subscription.plan === AutoRestockPlan.SIMPLE
+          subscription.plan === AutoRestockPlan.STARTER
             ? 1
-            : subscription.plan === AutoRestockPlan.PRO
-              ? randomIntInclusive(Math.max(1, defaultQty - 1), defaultQty + 1)
-              : Math.max(defaultQty, randomIntInclusive(defaultQty, defaultQty + 2));
+            : subscription.plan === AutoRestockPlan.ESSENTIAL
+              ? randomIntInclusive(1, defaultQty)
+              : subscription.plan === AutoRestockPlan.PLUS
+                ? randomIntInclusive(Math.max(1, defaultQty - 1), defaultQty + 1)
+                : subscription.plan === AutoRestockPlan.PRO
+                  ? randomIntInclusive(defaultQty, defaultQty + 2)
+                  : Math.max(defaultQty, randomIntInclusive(defaultQty, defaultQty + 3));
         const quantity = Math.min(Math.max(1, baseQty), supplierStock);
         const unitPrice = Math.max(1, listing.product.marketState?.currentSupplierPrice ?? 1);
         return {
@@ -1225,13 +1234,13 @@ async function runAutoRestock(now: Date, userId?: string): Promise<AutoRestockCy
         data: {
           userId: user.id,
           type: NotificationType.SYSTEM,
-          message: `${getPlanMeta(subscription.plan).name} Restocker found sold-out items, but balance was too low for an affordable proposal.`,
+          message: `${getPlanMeta(subscription.plan).name} Restocker found low-stock items, but balance was too low to buy them.`,
           createdAt: now,
         },
       });
       results.push({
         status: "insufficient_balance",
-        message: "Sold-out items were found, but balance was too low for an affordable restock.",
+        message: "Low-stock items were found, but balance was too low for an affordable restock.",
       });
       continue;
     }

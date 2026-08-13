@@ -68,9 +68,11 @@ enum MarketTimePhase {
 }
 
 enum AutoRestockPlan {
-  SIMPLE
+  STARTER
+  ESSENTIAL
+  PLUS
   PRO
-  MAX
+  ULTIMATE
 }
 
 enum AutoRestockSubscriptionStatus {

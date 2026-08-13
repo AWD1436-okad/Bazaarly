@@ -1,6 +1,11 @@
 import { ShopSettings } from "@/components/shop-settings";
 import { requireUser } from "@/lib/auth";
-import { AUTO_RESTOCK_PLAN_META, getNextRestockAt } from "@/lib/auto-restock";
+import {
+  AUTO_RESTOCK_PLAN_META,
+  getNextRestockAt,
+  getRestockCoverageLabel,
+  getRestockTriggerLabel,
+} from "@/lib/auto-restock";
 import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode, getSupportedPriceProfiles } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
@@ -28,12 +33,8 @@ export default async function SettingsPage() {
       plan,
       name: AUTO_RESTOCK_PLAN_META[plan].name,
       costLabel: formatCurrency(AUTO_RESTOCK_PLAN_META[plan].dailyCostCents, currencyCode),
-      details:
-        plan === "SIMPLE"
-          ? "Restocks 50% of sold-out items every 10 minutes."
-          : plan === "PRO"
-            ? "Restocks 75% of sold-out items every 5 minutes."
-            : "Restocks every sold-out item on your chosen timer.",
+      triggerLabel: getRestockTriggerLabel(plan),
+      restockLabel: getRestockCoverageLabel(plan),
     }),
   );
   const nextRestockAt = subscription
@@ -64,9 +65,8 @@ export default async function SettingsPage() {
                   hour: "numeric",
                   minute: "2-digit",
                 }) ?? "soon"}`,
-                restockIntervalMinutes:
-                  subscription.restockIntervalMinutes ??
-                  (subscription.plan === "SIMPLE" ? 10 : subscription.plan === "PRO" ? 5 : 3),
+                triggerLabel: getRestockTriggerLabel(subscription.plan),
+                restockLabel: getRestockCoverageLabel(subscription.plan),
               }
             : null
         }
