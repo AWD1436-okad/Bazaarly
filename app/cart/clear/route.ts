@@ -48,7 +48,12 @@ export async function POST(request: Request) {
 
     await prisma.cart.update({
       where: { id: cart.id },
-      data: { shopId: null },
+      data: {
+        shopId: null,
+        autoRestockPlan: null,
+        autoRestockPlanPrice: null,
+        autoRestockIntervalMinutes: null,
+      },
     });
   }
 

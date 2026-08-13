@@ -103,6 +103,54 @@ export async function POST(request: Request) {
     });
   }
 
+  if (action === "addToCart") {
+    if (!requestedPlan) {
+      return NextResponse.json({ ok: false, error: "Choose a Restocker plan" }, { status: 400 });
+    }
+
+    const planMeta = getPlanMeta(requestedPlan);
+    const rawInterval = Number(formData.get("restockIntervalMinutes"));
+    const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan, rawInterval);
+    const cart =
+      (await prisma.cart.findFirst({
+        where: { userId: user.id, status: "ACTIVE" },
+        select: { id: true },
+      })) ??
+      (await prisma.cart.create({
+        data: { userId: user.id },
+        select: { id: true },
+      }));
+
+    await prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        autoRestockPlan: requestedPlan,
+        autoRestockPlanPrice: planMeta.dailyCostCents,
+        autoRestockIntervalMinutes: restockIntervalMinutes,
+      },
+    });
+
+    revalidatePath("/cart");
+    revalidatePath("/settings");
+    return NextResponse.json({
+      ok: true,
+      message: `${planMeta.name} Auto Restocker added to your cart.`,
+    });
+  }
+
+  if (action === "removeFromCart") {
+    await prisma.cart.updateMany({
+      where: { userId: user.id, status: "ACTIVE" },
+      data: {
+        autoRestockPlan: null,
+        autoRestockPlanPrice: null,
+        autoRestockIntervalMinutes: null,
+      },
+    });
+    revalidatePath("/cart");
+    return NextResponse.json({ ok: true, message: "Restocker plan removed from cart" });
+  }
+
   if (action !== "activate" || !requestedPlan) {
     return NextResponse.json({ ok: false, error: "Invalid subscription action" }, { status: 400 });
   }

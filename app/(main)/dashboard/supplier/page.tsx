@@ -7,7 +7,6 @@ import { SimulationHeartbeat } from "@/components/simulation-heartbeat";
 import { StatusBanner } from "@/components/status-banner";
 import { SupplierCategoryBulkAdd } from "@/components/supplier-category-bulk-add";
 import { SupplierPurchaseForm } from "@/components/supplier-purchase-form";
-import { SupplierRestockNeededModal } from "@/components/supplier-restock-needed-modal";
 import { requireUser } from "@/lib/auth";
 import {
   CATEGORY_OPTIONS,
@@ -38,16 +37,6 @@ type SupplierProduct = {
   imageUrl: string | null;
   supplierPrice: number;
   supplierStock: number;
-};
-
-type SoldOutRestockItem = {
-  productId: string;
-  name: string;
-  category: ProductCategory;
-  subcategory: string | null;
-  unitLabel: string;
-  supplierStock: number;
-  supplierPrice: number;
 };
 
 function parseCategoryFilter(value: string | string[] | undefined) {
@@ -203,50 +192,6 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
     supplierStock: item.marketState?.supplierStock ?? 0,
   }));
 
-  const soldOutListings = await prisma.listing.findMany({
-    where: {
-      shop: {
-        ownerId: user.id,
-      },
-      quantity: { lte: 0 },
-    },
-    select: {
-      productId: true,
-      product: {
-        select: {
-          id: true,
-          name: true,
-          category: true,
-          subcategory: true,
-          unitLabel: true,
-          marketState: {
-            select: {
-              currentSupplierPrice: true,
-              supplierStock: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      product: {
-        name: "asc",
-      },
-    },
-  });
-
-  const soldOutRestockItems: SoldOutRestockItem[] = soldOutListings
-    .map((listing) => ({
-      productId: listing.product.id,
-      name: listing.product.name,
-      category: listing.product.category,
-      subcategory: listing.product.subcategory,
-      unitLabel: listing.product.unitLabel,
-      supplierStock: listing.product.marketState?.supplierStock ?? 0,
-      supplierPrice: listing.product.marketState?.currentSupplierPrice ?? 0,
-    }))
-    .filter((item) => item.supplierStock > 0 && item.supplierPrice > 0);
-
   const filteredProducts = searchQuery
     ? supplierProducts
         .map((item) => ({
@@ -343,25 +288,6 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
               <SupplierCategoryBulkAdd categoryValue={selectedCategory.value} />
             ) : null}
           </section>
-
-          <div id="restock-sold-out">
-            <SupplierRestockNeededModal
-              currencyCode={currencyCode}
-              items={soldOutRestockItems.map((item) => ({
-                productId: item.productId,
-                name: item.name,
-                categoryLabel: getProductCategoryLabel(item.category, item.subcategory),
-                unitLabel: item.unitLabel,
-                supplierStock: sanitizeStockCount(item.supplierStock),
-                supplierPriceCents: item.supplierPrice,
-                supplierPriceLabel: formatPriceWithUnit(
-                  item.supplierPrice,
-                  item.unitLabel,
-                  currencyCode,
-                ),
-              }))}
-            />
-          </div>
 
           {filteredProducts.length === 0 ? (
             <div className="empty-state">

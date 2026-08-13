@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -98,7 +97,7 @@ export function ShopSettings({
     }
   }
 
-  async function updateRestocker(action: "activate" | "cancel" | "updateInterval", plan?: RestockerPlan) {
+  async function updateRestocker(action: "addToCart" | "cancel" | "updateInterval", plan?: RestockerPlan) {
     setRestockerSubmitting(true);
     setMessage(null);
     setError(null);
@@ -109,9 +108,6 @@ export function ShopSettings({
       if (plan) {
         formData.set("plan", plan);
         formData.set("restockIntervalMinutes", String(plan === "MAX" ? maxInterval : plan === "PRO" ? 5 : 10));
-        if (action === "activate") {
-          formData.set("confirmReplace", "true");
-        }
       }
       const response = await fetch("/settings/auto-restock-subscription", { method: "POST", body: formData });
       const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string };
@@ -121,6 +117,10 @@ export function ShopSettings({
 
       setMessage(payload.message ?? "Auto Restocker updated.");
       setRestockerOpen(false);
+      if (action === "addToCart") {
+        router.push("/cart");
+        return;
+      }
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not update Auto Restocker.");
@@ -180,10 +180,6 @@ export function ShopSettings({
           </div>
         ) : null}
 
-        <Link className="cta-link-button" href="/dashboard/supplier#restock-sold-out">
-          Restock sold-out items now
-        </Link>
-
         {restockerOpen ? (
           <div className="restocker-plan-list">
             {planOptions.map((option) => (
@@ -211,10 +207,10 @@ export function ShopSettings({
                 <button
                   type="button"
                   className="secondary-button"
-                  disabled={restockerSubmitting}
-                  onClick={() => void updateRestocker("activate", option.plan)}
+                  disabled={restockerSubmitting || autoRestocker?.plan === option.plan}
+                  onClick={() => void updateRestocker("addToCart", option.plan)}
                 >
-                  {autoRestocker?.plan === option.plan ? "Current plan" : `Choose ${option.name}`}
+                  {autoRestocker?.plan === option.plan ? "Current plan" : `Add ${option.name} to cart`}
                 </button>
               </div>
             ))}

@@ -399,6 +399,9 @@ model Cart {
   status     CartStatus  @default(ACTIVE)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+  autoRestockPlan AutoRestockPlan?
+  autoRestockPlanPrice Int?
+  autoRestockIntervalMinutes Int?
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   shop       Shop?       @relation(fields: [shopId], references: [id], onDelete: SetNull)
   items      CartItem[]

@@ -2332,6 +2332,12 @@ button:hover .app-icon,
   justify-content: center;
 }
 
+.challenge-difficulty--very-easy {
+  color: #135f7a;
+  background: #dff7ff;
+  border-color: #9edff3;
+}
+
 .challenge-difficulty--easy {
   color: var(--success);
   background: var(--status-success-bg);
@@ -2345,6 +2351,12 @@ button:hover .app-icon,
 .challenge-difficulty--hard {
   color: var(--danger);
   background: var(--status-error-bg);
+}
+
+.challenge-difficulty--extra-hard {
+  color: #d8b4fe;
+  background: rgba(126, 34, 206, 0.22);
+  border-color: rgba(192, 132, 252, 0.55);
 }
 
 .challenge-progress {
