@@ -2234,52 +2234,9 @@ export async function runMarketSimulation(force = false, debug = false) {
                 },
               },
             }),
-            dishwashingAllListings: await prisma.listing
-              .findMany({
-                where: {
-                  product: { name: "Dishwashing Liquid" },
-                  quantity: { gt: 0 },
-                },
-                select: {
-                  quantity: true,
-                  shop: {
-                    select: {
-                      name: true,
-                      owner: { select: { email: true } },
-                    },
-                  },
-                },
-              })
-              .then((listings) =>
-                listings.map((listing) => ({
-                  shop: listing.shop.name,
-                  quantity: listing.quantity,
-                  ownerDomain: listing.shop.owner.email.split("@").at(-1) ?? "unknown",
-                })),
-              ),
             supplierProductsBelowFullStock: await prisma.marketProductState.count({
               where: { supplierStock: { lt: 50 } },
             }),
-            largeCatalogShops: await prisma.shop
-              .findMany({
-                where: { status: "ACTIVE" },
-                select: {
-                  id: true,
-                  name: true,
-                  owner: { select: { email: true } },
-                  _count: { select: { listings: true } },
-                },
-              })
-              .then((shops) =>
-                shops
-                  .filter((shop) => shop._count.listings >= 25)
-                  .map((shop) => ({
-                    id: shop.id,
-                    shop: shop.name,
-                    listingCount: shop._count.listings,
-                    ownerDomain: shop.owner.email.split("@").at(-1) ?? "unknown",
-                  })),
-              ),
             snapshots: debugSnapshots,
           },
         }
