@@ -445,7 +445,8 @@ textarea {
 }
 
 .topbar--no-search {
-  grid-template-areas: "brand status" "links links";
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr) max-content;
+  grid-template-areas: "brand links status";
 }
 
 .brand-area {
@@ -856,7 +857,7 @@ button:hover .app-icon,
   align-items: center;
   gap: 0.55rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-width: 0;
 }
 
@@ -900,6 +901,12 @@ button:hover .app-icon,
   letter-spacing: -0.01em;
   box-shadow: 0 10px 24px var(--control-shadow);
   white-space: nowrap;
+}
+
+.balance-pill:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  transform: translateY(-1px);
 }
 
 .balance-pill .app-icon {
@@ -3949,6 +3956,7 @@ button:hover .app-icon,
   }
 
   .topbar--no-search {
+    grid-template-columns: 1fr;
     grid-template-areas:
       "brand"
       "status"
@@ -4305,8 +4313,14 @@ button:hover .app-icon,
 
   .topbar-status {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
     align-items: stretch;
+  }
+
+  .topbar-status .notification-pill,
+  .topbar-status .balance-pill {
+    justify-content: center;
+    min-width: 0;
   }
 
   .topbar-links {

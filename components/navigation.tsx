@@ -23,6 +23,7 @@ type NavigationProps = {
   currentSearch?: string;
   currentSort?: string;
   currencyCode?: string;
+  balanceLabel: string;
   playerMode?: PlayerMode;
 };
 
@@ -34,6 +35,7 @@ export function Navigation({
   currentSearch,
   currentSort,
   currencyCode = "AUD",
+  balanceLabel,
   playerMode: _playerMode = "ADVANCED",
 }: NavigationProps) {
   const pathname = usePathname();
@@ -146,6 +148,10 @@ export function Navigation({
             )}
           </div> : null}
         </div>
+        <Link href="/dashboard" className="balance-pill" aria-label={`Money available: ${balanceLabel}`}>
+          <AppIcon icon={APP_ICONS.wallet} />
+          <span>{balanceLabel}</span>
+        </Link>
       </div>
 
       {showSearch ? (

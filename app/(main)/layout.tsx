@@ -5,6 +5,7 @@ import { normalizeAppearancePreset } from "@/lib/appearance";
 import { hasCompletedSecuritySetup, requireUser } from "@/lib/auth";
 import { getLiveStateVersion } from "@/lib/live-state";
 import { getUnreadNotificationBadge } from "@/lib/notifications";
+import { formatCurrency } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
 import { prisma } from "@/lib/prisma";
 
@@ -74,6 +75,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
       <LiveUpdatesWatcher initialVersion={liveStateVersion} />
       <Navigation
         currencyCode={currencyCode}
+        balanceLabel={formatCurrency(user.balance, currencyCode)}
         unreadNotifications={unreadNotifications.unreadCount}
         unreadNotificationLabel={unreadNotifications.label}
         recentNotifications={recentNotifications.map((notification) => ({
