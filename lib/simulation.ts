@@ -57,7 +57,7 @@ const NPC_SHOP_RESTOCK_BATCH_SIZE = 3;
 const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 3;
 const NPC_SHOP_EMAILS = INITIAL_USERS.map((user) => user.email);
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop stock reset for shared supplier rollout v2";
+const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop supplier stock reconciliation v3";
 
 type BotCandidateListing = {
   id: string;
@@ -392,9 +392,10 @@ async function normalizeNpcShopPrices() {
 }
 
 /**
- * Clears the old demo-only NPC inventory once. NPC shops then restock through
- * `restockNpcShopsFromSupplier`, which reserves the same supplier stock shown
- * to players before it adds stock to an NPC listing.
+ * Reconciles pre-existing demo NPC listings with the shared supplier pool once.
+ * Existing bot stock is preserved, but it is counted as already bought from the
+ * original 50-unit supplier allocation. Later NPC restocks reserve and decrement
+ * the same supplier row inside their purchase transaction.
  */
 export async function reconcileNpcShopStockFromSupplier() {
   await prisma.worldState.upsert({
@@ -418,14 +419,22 @@ export async function reconcileNpcShopStockFromSupplier() {
     });
     if (existingReset) return false;
 
-    await tx.listing.updateMany({
-      where: { shop: { ownerId: { in: ownerIds } } },
-      data: { quantity: 0, active: false, soldOutAt: new Date() },
+    const npcStockByProduct = await tx.listing.groupBy({
+      by: ["productId"],
+      where: {
+        shop: { ownerId: { in: ownerIds } },
+        quantity: { gt: 0 },
+      },
+      _sum: { quantity: true },
     });
-    await tx.inventory.updateMany({
-      where: { userId: { in: ownerIds } },
-      data: { quantity: 0, allocatedQuantity: 0 },
-    });
+
+    for (const stock of npcStockByProduct) {
+      const alreadyBought = sanitizeStockCount(stock._sum.quantity ?? 0);
+      await tx.marketProductState.updateMany({
+        where: { productId: stock.productId },
+        data: { supplierStock: Math.max(0, 50 - alreadyBought) },
+      });
+    }
     await tx.businessLedgerEntry.createMany({
       data: ownerIds.map((userId) => ({
         userId,
@@ -433,7 +442,7 @@ export async function reconcileNpcShopStockFromSupplier() {
         category: BusinessLedgerEntryCategory.OTHER_EXPENSE,
         amount: 0,
         description: NPC_SHOP_STOCK_RESET_MARKER,
-        data: { source: "npc_shared_supplier_rollout" },
+        data: { source: "npc_shared_supplier_reconciliation" },
       })),
     });
     return true;

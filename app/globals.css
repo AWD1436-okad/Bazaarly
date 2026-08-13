@@ -1846,6 +1846,10 @@ button:hover .app-icon,
   align-items: start;
 }
 
+.catalog-layout--supplier {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .player-mode-little .catalog-layout,
 .player-mode-little .marketplace-filter-layout {
   grid-template-columns: 1fr;
@@ -1928,6 +1932,17 @@ button:hover .app-icon,
 
 .supplier-toolbar {
   padding: 1rem 1.15rem;
+}
+
+.supplier-filter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.supplier-category-disclosure {
+  min-width: 10rem;
 }
 
 .supplier-filter-row label {
@@ -3901,6 +3916,7 @@ button:hover .app-icon,
   }
 
   .catalog-layout,
+  .supplier-filter-layout,
   .marketplace-filter-layout,
   .marketplace-insights,
   .featured-item-card,

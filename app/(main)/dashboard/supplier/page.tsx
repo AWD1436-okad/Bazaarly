@@ -287,40 +287,41 @@ export default async function SupplierPage({ searchParams }: SupplierPageProps) 
         />
       ) : null}
 
-      <div className="catalog-layout">
-        {playerModeConfig.value === "LITTLE" ? null : (
-          <aside className="category-sidebar">
-            <div className="stack-sm">
-              <span className="tag">{playerModeConfig.value === "JUNIOR" ? "Groups" : "Stock categories"}</span>
-              <CategoryFilterList
-                categories={CATEGORY_OPTIONS}
-                selectedCategory={selectedCategory?.value ?? null}
-                buildHref={(category) => buildSupplierHref(category)}
-              />
-            </div>
-          </aside>
-        )}
-
+      <div className="catalog-layout catalog-layout--supplier">
         <div className="stack">
           <section className="card supplier-toolbar">
-            <form action="/dashboard/supplier" className="supplier-filter-row">
-              {selectedCategory ? <input type="hidden" name="category" value={selectedCategory.value} /> : null}
-              <label>
-                Search
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={searchQuery}
-                  placeholder="Search stock to buy"
-                />
-              </label>
-              <button type="submit">Search</button>
-              {searchQuery ? (
-                <a href={buildSupplierHref(selectedCategory?.value ?? null)} className="ghost-button">
-                  Clear
-                </a>
-              ) : null}
-            </form>
+            <div className="supplier-filter-layout">
+              <form action="/dashboard/supplier" className="supplier-filter-row">
+                {selectedCategory ? <input type="hidden" name="category" value={selectedCategory.value} /> : null}
+                <label>
+                  Search
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={searchQuery}
+                    placeholder="Search stock to buy"
+                  />
+                </label>
+                <button type="submit">Search</button>
+                {searchQuery ? (
+                  <a href={buildSupplierHref(selectedCategory?.value ?? null)} className="ghost-button">
+                    Clear
+                  </a>
+                ) : null}
+              </form>
+              {playerModeConfig.value === "LITTLE" ? null : (
+                <details className="category-disclosure supplier-category-disclosure">
+                  <summary>Show categories</summary>
+                  <div className="category-disclosure__content">
+                    <CategoryFilterList
+                      categories={CATEGORY_OPTIONS}
+                      selectedCategory={selectedCategory?.value ?? null}
+                      buildHref={(category) => buildSupplierHref(category)}
+                    />
+                  </div>
+                </details>
+              )}
+            </div>
           </section>
 
           <section className="page-header">
