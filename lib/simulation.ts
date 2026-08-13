@@ -60,8 +60,12 @@ const ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX = "@bazaarly.local";
 const LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX = "@tradex.local";
 const SYSTEM_SHOP_EMAIL_SUFFIX = "@profitplanet.local";
 const BOT_WALLET_EMAIL = "bot-market@profitplanet.local";
+// This shop predates system email namespaces and was seeded with a player-like
+// Gmail owner. Its stable production ID is the only safe way to distinguish it
+// from real player shops without sweeping every Gmail account.
+const LEGACY_PRELOADED_BOT_SHOP_IDS = ["cmo962at00003jy042ysa6r0n"];
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "All original, legacy, and current bot shops reset for shared supplier v7";
+const NPC_SHOP_STOCK_RESET_MARKER = "All original, legacy, and current bot shops reset for shared supplier v8";
 
 type BotCandidateListing = {
   id: string;
@@ -300,14 +304,19 @@ async function restockNpcShopsFromSupplier(
       quantity: { lt: NPC_SHOP_RESTOCK_TARGET },
       shop: {
         status: "ACTIVE",
-        owner: {
-          OR: [
-            { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
-            { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
-            { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
-          ],
-          NOT: { email: BOT_WALLET_EMAIL },
-        },
+        OR: [
+          { id: { in: LEGACY_PRELOADED_BOT_SHOP_IDS } },
+          {
+            owner: {
+              OR: [
+                { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+              ],
+              NOT: { email: BOT_WALLET_EMAIL },
+            },
+          },
+        ],
       },
     },
     orderBy: { updatedAt: "asc" },
@@ -392,14 +401,19 @@ async function normalizeNpcShopPrices() {
   const listings = await prisma.listing.findMany({
     where: {
       shop: {
-        owner: {
-          OR: [
-            { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
-            { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
-            { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
-          ],
-          NOT: { email: BOT_WALLET_EMAIL },
-        },
+        OR: [
+          { id: { in: LEGACY_PRELOADED_BOT_SHOP_IDS } },
+          {
+            owner: {
+              OR: [
+                { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+              ],
+              NOT: { email: BOT_WALLET_EMAIL },
+            },
+          },
+        ],
       },
     },
     select: { id: true, price: true, product: { select: { basePrice: true, marketState: { select: { marketAveragePrice: true } } } } },
@@ -430,6 +444,7 @@ export async function resetNpcShopStockForSharedSupplier() {
   const npcOwners = await prisma.user.findMany({
     where: {
       OR: [
+        { shop: { id: { in: LEGACY_PRELOADED_BOT_SHOP_IDS } } },
         { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
         { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
         { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
@@ -483,14 +498,19 @@ export async function prepareNpcShopsForSharedSupplier(now: Date) {
     where: {
       shop: {
         status: "ACTIVE",
-        owner: {
-          OR: [
-            { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
-            { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
-            { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
-          ],
-          NOT: { email: BOT_WALLET_EMAIL },
-        },
+        OR: [
+          { id: { in: LEGACY_PRELOADED_BOT_SHOP_IDS } },
+          {
+            owner: {
+              OR: [
+                { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+              ],
+              NOT: { email: BOT_WALLET_EMAIL },
+            },
+          },
+        ],
       },
     },
   });
@@ -2170,14 +2190,19 @@ export async function runMarketSimulation(force = false, debug = false) {
               initialNpcSupplierPurchases + recurringNpcSupplierPurchases,
             systemShops: await prisma.shop.findMany({
               where: {
-                owner: {
-                  OR: [
-                    { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
-                    { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
-                    { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
-                  ],
-                  NOT: { email: BOT_WALLET_EMAIL },
-                },
+                OR: [
+                  { id: { in: LEGACY_PRELOADED_BOT_SHOP_IDS } },
+                  {
+                    owner: {
+                      OR: [
+                        { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                        { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                        { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+                      ],
+                      NOT: { email: BOT_WALLET_EMAIL },
+                    },
+                  },
+                ],
               },
               orderBy: { name: "asc" },
               select: { name: true },
@@ -2190,14 +2215,19 @@ export async function runMarketSimulation(force = false, debug = false) {
                   where: {
                     quantity: { gt: 0 },
                     shop: {
-                      owner: {
-                        OR: [
-                          { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
-                          { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
-                          { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
-                        ],
-                        NOT: { email: BOT_WALLET_EMAIL },
-                      },
+                      OR: [
+                        { id: { in: LEGACY_PRELOADED_BOT_SHOP_IDS } },
+                        {
+                          owner: {
+                            OR: [
+                              { email: { endsWith: ORIGINAL_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                              { email: { endsWith: LEGACY_SYSTEM_SHOP_EMAIL_SUFFIX } },
+                              { email: { endsWith: SYSTEM_SHOP_EMAIL_SUFFIX } },
+                            ],
+                            NOT: { email: BOT_WALLET_EMAIL },
+                          },
+                        },
+                      ],
                     },
                   },
                   select: { quantity: true, shop: { select: { name: true } } },
