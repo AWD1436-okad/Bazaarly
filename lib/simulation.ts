@@ -22,6 +22,7 @@ import { recordBusinessExpense } from "@/lib/business-ledger";
 import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
+import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { runSoldOutListingCleanup } from "@/lib/sold-out-cleanup";
 import { sanitizeStockCount } from "@/lib/stock";
@@ -1545,7 +1546,7 @@ export async function runMarketSimulation(force = false, debug = false) {
   await normalizeNpcShopPrices();
 
   let botWallet = await prisma.user.findUnique({
-    where: { email: "bot-market@profitplanet.local" },
+    where: { email: BOT_WALLET_EMAIL },
     select: {
       id: true,
       balance: true,
@@ -1553,7 +1554,19 @@ export async function runMarketSimulation(force = false, debug = false) {
   });
 
   if (!botWallet) {
-    return { skipped: false, botPurchases: 0 };
+    botWallet = await prisma.user.create({
+      data: {
+        email: BOT_WALLET_EMAIL,
+        username: "bot_market",
+        displayName: "Profit Planet Bot Market",
+        passwordHash: hashPassword(`internal-${crypto.randomUUID()}`),
+        balance: BOT_WALLET_TARGET_BALANCE,
+        hasCompletedOnboarding: true,
+        playerMode: "ADVANCED",
+        playerModeConfirmed: true,
+      },
+      select: { id: true, balance: true },
+    });
   }
 
   if (botWallet.balance < BOT_WALLET_REFILL_FLOOR) {
