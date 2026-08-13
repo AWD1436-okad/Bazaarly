@@ -52,6 +52,7 @@ export function ShopSettings({
   const [error, setError] = useState<string | null>(null);
   const [restockerOpen, setRestockerOpen] = useState(false);
   const [restockerSubmitting, setRestockerSubmitting] = useState(false);
+  const [restockerReplacementPlan, setRestockerReplacementPlan] = useState<RestockerPlan | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState(currencyCode);
   const [currencySubmitting, setCurrencySubmitting] = useState(false);
   const [accountAction, setAccountAction] = useState<AccountAction | null>(null);
@@ -110,7 +111,7 @@ export function ShopSettings({
     }
   }
 
-  async function updateRestocker(action: "addToCart" | "cancel", plan?: RestockerPlan) {
+  async function updateRestocker(action: "activate" | "cancel", plan?: RestockerPlan, confirmReplace = false) {
     setRestockerSubmitting(true);
     setMessage(null);
     setError(null);
@@ -121,18 +122,27 @@ export function ShopSettings({
       if (plan) {
         formData.set("plan", plan);
       }
+      if (confirmReplace) {
+        formData.set("confirmReplace", "true");
+      }
       const response = await fetch("/settings/auto-restock-subscription", { method: "POST", body: formData });
-      const payload = (await response.json()) as { ok?: boolean; message?: string; error?: string };
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+        requiresReplaceConfirmation?: boolean;
+      };
+      if (payload.requiresReplaceConfirmation && plan) {
+        setRestockerReplacementPlan(plan);
+        return;
+      }
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error ?? "Could not update Auto Restocker.");
       }
 
       setMessage(payload.message ?? "Auto Restocker updated.");
       setRestockerOpen(false);
-      if (action === "addToCart") {
-        router.push("/cart");
-        return;
-      }
+      setRestockerReplacementPlan(null);
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not update Auto Restocker.");
@@ -321,9 +331,9 @@ export function ShopSettings({
                   type="button"
                   className="secondary-button"
                   disabled={restockerSubmitting || autoRestocker?.plan === option.plan}
-                  onClick={() => void updateRestocker("addToCart", option.plan)}
+                  onClick={() => void updateRestocker("activate", option.plan)}
                 >
-                  {autoRestocker?.plan === option.plan ? "Current plan" : `Add ${option.name} to cart`}
+                  {autoRestocker?.plan === option.plan ? "Current plan" : `Start ${option.name}`}
                 </button>
               </div>
             ))}
@@ -335,6 +345,27 @@ export function ShopSettings({
           </div>
         ) : null}
       </article>
+
+      {restockerReplacementPlan ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => !restockerSubmitting && setRestockerReplacementPlan(null)}>
+          <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="replace-restocker-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-card__copy">
+              <h2 id="replace-restocker-title">Switch Auto Restocker plan?</h2>
+              <p>
+                Your current plan will stop now. The new {planOptions.find((plan) => plan.plan === restockerReplacementPlan)?.name} plan starts straight away and charges for its first 24 hours.
+              </p>
+            </div>
+            <div className="modal-card__actions">
+              <button type="button" className="secondary-button" disabled={restockerSubmitting} onClick={() => setRestockerReplacementPlan(null)}>
+                Keep current plan
+              </button>
+              <button type="button" disabled={restockerSubmitting} onClick={() => void updateRestocker("activate", restockerReplacementPlan, true)}>
+                {restockerSubmitting ? "Starting..." : "Switch plan"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <article className="settings-section settings-panel settings-section--wide settings-section--account" aria-labelledby="account-title">
         <div className="settings-section__header">

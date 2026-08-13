@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { ProductVisual } from "@/components/product-visual";
-import { RemoveRestockerPlanButton } from "@/components/remove-restocker-plan-button";
-import { getPlanMeta } from "@/lib/auto-restock";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -45,13 +43,11 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     },
   });
 
-  if (!cart || (cart.items.length === 0 && !cart.autoRestockPlan)) {
+  if (!cart || cart.items.length === 0) {
     redirect("/cart?error=Your%20cart%20is%20empty");
   }
 
-  const total =
-    cart.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0) +
-    (cart.autoRestockPlanPrice ?? 0);
+  const total = cart.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0);
   const unavailableItems = cart.items.filter((item) => {
     const availableQuantity =
       item.source === "SUPPLIER"
@@ -144,20 +140,6 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           </div>
 
           <div className="table-list">
-          {cart.autoRestockPlan && cart.autoRestockPlanPrice != null ? (
-            <div className="table-row">
-              <div className="table-row__meta">
-                <strong>{getPlanMeta(cart.autoRestockPlan).name} Auto Restocker</strong>
-                <span className="muted">
-                  First 24 hours - checks every {cart.autoRestockIntervalMinutes ?? 10} minutes
-                </span>
-              </div>
-              <div className="table-row__actions">
-                <RemoveRestockerPlanButton />
-                <strong>{formatCurrency(cart.autoRestockPlanPrice, currencyCode)}</strong>
-              </div>
-            </div>
-          ) : null}
           {cart.items.map((item) => {
             const availableQuantity =
               item.source === "SUPPLIER"

@@ -1,11 +1,9 @@
-import { AutoRestockSubscriptionStatus, BusinessLedgerEntryCategory, NotificationType, Prisma } from "@prisma/client";
-import { addHours } from "date-fns";
+import { BusinessLedgerEntryCategory, NotificationType, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getSessionUser, hasCompletedSecuritySetup } from "@/lib/auth";
 import { recordBusinessExpense } from "@/lib/business-ledger";
-import { AUTO_RESTOCK_RENEWAL_HOURS, getAutoRestockRenewalCostCents, getPlanMeta, normalizeRestockIntervalMinutes } from "@/lib/auto-restock";
 import { formatCurrency } from "@/lib/money";
 import { encryptBankNumber, verifyBankNumber } from "@/lib/pin";
 import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
@@ -77,7 +75,6 @@ export async function POST(request: Request) {
   }
 
   let supplierCheckoutCompleted = false;
-  let restockerCheckoutCompleted = false;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -113,7 +110,7 @@ export async function POST(request: Request) {
         },
       });
 
-      if (!cart || (cart.items.length === 0 && !cart.autoRestockPlan)) {
+      if (!cart || cart.items.length === 0) {
         throw new Error("Your cart is empty");
       }
 
@@ -133,15 +130,6 @@ export async function POST(request: Request) {
       let totalPrice = 0;
       let marketplaceTotal = 0;
       let supplierTotal = 0;
-      const restockerPlan = cart.autoRestockPlan;
-      const restockerPlanPrice = cart.autoRestockPlanPrice ?? 0;
-      const restockerIntervalMinutes = restockerPlan
-        ? normalizeRestockIntervalMinutes(restockerPlan, cart.autoRestockIntervalMinutes)
-        : null;
-      if (restockerPlan && restockerPlanPrice !== getPlanMeta(restockerPlan).dailyCostCents) {
-        throw new Error("The Restocker plan price changed. Remove it and add it again");
-      }
-      totalPrice += restockerPlanPrice;
       const saleSummary: string[] = [];
       const supplierSummary: string[] = [];
       const marketplaceItems: Array<{
@@ -498,50 +486,6 @@ export async function POST(request: Request) {
         supplierCheckoutCompleted = true;
       }
 
-      if (restockerPlan && restockerIntervalMinutes != null) {
-        const planMeta = getPlanMeta(restockerPlan);
-        const checkoutTime = new Date();
-        await tx.autoRestockSubscription.upsert({
-          where: { userId: buyer.id },
-          create: {
-            userId: buyer.id,
-            plan: restockerPlan,
-            status: AutoRestockSubscriptionStatus.ACTIVE,
-            dailyCostCents: getAutoRestockRenewalCostCents(restockerPlan, false),
-            setupFeeCents: 0,
-            nextChargeAt: addHours(checkoutTime, AUTO_RESTOCK_RENEWAL_HOURS),
-            lastChargedAt: checkoutTime,
-            restockIntervalMinutes: restockerIntervalMinutes,
-            fullAccessEnabled: false,
-          },
-          update: {
-            plan: restockerPlan,
-            status: AutoRestockSubscriptionStatus.ACTIVE,
-            dailyCostCents: getAutoRestockRenewalCostCents(restockerPlan, false),
-            setupFeeCents: 0,
-            nextChargeAt: addHours(checkoutTime, AUTO_RESTOCK_RENEWAL_HOURS),
-            lastChargedAt: checkoutTime,
-            restockIntervalMinutes: restockerIntervalMinutes,
-            fullAccessEnabled: false,
-          },
-        });
-        await recordBusinessExpense(tx, {
-          userId: buyer.id,
-          category: BusinessLedgerEntryCategory.SUBSCRIPTION_FEE,
-          amount: restockerPlanPrice,
-          description: `${planMeta.name} Auto Restock first 24-hour fee`,
-          data: { source: "auto_restock_cart_checkout", cartId: cart.id, plan: restockerPlan },
-        });
-        await tx.notification.create({
-          data: {
-            userId: buyer.id,
-            type: NotificationType.SYSTEM,
-            message: `${planMeta.name} Auto Restocker started for ${formatCurrency(restockerPlanPrice, currencyCode)}. It renews every 24 hours.`,
-          },
-        });
-        restockerCheckoutCompleted = true;
-      }
-
       await tx.cart.update({
         where: { id: cart.id },
         data: {
@@ -564,9 +508,7 @@ export async function POST(request: Request) {
     new URL(
       supplierCheckoutCompleted
         ? "/dashboard?stockAdded=1"
-        : restockerCheckoutCompleted
-          ? "/settings?restockerStarted=1"
-          : "/orders?checkout=1",
+        : "/orders?checkout=1",
       request.url,
     ),
     303,

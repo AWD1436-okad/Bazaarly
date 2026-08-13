@@ -1,8 +1,6 @@
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
 import { ClearCartButton } from "@/components/clear-cart-button";
 import { ProductVisual } from "@/components/product-visual";
-import { RemoveRestockerPlanButton } from "@/components/remove-restocker-plan-button";
-import { getPlanMeta } from "@/lib/auto-restock";
 import { requireUser } from "@/lib/auth";
 import { formatCurrency, formatPriceWithUnit } from "@/lib/money";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
@@ -44,9 +42,7 @@ export default async function CartPage({ searchParams }: CartProps) {
     },
   });
 
-  const total =
-    (cart?.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0) ?? 0) +
-    (cart?.autoRestockPlanPrice ?? 0);
+  const total = cart?.items.reduce((sum, item) => sum + item.quantity * item.unitPriceSnapshot, 0) ?? 0;
   const hasUnavailableItems =
     cart?.items.some((item) => {
       const availableQuantity =
@@ -82,7 +78,7 @@ export default async function CartPage({ searchParams }: CartProps) {
         </div>
       ) : null}
 
-      {!cart || (cart.items.length === 0 && !cart.autoRestockPlan) ? (
+      {!cart || cart.items.length === 0 ? (
         <div className="empty-state">Your cart is empty. Browse the marketplace or supplier to add something.</div>
       ) : (
         <>
@@ -105,7 +101,7 @@ export default async function CartPage({ searchParams }: CartProps) {
                 <h2>Checkout</h2>
               </div>
               <form action="/checkout" method="get">
-                <button type="submit" disabled={hasUnavailableItems || (cart.items.length === 0 && !cart.autoRestockPlan)}>
+                <button type="submit" className="primary-button" disabled={hasUnavailableItems || cart.items.length === 0}>
                   {hasUnavailableItems ? "Update cart before checkout" : `Continue to Checkout ${formatCurrency(total, currencyCode)}`}
                 </button>
               </form>
@@ -114,20 +110,6 @@ export default async function CartPage({ searchParams }: CartProps) {
 
           <section className="card">
             <div className="table-list">
-              {cart.autoRestockPlan && cart.autoRestockPlanPrice != null ? (
-                <div className="table-row">
-                  <div className="table-row__meta">
-                    <strong>{getPlanMeta(cart.autoRestockPlan).name} Auto Restocker</strong>
-                    <span className="muted">
-                      First 24 hours - checks every {cart.autoRestockIntervalMinutes ?? 10} minutes
-                    </span>
-                  </div>
-                  <div className="table-row__actions">
-                    <strong>{formatCurrency(cart.autoRestockPlanPrice, currencyCode)}</strong>
-                    <RemoveRestockerPlanButton />
-                  </div>
-                </div>
-              ) : null}
               {cart.items.map((item) => {
                 const availableQuantity =
                   item.source === "SUPPLIER"

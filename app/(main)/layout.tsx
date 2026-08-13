@@ -47,7 +47,6 @@ export default async function MainLayout({ children }: MainLayoutProps) {
     prisma.cart.findFirst({
       where: { userId: user.id, status: "ACTIVE" },
       select: {
-        autoRestockPlan: true,
         items: {
           select: { quantity: true },
         },
@@ -82,7 +81,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
           ...notification,
           createdAtLabel: formatNotificationTime(notification.createdAt),
         }))}
-        cartItemCount={(activeCart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0) + (activeCart?.autoRestockPlan ? 1 : 0)}
+        cartItemCount={activeCart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0}
         playerMode="ADVANCED"
       />
       {children}

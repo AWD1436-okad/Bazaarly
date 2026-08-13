@@ -69,53 +69,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, message: "Subscription cancelled" });
   }
 
-  if (action === "addToCart") {
-    if (!requestedPlan) {
-      return NextResponse.json({ ok: false, error: "Choose a Restocker plan" }, { status: 400 });
-    }
-
-    const planMeta = getPlanMeta(requestedPlan);
-    const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan);
-    const cart =
-      (await prisma.cart.findFirst({
-        where: { userId: user.id, status: "ACTIVE" },
-        select: { id: true },
-      })) ??
-      (await prisma.cart.create({
-        data: { userId: user.id },
-        select: { id: true },
-      }));
-
-    await prisma.cart.update({
-      where: { id: cart.id },
-      data: {
-        autoRestockPlan: requestedPlan,
-        autoRestockPlanPrice: planMeta.dailyCostCents,
-        autoRestockIntervalMinutes: restockIntervalMinutes,
-      },
-    });
-
-    revalidatePath("/cart");
-    revalidatePath("/settings");
-    return NextResponse.json({
-      ok: true,
-      message: `${planMeta.name} Auto Restocker added to your cart.`,
-    });
-  }
-
-  if (action === "removeFromCart") {
-    await prisma.cart.updateMany({
-      where: { userId: user.id, status: "ACTIVE" },
-      data: {
-        autoRestockPlan: null,
-        autoRestockPlanPrice: null,
-        autoRestockIntervalMinutes: null,
-      },
-    });
-    revalidatePath("/cart");
-    return NextResponse.json({ ok: true, message: "Restocker plan removed from cart" });
-  }
-
   if (action !== "activate" || !requestedPlan) {
     return NextResponse.json({ ok: false, error: "Invalid subscription action" }, { status: 400 });
   }
@@ -124,6 +77,16 @@ export async function POST(request: Request) {
   const restockIntervalMinutes = normalizeRestockIntervalMinutes(requestedPlan);
 
   const result = await prisma.$transaction(async (tx) => {
+    // Plans are managed and charged in Settings, never through the product cart.
+    await tx.cart.updateMany({
+      where: { userId: user.id, status: "ACTIVE" },
+      data: {
+        autoRestockPlan: null,
+        autoRestockPlanPrice: null,
+        autoRestockIntervalMinutes: null,
+      },
+    });
+
     const freshUser = await tx.user.findUnique({
       where: { id: user.id },
       select: { id: true, balance: true },
