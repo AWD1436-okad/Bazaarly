@@ -2671,6 +2671,31 @@ button:hover .app-icon,
   padding-bottom: clamp(5rem, 14vh, 7rem);
 }
 
+.checkout-page__shell {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border-color: var(--primary);
+  background:
+    radial-gradient(circle at top left, var(--panel-glow), transparent 32%),
+    var(--soft-panel);
+}
+
+.checkout-page__shell h1 {
+  margin: 0;
+}
+
+.checkout-page__shell .status-banner {
+  margin: 0;
+}
+
+.checkout-page__order-details {
+  display: grid;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .cart-summary-actions {
   display: flex;
   align-items: center;

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CartItemQuantityForm } from "@/components/cart-item-quantity-form";
-import { HoldToShowInput } from "@/components/hold-to-show-input";
 import { ProductVisual } from "@/components/product-visual";
 import { RemoveRestockerPlanButton } from "@/components/remove-restocker-plan-button";
 import { getPlanMeta } from "@/lib/auto-restock";
@@ -77,44 +76,10 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
 
   return (
     <div className="page-grid checkout-page">
-      <section className="page-header">
-        <h1>Secure checkout</h1>
-      </section>
-
-      {error ? (
-        <div className="status-banner status-banner--error">
-          <div>
-            <h3>Checkout blocked</h3>
-            <p>{error}</p>
-          </div>
-        </div>
-      ) : null}
-      {hasUnavailableItems ? (
-        <div className="status-banner status-banner--warning">
-          <div>
-            <h3>Some cart items are no longer available</h3>
-            <p>
-              Remove or update these items before checkout:{" "}
-              {unavailableItems.map((item) => item.product.name).join(", ")}.
-            </p>
-          </div>
-        </div>
-      ) : null}
-      {priceChangedItems.length > 0 ? (
-        <div className="status-banner status-banner--success">
-          <div>
-            <h3>Price changed since added</h3>
-            <p>
-              Locked cart price kept for: {priceChangedItems.map((item) => item.product.name).join(", ")}.
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      <section className="card checkout-page__confirm-card">
+      <section className="card checkout-page__shell">
         <div className="section-row">
           <div>
-            <h2>Confirm purchase</h2>
+            <h1>Secure checkout</h1>
             <p>Wrong details will leave your cart untouched.</p>
           </div>
           <Link className="ghost-button" href="/cart">
@@ -122,10 +87,49 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           </Link>
         </div>
 
+        {error ? (
+          <div className="status-banner status-banner--error">
+            <div>
+              <h3>Checkout blocked</h3>
+              <p>{error}</p>
+            </div>
+          </div>
+        ) : null}
+        {hasUnavailableItems ? (
+          <div className="status-banner status-banner--warning">
+            <div>
+              <h3>Some cart items are no longer available</h3>
+              <p>
+                Remove or update these items before checkout:{" "}
+                {unavailableItems.map((item) => item.product.name).join(", ")}.
+              </p>
+            </div>
+          </div>
+        ) : null}
+        {priceChangedItems.length > 0 ? (
+          <div className="status-banner status-banner--success">
+            <div>
+              <h3>Price changed since added</h3>
+              <p>
+                Locked cart price kept for: {priceChangedItems.map((item) => item.product.name).join(", ")}.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         <form id="checkout-confirm-form" action="/checkout/confirm" method="post" className="stack-sm">
           <label>
             In-game bank number
-            <HoldToShowInput name="bankNumber" inputMode="numeric" pattern="[0-9]{6}" required autoComplete="off" />
+            <input
+              name="bankNumber"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              autoComplete="off"
+              data-1p-ignore="true"
+            />
           </label>
           <button type="submit" className="checkout-main-submit" disabled={hasUnavailableItems}>
             {hasUnavailableItems
@@ -133,17 +137,13 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
               : `Confirm Purchase ${formatCurrency(total, currencyCode)}`}
           </button>
         </form>
-      </section>
-
-      <section className="card">
-        <div className="section-row">
-          <div>
+        <div className="checkout-page__order-details">
+          <div className="section-row">
             <h2>Order details</h2>
+            <strong>{formatCurrency(total, currencyCode)}</strong>
           </div>
-          <strong>{formatCurrency(total, currencyCode)}</strong>
-        </div>
 
-        <div className="table-list">
+          <div className="table-list">
           {cart.autoRestockPlan && cart.autoRestockPlanPrice != null ? (
             <div className="table-row">
               <div className="table-row__meta">
@@ -196,6 +196,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
               </div>
             );
           })}
+          </div>
         </div>
       </section>
     </div>

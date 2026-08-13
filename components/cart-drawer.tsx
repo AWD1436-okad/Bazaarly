@@ -50,7 +50,9 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
         ) : null}
         <div className="cart-drawer__footer">
           {cart?.totalLabel ? <strong>Total: {cart.totalLabel}</strong> : <span />}
-          <Link href="/cart" onClick={onClose} className="primary-link">Continue to checkout</Link>
+          <Link href="/checkout" onClick={onClose} className="primary-button">
+            Continue to checkout
+          </Link>
         </div>
       </aside>
     </div>
