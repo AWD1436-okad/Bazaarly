@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type CartDrawerProps = {
@@ -33,7 +34,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
         <div className="section-row">
           <h2>Your cart</h2>
           <button type="button" className="notification-menu__close" onClick={onClose} aria-label="Close cart">
-            <span aria-hidden="true">×</span>
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
         {loading ? <p className="muted">Loading cart...</p> : null}

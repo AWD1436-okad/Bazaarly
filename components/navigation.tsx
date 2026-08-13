@@ -2,6 +2,7 @@
 
 import type { Route } from "next";
 import Link from "next/link";
+import { X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -127,7 +128,7 @@ export function Navigation({
                 onClick={() => setNotificationMenuOpen(false)}
                 aria-label="Close notifications"
               >
-                <span aria-hidden="true">×</span>
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             {recentNotifications.length === 0 ? (

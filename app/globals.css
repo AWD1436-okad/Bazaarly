@@ -1329,11 +1329,6 @@ button:hover .app-icon,
   color: var(--primary);
 }
 
-.notification-menu__close span {
-  font-size: 1.45rem;
-  line-height: 1;
-}
-
 .cart-drawer-backdrop {
   position: fixed;
   inset: 0;

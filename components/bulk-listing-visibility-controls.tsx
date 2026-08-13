@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+
 type BulkListingVisibilityControlsProps = {
   activeListingCount: number;
   pausedListingCount: number;
@@ -14,6 +16,7 @@ export function BulkListingVisibilityControls({
 }: BulkListingVisibilityControlsProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState<null | "pause" | "resume">(null);
+  const [pendingAction, setPendingAction] = useState<null | "pause" | "resume">(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,12 +29,6 @@ export function BulkListingVisibilityControls({
   }
 
   async function updateVisibility(action: "pause" | "resume") {
-    const actionLabel = action === "pause" ? "pause all active listings" : "resume all paused listings";
-    const confirmed = window.confirm(`Are you sure you want to ${actionLabel}?`);
-    if (!confirmed) {
-      return;
-    }
-
     setSubmitting(action);
     setFeedback(null);
     setError(null);
@@ -58,6 +55,7 @@ export function BulkListingVisibilityControls({
       }
 
       setFeedback(payload.message ?? "Listings updated");
+      setPendingAction(null);
       refreshInPlace();
     } catch (visibilityError) {
       setError(
@@ -74,7 +72,7 @@ export function BulkListingVisibilityControls({
         <button
           type="button"
           className="ghost-button"
-          onClick={() => void updateVisibility("pause")}
+          onClick={() => setPendingAction("pause")}
           disabled={submitting !== null || activeListingCount <= 0}
         >
           {submitting === "pause" ? "Pausing..." : "Pause All Listings"}
@@ -82,7 +80,7 @@ export function BulkListingVisibilityControls({
         <button
           type="button"
           className="ghost-button"
-          onClick={() => void updateVisibility("resume")}
+          onClick={() => setPendingAction("resume")}
           disabled={submitting !== null || pausedListingCount <= 0}
         >
           {submitting === "resume" ? "Resuming..." : "Resume All Listings"}
@@ -93,6 +91,16 @@ export function BulkListingVisibilityControls({
       </span>
       {feedback ? <span className="status-text status-text--success">{feedback}</span> : null}
       {error ? <span className="status-text status-text--error">{error}</span> : null}
+      {pendingAction ? (
+        <ConfirmActionDialog
+          title={pendingAction === "pause" ? "Pause all listings?" : "Resume all listings?"}
+          message={pendingAction === "pause" ? "Buyers will not be able to buy your active listings until you resume them." : "Your paused listings will be available for buyers again."}
+          confirmLabel={pendingAction === "pause" ? "Pause listings" : "Resume listings"}
+          submitting={submitting !== null}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() => void updateVisibility(pendingAction)}
+        />
+      ) : null}
     </div>
   );
 }

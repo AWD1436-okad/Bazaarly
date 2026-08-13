@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+
 type SoldOutListingActionsProps = {
   listingId: string;
   productName: string;
@@ -16,6 +18,7 @@ export function SoldOutListingActions({
 }: SoldOutListingActionsProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -43,11 +46,6 @@ export function SoldOutListingActions({
   }
 
   async function handleDelete() {
-    const confirmed = window.confirm("Delete this sold-out listing?");
-    if (!confirmed) {
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
 
@@ -69,6 +67,7 @@ export function SoldOutListingActions({
       }
 
       setMenuOpen(false);
+      setConfirmOpen(false);
       refreshInPlace();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete listing");
@@ -107,7 +106,7 @@ export function SoldOutListingActions({
           <button
             type="button"
             className="ghost-button small sold-out-listing-actions__delete"
-            onClick={() => void handleDelete()}
+            onClick={() => setConfirmOpen(true)}
             disabled={submitting}
           >
             {submitting ? "Deleting..." : "Delete"}
@@ -115,6 +114,17 @@ export function SoldOutListingActions({
         </div>
       ) : null}
       {error ? <span className="status-text status-text--error">{error}</span> : null}
+      {confirmOpen ? (
+        <ConfirmActionDialog
+          title="Delete this listing?"
+          message={`Remove ${productName} from your shop? Past sales and inventory history will stay safe.`}
+          confirmLabel="Delete listing"
+          confirmTone="danger"
+          submitting={submitting}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => void handleDelete()}
+        />
+      ) : null}
     </div>
   );
 }

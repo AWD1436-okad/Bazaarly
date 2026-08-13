@@ -3,9 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+
 export function ClearCartButton() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function refreshInPlace() {
@@ -17,11 +20,6 @@ export function ClearCartButton() {
   }
 
   async function clearCart() {
-    const confirmed = window.confirm("Are you sure you want to clear your cart?");
-    if (!confirmed) {
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
 
@@ -38,6 +36,7 @@ export function ClearCartButton() {
         throw new Error(payload.error ?? "Unable to clear cart");
       }
 
+      setConfirmOpen(false);
       refreshInPlace();
     } catch (clearError) {
       setError(clearError instanceof Error ? clearError.message : "Unable to clear cart");
@@ -51,12 +50,22 @@ export function ClearCartButton() {
       <button
         type="button"
         className="ghost-button"
-        onClick={() => void clearCart()}
+        onClick={() => setConfirmOpen(true)}
         disabled={submitting}
       >
         {submitting ? "Clearing..." : "Clear Cart"}
       </button>
       {error ? <span className="status-text status-text--error">{error}</span> : null}
+      {confirmOpen ? (
+        <ConfirmActionDialog
+          title="Clear your cart?"
+          message="This removes every item from your cart. Your inventory will not change."
+          confirmLabel="Clear cart"
+          submitting={submitting}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => void clearCart()}
+        />
+      ) : null}
     </div>
   );
 }
