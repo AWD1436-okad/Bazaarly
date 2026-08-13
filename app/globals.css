@@ -2062,6 +2062,16 @@ button:hover .app-icon,
   grid-template-columns: 1.4fr 1fr;
 }
 
+.dashboard-stock-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-stock-panels > .card {
+  min-width: 0;
+}
+
 .supplier-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: clamp(0.85rem, 1.6vw, 1.15rem);
@@ -3918,6 +3928,7 @@ button:hover .app-icon,
   .topbar,
   .hero-card,
   .dashboard-grid,
+  .dashboard-stock-panels,
   .gameplay-grid,
   .auth-card,
   .orders-grid {

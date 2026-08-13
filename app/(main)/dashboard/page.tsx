@@ -382,8 +382,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     })
     .filter((item) => item.availableToList > 0)
     .slice(0, LISTING_OPTION_LIMIT);
-  const freeInventoryRowList = freeInventoryRows
+  const inventoryRowList = freeInventoryRows
     .map((item) => {
+      const totalOwned = sanitizeStockCount(item.quantity);
+      const listedQuantity = Math.min(totalOwned, sanitizeStockCount(item.allocatedQuantity));
       return {
         inventoryId: item.id,
         productId: item.productId,
@@ -392,25 +394,24 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         productSubcategory: item.product.subcategory,
         productImageUrl: item.product.imageUrl,
         unitLabel: item.product.unitLabel,
-        availableToList: sanitizeStockCount(
-          sanitizeStockCount(item.quantity) - sanitizeStockCount(item.allocatedQuantity),
-        ),
+        totalOwned,
+        listedQuantity,
+        availableToList: sanitizeStockCount(totalOwned - listedQuantity),
         marketAveragePrice: item.product.marketState?.marketAveragePrice ?? item.product.basePrice,
       };
-    })
-    .filter((item) => item.availableToList > 0);
+    });
   const totalInventoryPages = Math.max(
     1,
-    Math.ceil(freeInventoryRowList.length / INVENTORY_PAGE_SIZE),
+    Math.ceil(inventoryRowList.length / INVENTORY_PAGE_SIZE),
   );
   const safeInventoryPage = Math.min(inventoryPage, totalInventoryPages);
   const inventoryOffset = (safeInventoryPage - 1) * INVENTORY_PAGE_SIZE;
-  const visibleInventory = freeInventoryRowList.slice(
+  const visibleInventory = inventoryRowList.slice(
     inventoryOffset,
     inventoryOffset + INVENTORY_PAGE_SIZE,
   );
   const hasNextInventoryPage = safeInventoryPage < totalInventoryPages;
-  const freeInventoryCount = freeInventoryRowList.length;
+  const inventoryItemCount = inventoryRowList.length;
   const totalListingsPages = Math.max(1, Math.ceil(listingTotalCount / LISTING_PAGE_SIZE));
   const safeListingsPage = Math.min(listingsPage, totalListingsPages);
   const visibleListings = await prisma.listing.findMany({
@@ -819,17 +820,18 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             )}
           </section>
 
-          <section className="card">
+          <div className="dashboard-stock-panels">
+          <section className="card dashboard-inventory">
             <div className="card-header">
               <div className="card-header__copy">
-                <h2>Items you own</h2>
-                {playerModeConfig.value === "ADVANCED" ? <p>Stock ready to sell.</p> : null}
+                <h2>Inventory</h2>
+                {playerModeConfig.value === "ADVANCED" ? <p>Everything your shop owns.</p> : null}
               </div>
             </div>
             <div className="table-list">
-              {freeInventoryCount === 0 ? (
+              {inventoryItemCount === 0 ? (
                 <div className="empty-state">
-                  All your owned stock is already for sale.
+                  Buy stock to fill your inventory.
                 </div>
               ) : (
                 visibleInventory.map((item) => (
@@ -844,8 +846,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                       <div>
                         <strong>{item.productName}</strong>
                         <span className="muted">
-                          Stock ready to sell: {item.availableToList} - Usual price:{" "}
-                          {formatPriceWithUnit(item.marketAveragePrice, item.unitLabel, currencyCode)}
+                          Owned: {item.totalOwned} - Listed: {item.listedQuantity} - Ready to list: {item.availableToList}
                         </span>
                       </div>
                     </div>
@@ -854,7 +855,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
                 ))
               )}
             </div>
-            {freeInventoryCount > INVENTORY_PAGE_SIZE ? (
+            {inventoryItemCount > INVENTORY_PAGE_SIZE ? (
               <div className="section-row" style={{ marginTop: "1rem" }}>
                 <span className="muted">
                   Page {safeInventoryPage} of {totalInventoryPages}
@@ -883,10 +884,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             ) : null}
           </section>
 
-          <section className="card">
+          <section className="card dashboard-listed-items">
             <div className="card-header">
               <div className="card-header__copy">
-                <h2>Items for sale</h2>
+                <h2>Listed items</h2>
                 {playerModeConfig.showDetailedHelpers ? (
                   <p>Manage prices, pauses, and sold-out items.</p>
                 ) : null}
@@ -905,7 +906,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             </div>
             {visibleListings.length === 0 ? (
               <div className="empty-state">
-                  You have not put any items up for sale yet.
+                  Your listed items will appear here after you publish them.
               </div>
             ) : (
               <div className="table-list">
@@ -977,6 +978,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               </div>
             ) : null}
           </section>
+          </div>
         </div>
 
         <div className="stack">
