@@ -8,6 +8,7 @@ import { CATEGORY_OPTIONS, getCategoryFilterLabel } from "@/lib/catalog";
 import { getMarketplaceData } from "@/lib/marketplace";
 import { getPlayerModeConfig } from "@/lib/player-mode";
 import { getActiveCurrencyCode } from "@/lib/price-profiles";
+import { prepareNpcShopsForSharedSupplier } from "@/lib/simulation";
 
 type MarketplacePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -36,6 +37,7 @@ function buildMarketplaceHref(
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const user = await requireUser();
+  await prepareNpcShopsForSharedSupplier(new Date());
   const currencyCode = await getActiveCurrencyCode(user.id);
   const playerModeConfig = getPlayerModeConfig("ADVANCED");
   const params = (await searchParams) ?? {};

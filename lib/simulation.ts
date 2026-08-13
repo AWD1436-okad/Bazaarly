@@ -57,7 +57,7 @@ const NPC_SHOP_RESTOCK_BATCH_SIZE = 3;
 const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 3;
 const NPC_SHOP_EMAILS = INITIAL_USERS.map((user) => user.email);
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop supplier stock reconciliation v3";
+const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop shared supplier reset v4";
 
 type BotCandidateListing = {
   id: string;
@@ -392,12 +392,10 @@ async function normalizeNpcShopPrices() {
 }
 
 /**
- * Reconciles pre-existing demo NPC listings with the shared supplier pool once.
- * Existing bot stock is preserved, but it is counted as already bought from the
- * original 50-unit supplier allocation. Later NPC restocks reserve and decrement
- * the same supplier row inside their purchase transaction.
+ * Removes stock from the old demo bot shops once. After this reset, bot shops
+ * can only receive stock through the same paid supplier transaction as players.
  */
-export async function reconcileNpcShopStockFromSupplier() {
+export async function resetNpcShopStockForSharedSupplier() {
   await prisma.worldState.upsert({
     where: { id: "global" },
     update: {},
@@ -419,22 +417,14 @@ export async function reconcileNpcShopStockFromSupplier() {
     });
     if (existingReset) return false;
 
-    const npcStockByProduct = await tx.listing.groupBy({
-      by: ["productId"],
-      where: {
-        shop: { ownerId: { in: ownerIds } },
-        quantity: { gt: 0 },
-      },
-      _sum: { quantity: true },
+    await tx.listing.updateMany({
+      where: { shop: { ownerId: { in: ownerIds } } },
+      data: { quantity: 0, active: false, soldOutAt: new Date() },
     });
-
-    for (const stock of npcStockByProduct) {
-      const alreadyBought = sanitizeStockCount(stock._sum.quantity ?? 0);
-      await tx.marketProductState.updateMany({
-        where: { productId: stock.productId },
-        data: { supplierStock: Math.max(0, 50 - alreadyBought) },
-      });
-    }
+    await tx.inventory.updateMany({
+      where: { userId: { in: ownerIds } },
+      data: { quantity: 0, allocatedQuantity: 0 },
+    });
     await tx.businessLedgerEntry.createMany({
       data: ownerIds.map((userId) => ({
         userId,
@@ -442,11 +432,20 @@ export async function reconcileNpcShopStockFromSupplier() {
         category: BusinessLedgerEntryCategory.OTHER_EXPENSE,
         amount: 0,
         description: NPC_SHOP_STOCK_RESET_MARKER,
-        data: { source: "npc_shared_supplier_reconciliation" },
+        data: { source: "npc_shared_supplier_reset" },
       })),
     });
     return true;
   });
+}
+
+/**
+ * Runs the one-time reset and immediately starts a small, paid bot-shop refill.
+ * Subsequent calls do nothing here; normal simulation handles later refills.
+ */
+export async function prepareNpcShopsForSharedSupplier(now: Date) {
+  const reset = await resetNpcShopStockForSharedSupplier();
+  return reset ? restockNpcShopsFromSupplier(now) : 0;
 }
 
 function getDynamicBotCooldownMs({
@@ -1496,7 +1495,7 @@ export async function runMarketSimulation(force = false, debug = false) {
     });
   }
 
-  await reconcileNpcShopStockFromSupplier();
+  await prepareNpcShopsForSharedSupplier(now);
   await runAutoRestock(now);
   await restockNpcShopsFromSupplier(now);
   await normalizeNpcShopPrices();
