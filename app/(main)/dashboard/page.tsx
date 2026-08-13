@@ -564,36 +564,32 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               </div>
             )}
           </article>
+        </section>
 
-          <article className="card dashboard-simple__stock-card">
-            <div className="section-heading">
-              <div>
-                <h2>Your stock</h2>
-                <p className="muted">Items ready to list.</p>
-              </div>
-              <Link href="/dashboard/supplier" className="ghost-button">Buy stock</Link>
+        <section className="card dashboard-simple__listed-card" aria-labelledby="simple-listed-items-title">
+          <div className="section-heading">
+            <div>
+              <h2 id="simple-listed-items-title">Listed items</h2>
+              <p className="muted">Items already for sale in your shop.</p>
             </div>
-            {visibleInventory.length > 0 ? (
-              <div className="stock-list">
-                {visibleInventory.map((item) => (
-                  <div key={item.inventoryId} className="stock-list__item">
-                    <ProductVisual
-                      name={item.productName}
-                      category={item.productCategory}
-                      imageUrl={item.productImageUrl}
-                      size="compact"
-                    />
-                    <div>
-                      <strong>{item.productName}</strong>
-                      <span className="muted">{item.availableToList} ready to sell</span>
-                    </div>
+          </div>
+          {visibleListings.length === 0 ? (
+            <div className="empty-state"><p>Your listed items will appear here.</p></div>
+          ) : (
+            <div className="stock-list">
+              {visibleListings.map((listing) => (
+                <div key={listing.id} className="stock-list__item dashboard-simple__listed-item">
+                  <div>
+                    <strong>{listing.product.name}</strong>
+                    <span className="muted">
+                      {listing.isPaused ? "Paused" : getLiveStockStatusMessage(listing.quantity)}
+                    </span>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state"><p>No stock yet.</p></div>
-            )}
-          </article>
+                  <strong>{formatPriceWithUnit(listing.price, listing.product.unitLabel, currencyCode)}</strong>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     );

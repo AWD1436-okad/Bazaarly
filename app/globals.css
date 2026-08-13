@@ -588,7 +588,7 @@ textarea {
 
 .dashboard-simple__actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -597,9 +597,24 @@ textarea {
 }
 
 .dashboard-simple__list-card,
-.dashboard-simple__stock-card {
+.dashboard-simple__listed-card {
   display: grid;
   gap: 1rem;
+}
+
+.dashboard-simple__listed-item {
+  justify-content: space-between;
+}
+
+.dashboard-simple__listed-item > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.dashboard-simple__listed-item > strong {
+  flex: 0 0 auto;
+  text-align: right;
 }
 
 .stock-list {
