@@ -19,7 +19,7 @@ import {
   isRestockCycleDue,
 } from "@/lib/auto-restock";
 import { recordBusinessExpense } from "@/lib/business-ledger";
-import { INITIAL_BOTS, INITIAL_USERS } from "@/lib/catalog";
+import { INITIAL_BOTS } from "@/lib/catalog";
 import { formatCurrency } from "@/lib/money";
 import { calculateProfit, getSaleCostUnitPrice } from "@/lib/profit";
 import { prisma } from "@/lib/prisma";
@@ -54,10 +54,11 @@ const BOT_WALLET_REFILL_FLOOR = 120_000;
 // small makes their stock visible and prevents the market from looking seeded.
 const NPC_SHOP_RESTOCK_TARGET = 6;
 const NPC_SHOP_RESTOCK_BATCH_SIZE = 3;
-const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 3;
-const NPC_SHOP_EMAILS = INITIAL_USERS.map((user) => user.email);
+const MAX_NPC_SHOP_RESTOCKS_PER_SIMULATION = 12;
+const SYSTEM_SHOP_EMAIL_SUFFIX = "@profitplanet.local";
+const BOT_WALLET_EMAIL = "bot-market@profitplanet.local";
 const MAX_NPC_LISTING_PRICE_MULTIPLIER = 1.8;
-const NPC_SHOP_STOCK_RESET_MARKER = "NPC shop shared supplier reset v4";
+const NPC_SHOP_STOCK_RESET_MARKER = "All system bot shops reset for shared supplier v5";
 
 type BotCandidateListing = {
   id: string;
@@ -293,7 +294,12 @@ async function restockNpcShopsFromSupplier(now: Date) {
       quantity: { lt: NPC_SHOP_RESTOCK_TARGET },
       shop: {
         status: "ACTIVE",
-        owner: { email: { in: NPC_SHOP_EMAILS } },
+        owner: {
+          email: {
+            endsWith: SYSTEM_SHOP_EMAIL_SUFFIX,
+            not: BOT_WALLET_EMAIL,
+          },
+        },
       },
     },
     orderBy: { updatedAt: "asc" },
@@ -376,7 +382,16 @@ async function restockNpcShopsFromSupplier(now: Date) {
 
 async function normalizeNpcShopPrices() {
   const listings = await prisma.listing.findMany({
-    where: { shop: { owner: { email: { in: NPC_SHOP_EMAILS } } } },
+    where: {
+      shop: {
+        owner: {
+          email: {
+            endsWith: SYSTEM_SHOP_EMAIL_SUFFIX,
+            not: BOT_WALLET_EMAIL,
+          },
+        },
+      },
+    },
     select: { id: true, price: true, product: { select: { basePrice: true, marketState: { select: { marketAveragePrice: true } } } } },
   });
 
@@ -403,7 +418,12 @@ export async function resetNpcShopStockForSharedSupplier() {
   });
 
   const npcOwners = await prisma.user.findMany({
-    where: { email: { in: NPC_SHOP_EMAILS } },
+    where: {
+      email: {
+        endsWith: SYSTEM_SHOP_EMAIL_SUFFIX,
+        not: BOT_WALLET_EMAIL,
+      },
+    },
     select: { id: true },
   });
   if (npcOwners.length === 0) return false;
